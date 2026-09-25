@@ -31,9 +31,16 @@ public partial class App : Application
             if (Instance is not null)
                 Instance.Activated += (_, _) => Dispatcher.UIThread.Post(window.BringForward);
 
-            window.Opened += async (_, _) => await vm.StartAsync();
+            vm.Update.Exit = () => desktop.Shutdown();
+            window.Opened += async (_, _) =>
+            {
+                UpdateService.CleanupOld(AppContext.BaseDirectory);
+                vm.Update.Start();
+                await vm.StartAsync();
+            };
             desktop.Exit += (_, _) =>
             {
+                vm.Update.Stop();
                 Instance?.Dispose();
                 backend.DisposeAsync().AsTask().Wait(TimeSpan.FromSeconds(3));
             };

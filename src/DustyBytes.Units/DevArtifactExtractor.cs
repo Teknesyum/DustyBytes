@@ -7,6 +7,8 @@ public sealed class DevArtifactExtractor(DevArtifactRules? rules = null) : IUnit
 {
     readonly DevArtifactRules _rules = rules ?? DevArtifactRules.LoadDefault();
 
+    public static readonly TimeSpan ActiveWindow = TimeSpan.FromDays(1);
+
     public IEnumerable<Unit> Extract(UnitContext ctx)
     {
         var units = new List<Unit>();
@@ -45,6 +47,8 @@ public sealed class DevArtifactExtractor(DevArtifactRules? rules = null) : IUnit
                     skip.Add(n);
 
                 var lastUsed = dir.NewestWriteTicks > 0 ? dir.NewestWrite : (DateTimeOffset?)null;
+                if (lastUsed is { } recent && ctx.Now - recent < ActiveWindow)
+                    continue;
                 var usage = new UsageSignal(lastUsed, "proje kaynakları son yazma", 0.6);
                 var reason = lastUsed is { } used
                     ? $"Proje {dir.Name}, son değişiklik {Format.Ago(used, ctx.Now)}"

@@ -109,7 +109,7 @@ internal sealed unsafe class MftScanRun
             _errors.Add($"$ATTRIBUTE_LIST taşıyan kayıt: {_attrListRecords}, $DATA bulunamayan: {_attrListLost}");
         if (_badRecords > 0)
             _errors.Add($"Fixup doğrulaması tutmayan kayıt: {_badRecords}");
-        Report("Tamamlandı", 100, true);
+        Report("Dosyalar sayıldı, sonuç hazırlanıyor", 100, true);
         return new ScanResult
         {
             Root = rootNode,

@@ -18,7 +18,7 @@ static class Tree
 
     public static ScanNode File(string name, long size, DateTimeOffset? lastWrite = null)
     {
-        var lw = lastWrite ?? DateTimeOffset.UtcNow;
+        var lw = lastWrite ?? Ctx.Now.AddDays(-30);
         return new ScanNode
         {
             Name = name,

@@ -20,6 +20,9 @@ public sealed partial class SessionState(IAppBackend backend) : ObservableObject
     private bool _isRefreshing;
 
     [ObservableProperty]
+    private bool _isRestoring;
+
+    [ObservableProperty]
     private string? _scanError;
 
     [ObservableProperty]
@@ -41,6 +44,7 @@ public sealed partial class SessionState(IAppBackend backend) : ObservableObject
         Ledger = backend.ReadLedger();
         _ = RefreshQuarantineAsync(shell);
         ScanSnapshot? cached = null;
+        IsRestoring = true;
         try
         {
             cached = await backend.LoadCachedAsync(CancellationToken.None);
@@ -48,6 +52,10 @@ public sealed partial class SessionState(IAppBackend backend) : ObservableObject
         catch (Exception e) when (e is IOException or InvalidOperationException or UnauthorizedAccessException)
         {
             shell.Fail("Önceki tarama okunamadı: " + e.Message);
+        }
+        finally
+        {
+            IsRestoring = false;
         }
         if (cached is not null)
             SetSnapshot(cached);

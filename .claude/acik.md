@@ -1,11 +1,3 @@
-- [x] A0 İskelet — 2026-09-25 10:55 — motor + arayüz, 295/295 test, bağımsız inceleme 2 kez
-- [x] A1 Salt Okunur Tarama — 2026-09-25 10:55 — motor + arayüz, 295/295 test, bağımsız inceleme 2 kez
-- [x] A2 Güvenli Silme — 2026-09-25 10:55 — motor + arayüz, 295/295 test, bağımsız inceleme 2 kez
-- [x] A3 Sinyal ve Puan — 2026-09-25 10:55 — motor + arayüz, 295/295 test, bağımsız inceleme 2 kez
-- [x] A4 Kaldırıcı — 2026-09-25 10:55 — motor + arayüz, 295/295 test, bağımsız inceleme 2 kez
-- [x] A5 Temizlik — 2026-09-25 10:55 — motor + arayüz, 295/295 test, bağımsız inceleme 2 kez
-- [x] A6 Hızlı Tarama — 2026-09-25 10:55 — motor + arayüz, 295/295 test, bağımsız inceleme 2 kez
 - [ ] A7 Yayın — 2026-09-25 10:55 — README, diyagram, Kur yazıldı; güncelleme rozeti ve yayın akışı ajanda; kod imzası sahibin satın alma kararı
-- [x] ajan: Arayüz bağımsız inceleme — 2026-09-25 12:30 — docs/dalga/arayuz-inceleme-1.md, -2.md
-- [x] ajan: Arayüz bulgularını düzelt — 2026-09-25 12:32 — docs/dalga/arayuz-duzeltme.md
-- [ ] ajan: Güncelleme rozeti ve yayın akışı — 2026-09-25 12:57 — sonucu aktarılacak
+- [x] ajan: Güncelleme rozeti ve yayın akışı — 2026-09-25 12:57 — docs/dalga/guncelleme.md
+- [x] ajan: Arayüz inceleme 4 — 2026-09-25 13:20 — docs/dalga/arayuz-inceleme-3.md, -4.md

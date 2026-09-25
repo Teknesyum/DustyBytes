@@ -149,7 +149,7 @@ internal sealed class FileScanRun
         ScanTree.Aggregate(rootNode);
         FlushBatch(final: true);
         var (files, dirs) = ScanTree.Count(rootNode);
-        Report("Tamamlandı", 100, force: true);
+        Report("Dosyalar sayıldı, sonuç hazırlanıyor", 100, force: true);
         _cts.Dispose();
         return new ScanResult
         {

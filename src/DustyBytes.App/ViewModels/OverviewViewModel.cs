@@ -75,13 +75,16 @@ public sealed partial class OverviewViewModel : ViewModelBase
     public bool IsScanning => Session.Scan.IsRunning;
     public bool HasError => Session.ScanError is not null && !Session.HasSnapshot && !IsScanning;
     public string ErrorText => Session.ScanError ?? "";
-    public bool IsEmpty => !Session.HasSnapshot && !IsScanning && Session.ScanError is null;
+    public bool IsRestoring => Session.IsRestoring && !Session.HasSnapshot;
+    public bool IsEmpty => !Session.HasSnapshot && !IsScanning && !Session.IsRestoring && Session.ScanError is null;
     public bool ShowContent => Session.HasSnapshot;
-    public string PrimaryText => HasError ? "Yeniden dene" : Session.HasSnapshot ? "Yeniden tara" : "Taramayı başlat";
+    public string PrimaryText => HasError ? "Yeniden dene" : Session.HasSnapshot || Session.IsRestoring ? "Yeniden tara" : "Taramayı başlat";
 
     public Availability FastScanState => _main.Backend.FastScanAvailability();
-    public bool FastScanEnabled => FastScanState.Enabled && !IsScanning;
-    public string FastScanTip => FastScanState.Reason;
+    public bool FastScanEnabled => FastScanState.Enabled && !IsScanning && !Session.IsRestoring;
+    const string RestoringTip = "Önceki tarama okunuyor; bitince tarama kendiliğinden başlar";
+    public string FastScanTip => Session.IsRestoring ? RestoringTip : FastScanState.Reason;
+    public string ScanTip => Session.IsRestoring ? RestoringTip : "Sistem sürücüsü yönetici izni istemeden taranır";
 
     void OnSession(object? sender, PropertyChangedEventArgs e)
     {
@@ -106,9 +109,12 @@ public sealed partial class OverviewViewModel : ViewModelBase
         OnPropertyChanged(nameof(HasError));
         OnPropertyChanged(nameof(ErrorText));
         OnPropertyChanged(nameof(IsEmpty));
+        OnPropertyChanged(nameof(IsRestoring));
         OnPropertyChanged(nameof(ShowContent));
         OnPropertyChanged(nameof(PrimaryText));
         OnPropertyChanged(nameof(FastScanEnabled));
+        OnPropertyChanged(nameof(FastScanTip));
+        OnPropertyChanged(nameof(ScanTip));
         StartScanCommand.NotifyCanExecuteChanged();
         FastScanCommand.NotifyCanExecuteChanged();
     }
@@ -162,7 +168,7 @@ public sealed partial class OverviewViewModel : ViewModelBase
         _ = Session.RefreshQuarantineAsync(_main);
     }
 
-    bool CanScan() => !IsScanning;
+    bool CanScan() => !IsScanning && !Session.IsRestoring;
 
     [RelayCommand(CanExecute = nameof(CanScan))]
     private async Task StartScan()

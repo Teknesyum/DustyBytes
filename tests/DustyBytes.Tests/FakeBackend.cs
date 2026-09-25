@@ -21,6 +21,19 @@ public static class TestSetup
         {
             var vm = new MainViewModel(FakeBackend.Rich(), Environment.GetEnvironmentVariable("DUSTYBYTES_START_SCREEN"));
             vm.Session.SetSnapshot(FakeBackend.Snapshot());
+            switch (Environment.GetEnvironmentVariable("UC_ROZET"))
+            {
+                case "sari":
+                    vm.Update.State = UpdateState.Available;
+                    break;
+                case "iniyor":
+                    vm.Update.Percent = 42;
+                    vm.Update.State = UpdateState.Downloading;
+                    break;
+                case "yesil":
+                    vm.Update.State = UpdateState.Ready;
+                    break;
+            }
             return vm;
         };
     }

@@ -11,7 +11,7 @@ Windows disk cleaner, by purpose.
 | What | Count | Source |
 |---|---|---|
 | Open source repositories reviewed | 61, in 7 reports | `docs/inceleme/` |
-| Tests passing | 295 (scan 18, signals 24, units 39, safety 44, uninstall 105, cleaning 27, UI 38) | `dotnet test` |
+| Tests passing | 322 (scan 18, signals 24, units 40, safety 44, uninstall 105, cleaning 27, UI 64) | `dotnet test` |
 | Full scan of `C:\` with the MFT reader | 8.6 s, 2.84 M files | one machine, n=1 |
 | Full scan of `C:\` with `FindFirstFileEx` | 33.2 s, 2.90 M files | same machine |
 | Installed programs detected | 199 (47 MSI, 53 MSIX) | same machine |
@@ -53,7 +53,11 @@ Storage Sense and Disk Cleanup clear temp files, the recycle bin and old Windows
 
 ## Installation
 
-Windows 10 1904 or later, x64. The .NET 10 SDK is needed to build.
+Windows 10 version 2004 (build 19041) or later, x64.
+
+The quickest way is the [Releases](https://github.com/Teknesyum/DustyBytes/releases) page: download `DustyBytes-win-x64.zip`, check it against the `.sha256` file next to it, unzip and run `DustyBytes.exe`. The build is self-contained, so no .NET install is needed. It is not code-signed yet, so SmartScreen may warn on first launch.
+
+To build from source you need the .NET 10 SDK.
 
 From a clone, double-click `Kur.bat`. It opens the install window, builds the program and writes a desktop shortcut. Set `KUR_PROVA=1` for a dry run that installs to a temporary folder and writes no shortcut.
 
@@ -89,6 +93,7 @@ The score is `log2(1 + MB) × idle weight × confidence`. Idle weight grows with
 - **Programs** — installed programs with size and last use; uninstall shows the leftover list before anything is removed. *(screenshot)*
 - **Cleaning** — rule groups with a preview of size and file count. *(screenshot)*
 - **Quarantine** — what was removed, when, and a restore button. *(screenshot)*
+- **Update badge** — a dot and "Update" at the top right: yellow means a new version is out, click to download it in the background; green means it is downloaded and SHA-256 verified, click to install. Installing asks first and says the program will close and reopen on the new version. *(screenshot)*
 
 ## For Developers
 

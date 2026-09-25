@@ -162,7 +162,7 @@ public sealed class FileScannerTests(ScanFixture fx)
         var steps = new List<ScanProgress>();
         var progress = new SyncProgress(steps.Add);
         await new FileScanner().ScanAsync(fx.Root, Opts, progress, default);
-        Assert.Equal("Tamamlandı", steps[^1].Step);
+        Assert.Equal("Dosyalar sayıldı, sonuç hazırlanıyor", steps[^1].Step);
     }
 
     private sealed class SyncProgress(Action<ScanProgress> a) : IProgress<ScanProgress>

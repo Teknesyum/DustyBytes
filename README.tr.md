@@ -11,7 +11,7 @@ Amacına göre Windows disk temizleyici.
 | Ne | Sayı | Kaynak |
 |---|---|---|
 | İncelenen açık kaynak depo | 61, yedi raporda | `docs/inceleme/` |
-| Geçen test | 295 (tarama 18, sinyal 24, birim 39, güvenlik 44, kaldırma 105, temizlik 27, arayüz 38) | `dotnet test` |
+| Geçen test | 322 (tarama 18, sinyal 24, birim 40, güvenlik 44, kaldırma 105, temizlik 27, arayüz 64) | `dotnet test` |
 | `C:\` tam tarama, MFT okuyucu | 8,6 sn, 2,84 M dosya | tek makine, n=1 |
 | `C:\` tam tarama, `FindFirstFileEx` | 33,2 sn, 2,90 M dosya | aynı makine |
 | Bulunan kurulu program | 199 (47 MSI, 53 MSIX) | aynı makine |
@@ -53,7 +53,11 @@ Depolama Algısı ve Disk Temizleme geçici dosyaları, geri dönüşüm kutusun
 
 ## Kurulum
 
-Windows 10 1904 ya da sonrası, x64. Derlemek için .NET 10 SDK gerekir.
+Windows 10 sürüm 2004 (derleme 19041) ya da sonrası, x64.
+
+En kısa yol [Releases](https://github.com/Teknesyum/DustyBytes/releases) sayfası: `DustyBytes-win-x64.zip`'i indir, yanındaki `.sha256` dosyasıyla karşılaştır, aç ve `DustyBytes.exe`'yi çalıştır. Paket kendi başına çalışır, .NET kurmak gerekmez. Henüz kod imzası yok; SmartScreen ilk açılışta uyarabilir.
+
+Kaynaktan derlemek için .NET 10 SDK gerekir.
 
 Depoyu klonladıktan sonra `Kur.bat`'a çift tıkla. Kurulum penceresini açar, programı derler ve masaüstü kısayolu yazar. `KUR_PROVA=1` verirsen prova koşar: geçici klasöre kurar, kısayol yazmaz.
 
@@ -89,6 +93,7 @@ Puan `log2(1 + MB) × boşta ağırlığı × güven`. Boşta ağırlığı son 
 - **Programlar** — boyut ve son kullanımıyla kurulu programlar; kaldırma, bir şey silinmeden önce kalıntı listesini gösterir. *(ekran görüntüsü)*
 - **Temizlik** — boyut ve dosya sayısı önizlemeli kural grupları. *(ekran görüntüsü)*
 - **Karantina** — neyin ne zaman kaldırıldığı ve geri yükleme düğmesi. *(ekran görüntüsü)*
+- **Güncelleme rozeti** — sağ üstte nokta ve "Güncelleme": sarı yeni sürüm çıktı demek, tıklayınca arkada iner; yeşil indi ve SHA-256 doğrulandı demek, tıklayınca kurulur. Kurmadan önce sorar ve programın kapanıp yeni sürümle açılacağını söyler. *(ekran görüntüsü)*
 
 ## Geliştirici İçin
 

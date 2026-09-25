@@ -71,7 +71,7 @@
     {
       "rule": "okunurluk/pair-contrast",
       "file": "src/DustyBytes.App/Assets/AppStyles.axaml",
-      "line": 297,
+      "line": 352,
       "reason": "Yanlış eşleşme: NeonBlue zeminli kutunun içindeki işaret OnBlue ile çizilir (satır 279); TextBody yalnız kutunun dışındaki etikete uygulanır. KontrastTests altı ekranda ve üç ölçekte geçiyor."
     }
   ]

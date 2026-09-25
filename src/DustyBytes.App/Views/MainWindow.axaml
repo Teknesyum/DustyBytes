@@ -27,23 +27,33 @@
 
     <DockPanel>
       <Grid Name="TitleBar" DockPanel.Dock="Top" Height="{StaticResource TitleBarHeightMax}"
-            Background="Transparent" ColumnDefinitions="Auto,Auto,*,Auto,Auto,Auto,Auto">
+            Background="Transparent" ColumnDefinitions="Auto,Auto,*,Auto,Auto,Auto,Auto,Auto">
         <TextBlock Theme="{StaticResource Label}" Text="DustyBytes" VerticalAlignment="Center" Margin="16,0,12,0" IsHitTestVisible="False"/>
         <Border Grid.Column="1" IsVisible="{Binding IsDryRun}" BorderBrush="{StaticResource Warning50}"
                 BorderThickness="{StaticResource BorderWidth}" CornerRadius="{StaticResource Radius}"
                 Padding="8,0" VerticalAlignment="Center" IsHitTestVisible="False">
           <TextBlock Theme="{StaticResource WarningBody}" FontSize="{StaticResource FontSize1}" Text="{Binding DryRunText}"/>
         </Border>
-        <v:SignatureView Name="Signature" Grid.Column="3" Margin="0,0,12,0"/>
-        <Button Name="MinimizeButton" Grid.Column="4" Theme="{StaticResource WindowButton}"
+        <Button Name="UpdateBadge" Grid.Column="3" Theme="{StaticResource BadgeButton}" Classes="update"
+                Classes.ready="{Binding Update.IsReady}" Margin="0,0,8,0"
+                IsVisible="{Binding Update.IsVisible}" Command="{Binding Update.ActCommand}"
+                ToolTip.Tip="{Binding Update.Tip}" AutomationProperties.Name="{Binding Update.Tip}">
+          <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space2}">
+            <Ellipse Name="UpdateDot" Width="{StaticResource Space2}" Height="{StaticResource Space2}"
+                     Fill="{Binding $parent[Button].Foreground}" VerticalAlignment="Center"/>
+            <TextBlock Name="UpdateText" Text="{Binding Update.Text}" VerticalAlignment="Center"/>
+          </StackPanel>
+        </Button>
+        <v:SignatureView Name="Signature" Grid.Column="4" Margin="0,0,12,0"/>
+        <Button Name="MinimizeButton" Grid.Column="5" Theme="{StaticResource WindowButton}"
                 AutomationProperties.Name="Simge durumuna küçült" ToolTip.Tip="Simge durumuna küçült">
           <Path Data="M0 0H10" Stroke="{StaticResource TextBody}" StrokeThickness="1" Width="10" MinHeight="1" VerticalAlignment="Center"/>
         </Button>
-        <Button Name="MaximizeButton" Grid.Column="5" Theme="{StaticResource WindowButton}"
+        <Button Name="MaximizeButton" Grid.Column="6" Theme="{StaticResource WindowButton}"
                 AutomationProperties.Name="Ekranı kapla" ToolTip.Tip="Ekranı kapla">
           <Path Data="M0 0H10V10H0Z" Stroke="{StaticResource TextBody}" StrokeThickness="1" Width="10" MinHeight="10"/>
         </Button>
-        <Button Name="CloseButton" Grid.Column="6" Classes="close" Theme="{StaticResource WindowButton}"
+        <Button Name="CloseButton" Grid.Column="7" Classes="close" Theme="{StaticResource WindowButton}"
                 AutomationProperties.Name="Kapat" ToolTip.Tip="Kapat">
           <Path Data="M0 0L10 10M10 0L0 10" Stroke="{Binding $parent[Button].Foreground}" StrokeThickness="1" Width="10" MinHeight="10"/>
         </Button>

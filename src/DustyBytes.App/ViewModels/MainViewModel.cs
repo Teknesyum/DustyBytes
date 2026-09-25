@@ -12,10 +12,13 @@ public sealed partial class MainViewModel : ObservableObject
 
     readonly HashSet<TaskProgressViewModel> _running = [];
     readonly Stack<ConfirmViewModel> _pendingConfirms = new();
+    int _busyCount;
 
-    public MainViewModel(IAppBackend backend, string? startScreen = null)
+    public MainViewModel(IAppBackend backend, string? startScreen = null, UpdateService? updates = null)
     {
         Backend = backend;
+        Update = new UpdateViewModel(updates ?? UpdateService.FromEnvironment(), () => IsBusy,
+            (title, message, confirm) => ConfirmAsync(title, message, confirm, false), m => Notify(m), m => Fail(m));
         Session = new SessionState(backend);
         Session.Attach(this);
         Overview = new OverviewViewModel(this);
@@ -50,6 +53,9 @@ public sealed partial class MainViewModel : ObservableObject
     public ProgramsViewModel Programs { get; }
     public CleanupViewModel Cleanup { get; }
     public QuarantineViewModel Quarantine { get; }
+    public UpdateViewModel Update { get; }
+
+    public bool IsBusy => Volatile.Read(ref _busyCount) > 0;
 
     public Func<Uri, Task<bool>>? Launcher { get; set; }
 
@@ -87,6 +93,7 @@ public sealed partial class MainViewModel : ObservableObject
             _running.Add(progress);
         else
             _running.Remove(progress);
+        Volatile.Write(ref _busyCount, _running.Count);
     }
 
     public void Tick(TimeSpan elapsed)

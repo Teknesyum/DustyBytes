@@ -1,0 +1,62 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Read version from tag
+        id: version
+        shell: pwsh
+        run: |
+          $tag = '${{ github.ref_name }}'
+          $version = $tag.TrimStart('v', 'V')
+          if ($version -notmatch '^\d+\.\d+\.\d+([-+].*)?$') { throw "Tag $tag is not vX.Y.Z" }
+          "version=$version" >> $env:GITHUB_OUTPUT
+          "prerelease=$([bool]($version -match '-'))".ToLower() >> $env:GITHUB_OUTPUT
+
+      - name: Test
+        run: dotnet test DustyBytes.slnx -c Release -p:Version=${{ steps.version.outputs.version }}
+
+      - name: Publish
+        run: dotnet publish src/DustyBytes.App -c Release -r win-x64 --self-contained -o publish -p:Version=${{ steps.version.outputs.version }}
+
+      - name: Package
+        shell: pwsh
+        run: |
+          $zip = 'DustyBytes-win-x64.zip'
+          Compress-Archive -Path publish/* -DestinationPath $zip -CompressionLevel Optimal
+          $sha = (Get-FileHash -Algorithm SHA256 $zip).Hash.ToLowerInvariant()
+          Set-Content -Path "$zip.sha256" -Value "$sha  $zip" -NoNewline -Encoding ascii
+          $notes = @(
+            "DustyBytes ${{ steps.version.outputs.version }} for Windows x64 (self-contained)."
+            ""
+            "SHA-256 ($zip): ``$sha``"
+            ""
+            "This build is not code-signed. Windows SmartScreen may warn on first launch; compare the SHA-256 above before running it."
+            "The in-app update badge verifies this hash before it offers to install."
+          )
+          Set-Content -Path notes.md -Value $notes -Encoding utf8
+
+      - name: Create release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ghArgs = @('release', 'create', '${{ github.ref_name }}', 'DustyBytes-win-x64.zip', 'DustyBytes-win-x64.zip.sha256',
+                    '--title', 'DustyBytes ${{ steps.version.outputs.version }}', '--notes-file', 'notes.md', '--verify-tag')
+          if ('${{ steps.version.outputs.prerelease }}' -eq 'true') { $ghArgs += '--prerelease' }
+          gh @ghArgs

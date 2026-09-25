@@ -22,13 +22,21 @@
                   ToolTip.Tip="{Binding FastScanTip}" ToolTip.ShowOnDisabled="True"/>
           <Button Name="ScanButton" Classes="primary" Content="{Binding PrimaryText}"
                   Command="{Binding StartScanCommand}"
-                  ToolTip.Tip="Sistem sürücüsü yönetici izni istemeden taranır" ToolTip.ShowOnDisabled="True"/>
+                  ToolTip.Tip="{Binding ScanTip}" ToolTip.ShowOnDisabled="True"/>
         </StackPanel>
       </Grid>
 
       <Panel IsVisible="{Binding IsScanning}">
         <v:TaskProgressView DataContext="{Binding Progress}"/>
       </Panel>
+
+      <Border Theme="{StaticResource Panel}" IsVisible="{Binding IsRestoring}">
+        <StackPanel Spacing="{StaticResource FieldGap}">
+          <TextBlock Theme="{StaticResource H3}" Text="Önceki tarama yükleniyor"/>
+          <TextBlock Theme="{StaticResource Hint}" Text="Son taramanın sonucu diskten okunuyor; bitince yeni tarama kendiliğinden başlar."/>
+          <ProgressBar IsIndeterminate="True"/>
+        </StackPanel>
+      </Border>
 
       <Border Theme="{StaticResource Panel}" IsVisible="{Binding IsEmpty}">
         <StackPanel Spacing="{StaticResource FieldGap}">
