@@ -1,0 +1,44 @@
+{
+  "id": "chrome",
+  "name": "Google Chrome",
+  "source": "bleachbit/cleaners/google_chrome.xml (GPL-3.0-or-later, Andrew Ziem) ve PolarityFlow/CacheFlow güvenli klasör listesi (MIT) — yalnız önbellek seçenekleri alındı, geçmiş/çerez/parola hiç yok",
+  "running": {
+    "processNames": ["chrome.exe"],
+    "lockFiles": []
+  },
+  "options": [
+    {
+      "id": "cache",
+      "label": "HTTP Önbelleği",
+      "warning": null,
+      "actions": [
+        { "type": "Delete", "mode": "Recurse", "path": "%LOCALAPPDATA%/Google/Chrome/User Data/*/Cache" },
+        { "type": "Delete", "mode": "Recurse", "path": "%LOCALAPPDATA%/Google/Chrome/User Data/*/Cache2" }
+      ]
+    },
+    {
+      "id": "code-cache",
+      "label": "Kod Önbelleği",
+      "warning": null,
+      "actions": [
+        { "type": "Delete", "mode": "Recurse", "path": "%LOCALAPPDATA%/Google/Chrome/User Data/*/Code Cache" }
+      ]
+    },
+    {
+      "id": "gpu-cache",
+      "label": "GPU Önbelleği",
+      "warning": null,
+      "actions": [
+        { "type": "Delete", "mode": "Recurse", "path": "%LOCALAPPDATA%/Google/Chrome/User Data/*/GPUCache" }
+      ]
+    },
+    {
+      "id": "service-worker-cache",
+      "label": "Service Worker Önbelleği",
+      "warning": null,
+      "actions": [
+        { "type": "Delete", "mode": "Recurse", "path": "%LOCALAPPDATA%/Google/Chrome/User Data/*/Service Worker/CacheStorage" }
+      ]
+    }
+  ]
+}

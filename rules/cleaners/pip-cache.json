@@ -1,0 +1,19 @@
+{
+  "id": "pip-cache",
+  "name": "pip HTTP Önbelleği",
+  "source": "bleachbit fikri (GPL-3.0-or-later, Andrew Ziem), yol pip belgelerine göre yeniden yazıldı; yalnız http önbelleği, kurulu paketler değil",
+  "running": {
+    "processNames": [],
+    "lockFiles": []
+  },
+  "options": [
+    {
+      "id": "cache",
+      "label": "pip Önbelleği",
+      "warning": null,
+      "actions": [
+        { "type": "Delete", "mode": "Recurse", "path": "%LOCALAPPDATA%/pip/Cache" }
+      ]
+    }
+  ]
+}

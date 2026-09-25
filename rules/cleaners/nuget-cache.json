@@ -1,0 +1,27 @@
+{
+  "id": "nuget-cache",
+  "name": "NuGet HTTP Önbelleği",
+  "source": "bleachbit fikri (GPL-3.0-or-later, Andrew Ziem), yol NuGet belgelerine göre yeniden yazıldı; yalnız http önbelleği, %USERPROFILE%/.nuget/packages paket deposuna dokunulmaz",
+  "running": {
+    "processNames": [],
+    "lockFiles": []
+  },
+  "options": [
+    {
+      "id": "v3-cache",
+      "label": "v3 HTTP Önbelleği",
+      "warning": null,
+      "actions": [
+        { "type": "Delete", "mode": "Recurse", "path": "%LOCALAPPDATA%/NuGet/v3-cache" }
+      ]
+    },
+    {
+      "id": "plugins-cache",
+      "label": "Eklenti Önbelleği",
+      "warning": null,
+      "actions": [
+        { "type": "Delete", "mode": "Recurse", "path": "%LOCALAPPDATA%/NuGet/plugins-cache" }
+      ]
+    }
+  ]
+}

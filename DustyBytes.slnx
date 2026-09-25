@@ -9,6 +9,12 @@
     <Project Path="src/DustyBytes.Worker/DustyBytes.Worker.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/DustyBytes.Safety.Tests/DustyBytes.Safety.Tests.csproj" />
+    <Project Path="tests/DustyBytes.Scan.Tests/DustyBytes.Scan.Tests.csproj" />
+    <Project Path="tests/DustyBytes.Rules.Tests/DustyBytes.Rules.Tests.csproj" />
+    <Project Path="tests/DustyBytes.Signals.Tests/DustyBytes.Signals.Tests.csproj" />
     <Project Path="tests/DustyBytes.Tests/DustyBytes.Tests.csproj" />
+    <Project Path="tests/DustyBytes.Units.Tests/DustyBytes.Units.Tests.csproj" />
+    <Project Path="tests/DustyBytes.Uninstall.Tests/DustyBytes.Uninstall.Tests.csproj" />
   </Folder>
 </Solution>

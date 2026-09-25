@@ -1,0 +1,36 @@
+{
+  "id": "firefox",
+  "name": "Firefox",
+  "source": "bleachbit/cleaners/firefox.xml (GPL-3.0-or-later, Andrew Ziem) — running testinin iki kanıt örneği (exe + parent.lock) buradan alındı",
+  "running": {
+    "processNames": ["firefox.exe"],
+    "lockFiles": ["%APPDATA%/Mozilla/Firefox/Profiles/*/parent.lock"]
+  },
+  "options": [
+    {
+      "id": "cache2",
+      "label": "HTTP Önbelleği",
+      "warning": null,
+      "actions": [
+        { "type": "Delete", "mode": "Recurse", "path": "%LOCALAPPDATA%/Mozilla/Firefox/Profiles/*/cache2" }
+      ]
+    },
+    {
+      "id": "startup-cache",
+      "label": "Başlangıç Önbelleği",
+      "warning": null,
+      "actions": [
+        { "type": "Delete", "mode": "Recurse", "path": "%LOCALAPPDATA%/Mozilla/Firefox/Profiles/*/startupCache" }
+      ]
+    },
+    {
+      "id": "service-worker-cache",
+      "label": "Service Worker Önbelleği",
+      "warning": null,
+      "actions": [
+        { "type": "Delete", "mode": "Recurse", "path": "%LOCALAPPDATA%/Mozilla/Firefox/Profiles/*/serviceworker.txt" },
+        { "type": "Delete", "mode": "Recurse", "path": "%LOCALAPPDATA%/Mozilla/Firefox/Profiles/*/storage/default/*/cache" }
+      ]
+    }
+  ]
+}

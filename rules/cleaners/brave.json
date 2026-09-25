@@ -1,0 +1,44 @@
+{
+  "id": "brave",
+  "name": "Brave",
+  "source": "PolarityFlow/CacheFlow güvenli klasör listesi (MIT) — chromium ailesi, yalnız önbellek",
+  "running": {
+    "processNames": ["brave.exe"],
+    "lockFiles": []
+  },
+  "options": [
+    {
+      "id": "cache",
+      "label": "HTTP Önbelleği",
+      "warning": null,
+      "actions": [
+        { "type": "Delete", "mode": "Recurse", "path": "%LOCALAPPDATA%/BraveSoftware/Brave-Browser/User Data/*/Cache" },
+        { "type": "Delete", "mode": "Recurse", "path": "%LOCALAPPDATA%/BraveSoftware/Brave-Browser/User Data/*/Cache2" }
+      ]
+    },
+    {
+      "id": "code-cache",
+      "label": "Kod Önbelleği",
+      "warning": null,
+      "actions": [
+        { "type": "Delete", "mode": "Recurse", "path": "%LOCALAPPDATA%/BraveSoftware/Brave-Browser/User Data/*/Code Cache" }
+      ]
+    },
+    {
+      "id": "gpu-cache",
+      "label": "GPU Önbelleği",
+      "warning": null,
+      "actions": [
+        { "type": "Delete", "mode": "Recurse", "path": "%LOCALAPPDATA%/BraveSoftware/Brave-Browser/User Data/*/GPUCache" }
+      ]
+    },
+    {
+      "id": "service-worker-cache",
+      "label": "Service Worker Önbelleği",
+      "warning": null,
+      "actions": [
+        { "type": "Delete", "mode": "Recurse", "path": "%LOCALAPPDATA%/BraveSoftware/Brave-Browser/User Data/*/Service Worker/CacheStorage" }
+      ]
+    }
+  ]
+}

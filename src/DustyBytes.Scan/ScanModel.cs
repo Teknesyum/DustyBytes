@@ -94,6 +94,7 @@ public sealed class ScanResult
     public IReadOnlyList<string> Errors { get; init; } = [];
     public bool Cancelled { get; init; }
     public string Method { get; init; } = "FindFirstFileEx";
+    public UsnCursor? Usn { get; init; }
 }
 
 public enum ScanDecision

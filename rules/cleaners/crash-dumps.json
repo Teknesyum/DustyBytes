@@ -1,0 +1,27 @@
+{
+  "id": "crash-dumps",
+  "name": "Çökme Dökümleri",
+  "source": "bleachbit windows_explorer.xml fikri (GPL-3.0-or-later, Andrew Ziem) — yollar Microsoft belgelerine göre yeniden yazıldı",
+  "running": {
+    "processNames": [],
+    "lockFiles": []
+  },
+  "options": [
+    {
+      "id": "crashdumps",
+      "label": "Uygulama Çökme Dökümleri",
+      "warning": null,
+      "actions": [
+        { "type": "Delete", "mode": "Recurse", "path": "%LOCALAPPDATA%/CrashDumps" }
+      ]
+    },
+    {
+      "id": "minidump",
+      "label": "Sistem Küçük Dökümleri (Minidump)",
+      "warning": "Yönetici yetkisi gerektirir, çökme geçmişi araştırması yapılıyorsa dokunma",
+      "actions": [
+        { "type": "Delete", "mode": "FilesOnly", "path": "%WINDIR%/Minidump" }
+      ]
+    }
+  ]
+}

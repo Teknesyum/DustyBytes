@@ -1,0 +1,35 @@
+{
+  "id": "steam",
+  "name": "Steam",
+  "source": "bleachbit fikri (GPL-3.0-or-later, Andrew Ziem), yollar Steam istemci düzenine göre yeniden yazıldı",
+  "running": {
+    "processNames": ["steam.exe"],
+    "lockFiles": []
+  },
+  "options": [
+    {
+      "id": "htmlcache",
+      "label": "Mağaza Sayfası Önbelleği (htmlcache)",
+      "warning": "Steam varsayılan kurulum yolu varsayılır, özel yol kullanıyorsanız bulunamaz",
+      "actions": [
+        { "type": "Delete", "mode": "Recurse", "path": "%PROGRAMFILES(X86)%/Steam/htmlcache" }
+      ]
+    },
+    {
+      "id": "logs",
+      "label": "Günlük Dosyaları",
+      "warning": "Steam varsayılan kurulum yolu varsayılır, özel yol kullanıyorsanız bulunamaz",
+      "actions": [
+        { "type": "Delete", "mode": "FilesOnly", "path": "%PROGRAMFILES(X86)%/Steam/logs" }
+      ]
+    },
+    {
+      "id": "dumps",
+      "label": "Çökme Dökümleri",
+      "warning": "Steam varsayılan kurulum yolu varsayılır, özel yol kullanıyorsanız bulunamaz",
+      "actions": [
+        { "type": "Delete", "mode": "Recurse", "path": "%PROGRAMFILES(X86)%/Steam/dumps" }
+      ]
+    }
+  ]
+}

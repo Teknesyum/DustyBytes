@@ -1,0 +1,35 @@
+{
+  "id": "vscode",
+  "name": "Visual Studio Code",
+  "source": "bleachbit fikri (GPL-3.0-or-later, Andrew Ziem), yollar VS Code Electron istemci düzenine göre yeniden yazıldı",
+  "running": {
+    "processNames": ["Code.exe"],
+    "lockFiles": []
+  },
+  "options": [
+    {
+      "id": "cache",
+      "label": "Önbellek",
+      "warning": null,
+      "actions": [
+        { "type": "Delete", "mode": "Recurse", "path": "%APPDATA%/Code/Cache" }
+      ]
+    },
+    {
+      "id": "cached-data",
+      "label": "V8 Kod Önbelleği (CachedData)",
+      "warning": null,
+      "actions": [
+        { "type": "Delete", "mode": "Recurse", "path": "%APPDATA%/Code/CachedData" }
+      ]
+    },
+    {
+      "id": "logs",
+      "label": "Günlük Dosyaları",
+      "warning": null,
+      "actions": [
+        { "type": "Delete", "mode": "Recurse", "path": "%APPDATA%/Code/logs" }
+      ]
+    }
+  ]
+}

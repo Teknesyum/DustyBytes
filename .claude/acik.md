@@ -1,23 +1,13 @@
-- [x] Yöntemi Core'a raporla — 2026-09-25 09:21 — jobs.md
-- [x] ~50 depo incele — 2026-09-25 09:21 — jobs.md
-- [x] Planı revize et — 2026-09-25 09:21 — jobs.md
-- [x] ajan: İnceleme: disk çözümleyiciler — 2026-09-25 09:21 — aktarıldı
-- [x] ajan: İnceleme: MFT ve hızlı indeks — 2026-09-25 09:21 — 02 raporu yazıldı
-- [x] ajan: İnceleme: kaldırıcılar — 2026-09-25 09:21 — aktarıldı
-- [x] ajan: 7 disk temizleyici deposunu incele — 2026-09-25 09:22 — aktarıldı
-- [x] ajan: İnceleme: temizleyiciler — 2026-09-25 09:22 — aktarıldı
-- [x] ajan: İnceleme: kullanım sinyalleri — 2026-09-25 09:22 — aktarıldı
-- [x] ajan: İnceleme: yinelenen ve dev artığı — 2026-09-25 09:22 — aktarıldı
-- [x] ajan: MFT ve CsWin32 depo incelemesi — 2026-09-25 09:22 — aktarıldı
-- [x] ajan: İnceleme: Avalonia arayüz — 2026-09-25 09:22 — aktarıldı
-- [x] ajan: C# USN/MFT tarayıcı ve C/C++ MFT arama aracı incelemesi — 2026-09-25 09:22 — aktarıldı
-- [x] ajan: npkill ve kondo derin inceleme — 2026-09-25 09:22 — aktarıldı
-- [x] ajan: fclones ve dupeguru derin inceleme — 2026-09-25 09:23 — aktarıldı
-- [x] ajan: Winget ve Scoop repo incelemesi — 2026-09-25 09:23 — aktarıldı
-- [x] ajan: fd, walkdir/jwalk ve Windows USN örnekleri incelemesi — 2026-09-25 09:23 — aktarıldı
-- [x] ajan: rmlint ve trash-cli derin inceleme — 2026-09-25 09:23 — aktarıldı
-- [x] ajan: Chocolatey ve winutil repo incelemesi — 2026-09-25 09:23 — aktarıldı
-- [x] ajan: IFileOperation ve Restart Manager C# örnekleri arama — 2026-09-25 09:23 — aktarıldı
-- [x] ajan: Win11Debloat ve Sophia Script incelemesi — 2026-09-25 09:23 — aktarıldı
-- [x] ajan: DERİN inceleme: AvaloniaUI/Avalonia çizim ve pencere mekanizması — 2026-09-25 09:24 — aktarıldı
-- [x] ajan: DERİN inceleme: WalletWasabi mimarisi — 2026-09-25 09:24 — aktarıldı
+- [ ] ajan: A1+A6 tarama motoru — 2026-09-25 10:39 — sonucu aktarılacak
+- [ ] ajan: A3 kullanım sinyalleri — 2026-09-25 10:39 — sonucu aktarılacak
+- [ ] ajan: A2 karantina ve worker — 2026-09-25 10:39 — sonucu aktarılacak
+- [ ] ajan: A4 kaldırıcı ve kalıntı — 2026-09-25 10:40 — sonucu aktarılacak
+- [ ] ajan: A2+A3 birim çıkarıcılar — 2026-09-25 10:41 — sonucu aktarılacak
+- [ ] A0 İskelet — 2026-09-25 10:55 — kabuk standardı testleri ve üst çubuk arayüz dalgasında; ajanlar çalışıyor
+- [ ] A1 Salt Okunur Tarama — 2026-09-25 10:55 — tarama ajanı arka planda çalışıyor
+- [ ] A2 Güvenli Silme — 2026-09-25 10:55 — karantina+worker ve birim ajanları arka planda çalışıyor
+- [ ] A3 Sinyal ve Puan — 2026-09-25 10:55 — sinyaller bitti (24/24 test); birimler, puan ve Öneriler ekranı sürüyor
+- [ ] A4 Kaldırıcı — 2026-09-25 10:55 — kaldırıcı ajanı arka planda çalışıyor
+- [ ] A5 Temizlik — 2026-09-25 10:55 — temizlik ajanı arka planda çalışıyor
+- [ ] A6 Hızlı Tarama — 2026-09-25 10:55 — tarama ajanı arka planda çalışıyor
+- [ ] A7 Yayın — 2026-09-25 10:55 — A0-A6 bitince

@@ -1,0 +1,19 @@
+{
+  "id": "directx-shader-cache",
+  "name": "DirectX Shader Önbelleği",
+  "source": "bleachbit fikri (GPL-3.0-or-later, Andrew Ziem) — yol Microsoft D3DSCache belgesine göre yeniden yazıldı",
+  "running": {
+    "processNames": [],
+    "lockFiles": []
+  },
+  "options": [
+    {
+      "id": "d3dscache",
+      "label": "D3D Shader Önbelleği",
+      "warning": "Silinince oyunların ilk açılışı yavaşlar, yeniden oluşturulur",
+      "actions": [
+        { "type": "Delete", "mode": "Recurse", "path": "%LOCALAPPDATA%/D3DSCache" }
+      ]
+    }
+  ]
+}

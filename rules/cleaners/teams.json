@@ -1,0 +1,29 @@
+{
+  "id": "teams",
+  "name": "Microsoft Teams",
+  "source": "bleachbit fikri (GPL-3.0-or-later, Andrew Ziem), yollar klasik Teams Electron istemci düzenine göre yeniden yazıldı",
+  "running": {
+    "processNames": ["Teams.exe", "ms-teams.exe"],
+    "lockFiles": []
+  },
+  "options": [
+    {
+      "id": "cache",
+      "label": "Önbellek",
+      "warning": null,
+      "actions": [
+        { "type": "Delete", "mode": "Recurse", "path": "%APPDATA%/Microsoft/Teams/Cache" },
+        { "type": "Delete", "mode": "Recurse", "path": "%APPDATA%/Microsoft/Teams/GPUCache" },
+        { "type": "Delete", "mode": "Recurse", "path": "%APPDATA%/Microsoft/Teams/Code Cache" }
+      ]
+    },
+    {
+      "id": "blob-storage",
+      "label": "Blob Depolama Önbelleği",
+      "warning": null,
+      "actions": [
+        { "type": "Delete", "mode": "Recurse", "path": "%APPDATA%/Microsoft/Teams/blob_storage" }
+      ]
+    }
+  ]
+}

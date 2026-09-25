@@ -1,0 +1,27 @@
+{
+  "id": "amd-shader-cache",
+  "name": "AMD Shader Önbelleği",
+  "source": "bleachbit fikri (GPL-3.0-or-later, Andrew Ziem), yollar AMD sürücü belgelerine göre yeniden yazıldı",
+  "running": {
+    "processNames": [],
+    "lockFiles": []
+  },
+  "options": [
+    {
+      "id": "dxcache",
+      "label": "DirectX Shader Önbelleği",
+      "warning": "Silinince oyunların ilk açılışı yavaşlar, yeniden oluşturulur",
+      "actions": [
+        { "type": "Delete", "mode": "Recurse", "path": "%LOCALAPPDATA%/AMD/DxCache" }
+      ]
+    },
+    {
+      "id": "dxccache",
+      "label": "DXC Shader Önbelleği",
+      "warning": "Silinince oyunların ilk açılışı yavaşlar, yeniden oluşturulur",
+      "actions": [
+        { "type": "Delete", "mode": "Recurse", "path": "%LOCALAPPDATA%/AMD/DxcCache" }
+      ]
+    }
+  ]
+}

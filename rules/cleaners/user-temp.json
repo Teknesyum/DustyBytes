@@ -1,0 +1,19 @@
+{
+  "id": "user-temp",
+  "name": "Kullanıcı Geçici Klasörü",
+  "source": "bleachbit/cleaners/system.xml fikri (GPL-3.0-or-later, Andrew Ziem) — DustyBytes'ta kendi yolları ve modeliyle yeniden yazıldı",
+  "running": {
+    "processNames": [],
+    "lockFiles": []
+  },
+  "options": [
+    {
+      "id": "temp",
+      "label": "Geçici Dosyalar",
+      "warning": "Bazı dosyalar açık programlar tarafından kilitli olabilir, atlanır",
+      "actions": [
+        { "type": "Delete", "mode": "Recurse", "path": "%TEMP%" }
+      ]
+    }
+  ]
+}

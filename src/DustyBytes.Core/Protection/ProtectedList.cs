@@ -105,6 +105,9 @@ public sealed class ProtectedList
         return null;
     }
 
+    public string? ProtectedNameReason(string name) =>
+        _segments.TryGetValue(name, out var s) ? s : _files.TryGetValue(name, out var f) ? f : null;
+
     public bool IsNeverLeftover(string path) =>
         _neverLeftover.Any(root => Paths.IsUnder(path, root) || Paths.IsUnder(root, path));
 
@@ -132,33 +135,42 @@ public sealed class ProtectedList
         return Verdict.Ok;
     }
 
+    public Func<string, FileAttributes?> AttributeProvider { get; set; } = DefaultAttributes;
+
     public Verdict Check(string path)
     {
         var byPath = CheckPath(path);
         if (!byPath.Allowed)
             return byPath;
-        return CheckFileSystem(path);
+        return CheckFileSystem(path, AttributeProvider);
     }
 
-    public static Verdict CheckFileSystem(string path)
+    public static FileAttributes? DefaultAttributes(string path)
+    {
+        try
+        {
+            return File.GetAttributes(Paths.ToLong(path));
+        }
+        catch (FileNotFoundException)
+        {
+            return null;
+        }
+        catch (DirectoryNotFoundException)
+        {
+            return null;
+        }
+    }
+
+    public static Verdict CheckFileSystem(string path) => CheckFileSystem(path, DefaultAttributes);
+
+    public static Verdict CheckFileSystem(string path, Func<string, FileAttributes?> attributes)
     {
         var normalized = Paths.Normalize(path);
         var current = normalized;
         var isTarget = true;
         while (!string.IsNullOrEmpty(current) && current.Length > 3)
         {
-            FileAttributes attrs;
-            try
-            {
-                attrs = File.GetAttributes(Paths.ToLong(current));
-            }
-            catch (FileNotFoundException)
-            {
-                current = Path.GetDirectoryName(current);
-                isTarget = false;
-                continue;
-            }
-            catch (DirectoryNotFoundException)
+            if (attributes(current) is not { } attrs)
             {
                 current = Path.GetDirectoryName(current);
                 isTarget = false;

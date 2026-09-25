@@ -1,0 +1,21 @@
+{
+  "id": "discord",
+  "name": "Discord",
+  "source": "bleachbit fikri (GPL-3.0-or-later, Andrew Ziem), yollar Electron uygulama düzenine göre yeniden yazıldı",
+  "running": {
+    "processNames": ["Discord.exe"],
+    "lockFiles": []
+  },
+  "options": [
+    {
+      "id": "cache",
+      "label": "Önbellek",
+      "warning": null,
+      "actions": [
+        { "type": "Delete", "mode": "Recurse", "path": "%APPDATA%/discord/Cache" },
+        { "type": "Delete", "mode": "Recurse", "path": "%APPDATA%/discord/Code Cache" },
+        { "type": "Delete", "mode": "Recurse", "path": "%APPDATA%/discord/GPUCache" }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "id": "windows-error-reports",
+  "name": "Windows Hata Raporları (WER)",
+  "source": "bleachbit/cleaners/windows_explorer.xml WER fikri (GPL-3.0-or-later, Andrew Ziem) — yollar Microsoft belgelerine göre yeniden yazıldı",
+  "running": {
+    "processNames": [],
+    "lockFiles": []
+  },
+  "options": [
+    {
+      "id": "user-reports",
+      "label": "Kullanıcı Hata Raporları",
+      "warning": null,
+      "actions": [
+        { "type": "Delete", "mode": "Recurse", "path": "%LOCALAPPDATA%/Microsoft/Windows/WER/ReportArchive" },
+        { "type": "Delete", "mode": "Recurse", "path": "%LOCALAPPDATA%/Microsoft/Windows/WER/ReportQueue" }
+      ]
+    },
+    {
+      "id": "system-reports",
+      "label": "Sistem Hata Raporları",
+      "warning": "Yönetici yetkisi gerektirir",
+      "actions": [
+        { "type": "Delete", "mode": "Recurse", "path": "%PROGRAMDATA%/Microsoft/Windows/WER/ReportArchive" },
+        { "type": "Delete", "mode": "Recurse", "path": "%PROGRAMDATA%/Microsoft/Windows/WER/ReportQueue" }
+      ]
+    }
+  ]
+}

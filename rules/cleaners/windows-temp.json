@@ -1,0 +1,19 @@
+{
+  "id": "windows-temp",
+  "name": "Windows Geçici Dosyaları",
+  "source": "bleachbit/cleaners/windows_explorer.xml fikri (GPL-3.0-or-later, Andrew Ziem) — DustyBytes'ta kendi yolları ve modeliyle yeniden yazıldı",
+  "running": {
+    "processNames": [],
+    "lockFiles": []
+  },
+  "options": [
+    {
+      "id": "system-temp",
+      "label": "Sistem Geçici Klasörü",
+      "warning": "Bazı dosyalar açık programlar tarafından kilitli olabilir, atlanır",
+      "actions": [
+        { "type": "Delete", "mode": "Recurse", "path": "%WINDIR%/Temp" }
+      ]
+    }
+  ]
+}

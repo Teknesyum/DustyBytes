@@ -1,0 +1,19 @@
+{
+  "id": "npm-cache",
+  "name": "npm HTTP Önbelleği",
+  "source": "bleachbit fikri (GPL-3.0-or-later, Andrew Ziem), yol npm belgelerine göre yeniden yazıldı; yalnız http önbelleği, paket deposu değil",
+  "running": {
+    "processNames": [],
+    "lockFiles": []
+  },
+  "options": [
+    {
+      "id": "cache",
+      "label": "npm Önbelleği",
+      "warning": null,
+      "actions": [
+        { "type": "Delete", "mode": "Recurse", "path": "%APPDATA%/npm-cache" }
+      ]
+    }
+  ]
+}

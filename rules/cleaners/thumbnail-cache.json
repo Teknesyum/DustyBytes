@@ -1,0 +1,20 @@
+{
+  "id": "thumbnail-cache",
+  "name": "Küçük Resim Önbelleği",
+  "source": "bleachbit/cleaners/windows_explorer.xml `thumbnails` seçeneği (GPL-3.0-or-later, Andrew Ziem)",
+  "running": {
+    "processNames": [],
+    "lockFiles": []
+  },
+  "options": [
+    {
+      "id": "thumbcache",
+      "label": "Küçük Resim Önbelleği Dosyaları",
+      "warning": "Gezgin bazı thumbcache dosyalarını açık tutabilir, kilitliyse atlanır",
+      "actions": [
+        { "type": "Delete", "mode": "Glob", "path": "%LOCALAPPDATA%/Microsoft/Windows/Explorer/thumbcache_*.db" },
+        { "type": "Delete", "mode": "Glob", "path": "%LOCALAPPDATA%/Microsoft/Windows/Explorer/iconcache_*.db" }
+      ]
+    }
+  ]
+}

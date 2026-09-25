@@ -1,0 +1,44 @@
+{
+  "id": "opera",
+  "name": "Opera",
+  "source": "PolarityFlow/CacheFlow güvenli klasör listesi (MIT) — chromium ailesi, yalnız önbellek; Opera profil kökü \"User Data\" sarmalayıcısı taşımaz",
+  "running": {
+    "processNames": ["opera.exe"],
+    "lockFiles": []
+  },
+  "options": [
+    {
+      "id": "cache",
+      "label": "HTTP Önbelleği",
+      "warning": null,
+      "actions": [
+        { "type": "Delete", "mode": "Recurse", "path": "%APPDATA%/Opera Software/Opera Stable/Cache" },
+        { "type": "Delete", "mode": "Recurse", "path": "%APPDATA%/Opera Software/Opera Stable/Cache2" }
+      ]
+    },
+    {
+      "id": "code-cache",
+      "label": "Kod Önbelleği",
+      "warning": null,
+      "actions": [
+        { "type": "Delete", "mode": "Recurse", "path": "%APPDATA%/Opera Software/Opera Stable/Code Cache" }
+      ]
+    },
+    {
+      "id": "gpu-cache",
+      "label": "GPU Önbelleği",
+      "warning": null,
+      "actions": [
+        { "type": "Delete", "mode": "Recurse", "path": "%APPDATA%/Opera Software/Opera Stable/GPUCache" }
+      ]
+    },
+    {
+      "id": "service-worker-cache",
+      "label": "Service Worker Önbelleği",
+      "warning": null,
+      "actions": [
+        { "type": "Delete", "mode": "Recurse", "path": "%APPDATA%/Opera Software/Opera Stable/Service Worker/CacheStorage" }
+      ]
+    }
+  ]
+}

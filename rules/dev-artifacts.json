@@ -1,0 +1,119 @@
+{
+  "ecosystems": [
+    {
+      "name": "Cargo",
+      "markers": ["Cargo.toml"],
+      "artifactDirs": ["target", ".xwin-cache"]
+    },
+    {
+      "name": "Node",
+      "markers": ["package.json"],
+      "artifactDirs": ["node_modules", ".angular", "android/build", "android/.gradle", "ios/build", "ios/DerivedData", "ios/Pods", ".expo", ".metro"]
+    },
+    {
+      "name": "Unity",
+      "markers": ["Assembly-CSharp.csproj"],
+      "artifactDirs": ["Library", "Temp", "Obj", "Logs", "MemoryCaptures", "Build", "Builds"]
+    },
+    {
+      "name": "Stack",
+      "markers": ["stack.yaml"],
+      "artifactDirs": [".stack-work"]
+    },
+    {
+      "name": "Cabal",
+      "markers": ["cabal.project"],
+      "artifactDirs": ["dist-newstyle"]
+    },
+    {
+      "name": "SBT",
+      "markers": ["build.sbt"],
+      "artifactDirs": ["target", "project/target"]
+    },
+    {
+      "name": "Maven",
+      "markers": ["pom.xml"],
+      "artifactDirs": ["target"]
+    },
+    {
+      "name": "Gradle",
+      "markers": ["build.gradle", "build.gradle.kts"],
+      "artifactDirs": ["build", ".gradle"]
+    },
+    {
+      "name": "CMake",
+      "markers": ["CMakeLists.txt"],
+      "artifactDirs": ["build", "cmake-build-debug", "cmake-build-release"]
+    },
+    {
+      "name": "Unreal",
+      "markers": ["*.uproject"],
+      "artifactDirs": ["Binaries", "Build", "Saved", "DerivedDataCache", "Intermediate"]
+    },
+    {
+      "name": "Jupyter",
+      "markers": ["*.ipynb"],
+      "artifactDirs": [".ipynb_checkpoints"]
+    },
+    {
+      "name": "Python",
+      "markers": ["*.py"],
+      "artifactDirs": [".mypy_cache", ".nox", ".pytest_cache", ".ruff_cache", ".tox", "__pycache__", "__pypackages__"]
+    },
+    {
+      "name": "Pixi",
+      "markers": ["pixi.toml"],
+      "artifactDirs": [".pixi"]
+    },
+    {
+      "name": "Composer",
+      "markers": ["composer.json"],
+      "artifactDirs": ["vendor"]
+    },
+    {
+      "name": "Pub",
+      "markers": ["pubspec.yaml"],
+      "artifactDirs": ["build", ".dart_tool", "linux/flutter/ephemeral", "windows/flutter/ephemeral"]
+    },
+    {
+      "name": "Elixir",
+      "markers": ["mix.exs"],
+      "artifactDirs": ["_build", ".elixir-tools", ".elixir_ls", ".lexical"]
+    },
+    {
+      "name": "Swift",
+      "markers": ["Package.swift"],
+      "artifactDirs": [".build", ".swiftpm"]
+    },
+    {
+      "name": "Zig",
+      "markers": ["build.zig"],
+      "artifactDirs": ["zig-cache", ".zig-cache", "zig-out"]
+    },
+    {
+      "name": "Godot 4.x",
+      "markers": ["project.godot"],
+      "artifactDirs": [".godot"]
+    },
+    {
+      "name": ".NET",
+      "markers": ["*.csproj", "*.fsproj"],
+      "artifactDirs": ["bin", "obj"]
+    },
+    {
+      "name": "Turborepo",
+      "markers": ["turbo.json"],
+      "artifactDirs": [".turbo"]
+    },
+    {
+      "name": "Terraform",
+      "markers": [".terraform.lock.hcl"],
+      "artifactDirs": [".terraform"]
+    },
+    {
+      "name": "CocoaPods",
+      "markers": ["Podfile"],
+      "artifactDirs": ["Pods"]
+    }
+  ]
+}

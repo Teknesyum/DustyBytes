@@ -1,0 +1,29 @@
+{
+  "id": "slack",
+  "name": "Slack",
+  "source": "bleachbit fikri (GPL-3.0-or-later, Andrew Ziem), yollar Slack Electron istemci düzenine göre yeniden yazıldı",
+  "running": {
+    "processNames": ["slack.exe"],
+    "lockFiles": []
+  },
+  "options": [
+    {
+      "id": "cache",
+      "label": "Önbellek",
+      "warning": null,
+      "actions": [
+        { "type": "Delete", "mode": "Recurse", "path": "%APPDATA%/Slack/Cache" },
+        { "type": "Delete", "mode": "Recurse", "path": "%APPDATA%/Slack/Code Cache" },
+        { "type": "Delete", "mode": "Recurse", "path": "%APPDATA%/Slack/GPUCache" }
+      ]
+    },
+    {
+      "id": "service-worker-cache",
+      "label": "Service Worker Önbelleği",
+      "warning": null,
+      "actions": [
+        { "type": "Delete", "mode": "Recurse", "path": "%APPDATA%/Slack/Service Worker/CacheStorage" }
+      ]
+    }
+  ]
+}

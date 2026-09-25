@@ -1,0 +1,27 @@
+{
+  "id": "nvidia-shader-cache",
+  "name": "NVIDIA Shader Önbelleği",
+  "source": "bleachbit fikri (GPL-3.0-or-later, Andrew Ziem), yollar NVIDIA sürücü belgelerine göre yeniden yazıldı",
+  "running": {
+    "processNames": [],
+    "lockFiles": []
+  },
+  "options": [
+    {
+      "id": "dxcache",
+      "label": "DirectX Shader Önbelleği",
+      "warning": "Silinince oyunların ilk açılışı yavaşlar, yeniden oluşturulur",
+      "actions": [
+        { "type": "Delete", "mode": "Recurse", "path": "%LOCALAPPDATA%/NVIDIA/DXCache" }
+      ]
+    },
+    {
+      "id": "glcache",
+      "label": "OpenGL Shader Önbelleği",
+      "warning": "Silinince oyunların ilk açılışı yavaşlar, yeniden oluşturulur",
+      "actions": [
+        { "type": "Delete", "mode": "Recurse", "path": "%LOCALAPPDATA%/NVIDIA/GLCache" }
+      ]
+    }
+  ]
+}

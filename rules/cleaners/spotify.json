@@ -1,0 +1,27 @@
+{
+  "id": "spotify",
+  "name": "Spotify",
+  "source": "bleachbit fikri (GPL-3.0-or-later, Andrew Ziem), yollar Spotify Windows istemci düzenine göre yeniden yazıldı",
+  "running": {
+    "processNames": ["Spotify.exe"],
+    "lockFiles": []
+  },
+  "options": [
+    {
+      "id": "storage",
+      "label": "Çevrimdışı Şarkı Önbelleği",
+      "warning": null,
+      "actions": [
+        { "type": "Delete", "mode": "Recurse", "path": "%LOCALAPPDATA%/Spotify/Storage" }
+      ]
+    },
+    {
+      "id": "data",
+      "label": "Uygulama Önbelleği",
+      "warning": null,
+      "actions": [
+        { "type": "Delete", "mode": "Recurse", "path": "%LOCALAPPDATA%/Spotify/Data" }
+      ]
+    }
+  ]
+}

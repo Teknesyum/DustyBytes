@@ -1,0 +1,19 @@
+{
+  "id": "yarn-cache",
+  "name": "Yarn Önbelleği",
+  "source": "bleachbit fikri (GPL-3.0-or-later, Andrew Ziem), yol Yarn belgelerine göre yeniden yazıldı; yalnız http/paket önbelleği, proje çıktısı değil",
+  "running": {
+    "processNames": [],
+    "lockFiles": []
+  },
+  "options": [
+    {
+      "id": "cache",
+      "label": "Yarn Önbelleği",
+      "warning": null,
+      "actions": [
+        { "type": "Delete", "mode": "Recurse", "path": "%LOCALAPPDATA%/Yarn/Cache" }
+      ]
+    }
+  ]
+}
