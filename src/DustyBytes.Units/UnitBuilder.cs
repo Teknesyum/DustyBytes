@@ -35,13 +35,16 @@ public static class UnitBuilder
         [UnitKind.Folder] = 9,
     };
 
-    public static IReadOnlyList<Unit> Build(UnitContext ctx) => Build(ctx, DefaultExtractors);
+    public static IReadOnlyList<Unit> Build(UnitContext ctx, Action<int, int>? stage = null) => Build(ctx, DefaultExtractors, stage);
 
-    public static IReadOnlyList<Unit> Build(UnitContext ctx, IReadOnlyList<IUnitExtractor> extractors)
+    public static IReadOnlyList<Unit> Build(UnitContext ctx, IReadOnlyList<IUnitExtractor> extractors, Action<int, int>? stage = null)
     {
         var all = new List<Unit>();
-        foreach (var extractor in extractors)
-            all.AddRange(extractor.Extract(ctx));
+        for (var i = 0; i < extractors.Count; i++)
+        {
+            all.AddRange(extractors[i].Extract(ctx));
+            stage?.Invoke(i + 1, extractors.Count);
+        }
 
         var ordered = all.OrderBy(u => Priority.GetValueOrDefault(u.Kind, 99)).ToList();
 

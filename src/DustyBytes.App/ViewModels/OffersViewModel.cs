@@ -1,4 +1,6 @@
 using System.Collections.ObjectModel;
+using System.Collections.Specialized;
+using System.ComponentModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using DustyBytes.Core.Ipc;
@@ -13,14 +15,28 @@ public sealed class OfferFilter(string label, params UnitKind[] kinds)
     public bool Matches(UnitKind kind) => Kinds.Count == 0 || Kinds.Contains(kind);
 }
 
+public sealed class BulkCollection<T> : ObservableCollection<T>
+{
+    public void ReplaceAll(IEnumerable<T> items)
+    {
+        Items.Clear();
+        foreach (var item in items)
+            Items.Add(item);
+        OnPropertyChanged(new PropertyChangedEventArgs(nameof(Count)));
+        OnPropertyChanged(new PropertyChangedEventArgs("Item[]"));
+        OnCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Reset));
+    }
+}
+
 public sealed partial class UnitCard : ObservableObject
 {
     readonly Action _changed;
 
-    public UnitCard(Unit unit, DateTimeOffset now, Action changed)
+    public UnitCard(Unit unit, DateTimeOffset now, Action changed, bool selected = false)
     {
         Unit = unit;
         _changed = changed;
+        _isSelected = selected;
         KindLabel = KindText.Label(unit.Kind);
         SizeText = Format.Bytes(unit.SizeBytes);
         UsageText = KindText.Usage(unit.Usage, now);
@@ -63,7 +79,9 @@ public sealed partial class UnitCard : ObservableObject
 public sealed partial class OffersViewModel : ViewModelBase
 {
     readonly MainViewModel _main;
-    readonly List<UnitCard> _all = [];
+    List<UnitCard> _all = [];
+    bool _stale = true;
+    int _generation;
 
     public OffersViewModel(MainViewModel main)
     {
@@ -79,13 +97,19 @@ public sealed partial class OffersViewModel : ViewModelBase
             new OfferFilter("Önbellek", UnitKind.Cache, UnitKind.BrowserCache),
         ];
         _selectedFilter = Filters[0];
-        main.Session.SnapshotChanged += (_, _) => Load();
-        Load();
+        main.Session.SnapshotChanged += (_, _) => Invalidate();
     }
 
     public TaskProgressViewModel Progress { get; }
     public IReadOnlyList<OfferFilter> Filters { get; }
-    public ObservableCollection<UnitCard> Cards { get; } = [];
+    public BulkCollection<UnitCard> Cards { get; } = [];
+    public Task Ready { get; private set; } = Task.CompletedTask;
+
+    [ObservableProperty]
+    private bool _isLoading;
+
+    [ObservableProperty]
+    private string _loadingText = "";
 
     [ObservableProperty]
     private OfferFilter _selectedFilter;
@@ -99,50 +123,74 @@ public sealed partial class OffersViewModel : ViewModelBase
     [ObservableProperty]
     private long _selectedBytes;
 
-    public bool HasCards => Cards.Count > 0;
-    public bool IsEmpty => Cards.Count == 0 && _main.Session.HasSnapshot;
+    public bool HasCards => Cards.Count > 0 && !IsLoading;
+    public bool IsEmpty => Cards.Count == 0 && !IsLoading && _main.Session.HasSnapshot;
     public bool NoScan => !_main.Session.HasSnapshot;
     public string EmptyText => _all.Count == 0 ? "Önerilecek birim bulunmadı" : "Bu süzgeçte birim yok";
     public string DisabledTip => "Önce en az bir birim seçin";
 
     partial void OnSelectedFilterChanged(OfferFilter value) => Apply();
 
-    public void Load()
+    protected override void OnNavigatedTo()
     {
+        if (_stale)
+            Ready = RefreshAsync();
+    }
+
+    void Invalidate()
+    {
+        _stale = true;
+        if (IsActive)
+            Ready = RefreshAsync();
+        else
+            RaiseState();
+    }
+
+    async Task RefreshAsync()
+    {
+        _stale = false;
+        var generation = ++_generation;
+        var units = _main.Session.Snapshot?.Units ?? [];
         var keep = _all.Where(c => c.IsSelected).Select(c => c.Unit.Id).ToHashSet(StringComparer.Ordinal);
-        _all.Clear();
-        var now = DateTimeOffset.Now;
-        foreach (var unit in (_main.Session.Snapshot?.Units ?? []).OrderByDescending(u => u.Score).ThenByDescending(u => u.SizeBytes))
+        if (_all.Count == 0 && units.Count > 0)
         {
-            var card = new UnitCard(unit, now, Selected);
-            if (card.IsBatch && keep.Contains(unit.Id))
-                card.IsSelected = true;
-            _all.Add(card);
+            LoadingText = $"{Format.Count(units.Count)} birim sıralanıyor";
+            IsLoading = true;
+            RaiseState();
         }
+        var built = await Task.Run(() => Build(units, keep));
+        if (generation != _generation)
+            return;
+        _all = built;
+        IsLoading = false;
         Apply();
+    }
+
+    List<UnitCard> Build(IReadOnlyList<Unit> units, HashSet<string> keep)
+    {
+        var now = DateTimeOffset.Now;
+        var cards = new List<UnitCard>(units.Count);
+        foreach (var unit in units.OrderByDescending(u => u.Score).ThenByDescending(u => u.SizeBytes))
+        {
+            var batch = unit.Removal is RemovalMethod.Quarantine or RemovalMethod.DirectDelete;
+            cards.Add(new UnitCard(unit, now, Selected, batch && keep.Contains(unit.Id)));
+        }
+        return cards;
     }
 
     void Apply()
     {
-        var visible = _all.Where(c => SelectedFilter.Matches(c.Unit.Kind)).ToList();
-        for (var i = Cards.Count - 1; i >= 0; i--)
-            if (!visible.Contains(Cards[i]))
-                Cards.RemoveAt(i);
-        for (var i = 0; i < visible.Count; i++)
-        {
-            if (i < Cards.Count && ReferenceEquals(Cards[i], visible[i]))
-                continue;
-            var at = Cards.IndexOf(visible[i]);
-            if (at >= 0)
-                Cards.Move(at, i);
-            else
-                Cards.Insert(i, visible[i]);
-        }
+        Cards.ReplaceAll(_all.Where(c => SelectedFilter.Matches(c.Unit.Kind)));
+        RaiseState();
+        Selected();
+    }
+
+    void RaiseState()
+    {
         OnPropertyChanged(nameof(HasCards));
         OnPropertyChanged(nameof(IsEmpty));
         OnPropertyChanged(nameof(NoScan));
         OnPropertyChanged(nameof(EmptyText));
-        Selected();
     }
 
     public IReadOnlyList<UnitCard> Chosen => [.. _all.Where(c => c.IsSelected && c.IsBatch)];

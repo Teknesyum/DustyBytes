@@ -65,11 +65,18 @@ public sealed class AppBackend : IAppBackend, IAsyncDisposable
         }
     }
 
-    async Task<ScanSnapshot> Build(ScanResult result, IProgress<TaskStep>? progress, CancellationToken ct)
+    static IProgress<TaskStep>? Span(IProgress<TaskStep>? progress, double from, double to) =>
+        progress is null ? null : new Relay<TaskStep>(p => progress.Report(p with { Percent = p.Percent is >= 0 and <= 100 ? from + (to - from) * p.Percent / 100 : -1 }));
+
+    static Action<long, long>? Rows(IProgress<TaskStep>? progress, string step, double from, double to) =>
+        progress is null ? null : (read, total) => progress.Report(new TaskStep(step, from + (to - from) * Math.Min(1, read / (double)Math.Max(1, total)), $"{Format.Count(read)} / {Format.Count(total)} kayıt"));
+
+    async Task<ScanSnapshot> Build(ScanResult result, IProgress<TaskStep>? progress, CancellationToken ct, double from = 90)
     {
-        progress?.Report(new TaskStep("Kullanım izleri okunuyor", -1, "Steam, Epic ve Windows kayıtları"));
+        progress?.Report(new TaskStep("Kullanım izleri okunuyor", from, "Steam, Epic ve Windows kayıtları"));
         var usage = await _usage.Value.WaitAsync(ct).ConfigureAwait(false);
-        progress?.Report(new TaskStep("Birimler toplanıyor", -1, $"{Format.Count(result.Files)} dosya gruplanıyor"));
+        var start = from + (100 - from) / 4;
+        progress?.Report(new TaskStep("Birimler toplanıyor", start, $"{Format.Count(result.Files)} dosya gruplanıyor"));
         var units = await Task.Run(() =>
         {
             var protection = Protection(usage);
@@ -80,7 +87,7 @@ public sealed class AppBackend : IAppBackend, IAsyncDisposable
                 Protected = protection,
                 Now = DateTimeOffset.Now,
                 Programs = ProgramsForUnits(protection),
-            });
+            }, (done, total) => progress?.Report(new TaskStep("Birimler toplanıyor", start + (99 - start) * done / total, $"{done} / {total} tür tarandı")));
         }, ct).ConfigureAwait(false);
         return new ScanSnapshot(result, units, result.FinishedAt, result.Method);
     }
@@ -99,27 +106,30 @@ public sealed class AppBackend : IAppBackend, IAsyncDisposable
         return UnitPrograms.From(programs, protection);
     }
 
-    public async Task<ScanSnapshot?> LoadCachedAsync(CancellationToken ct)
+    public async Task<ScanSnapshot?> LoadCachedAsync(IProgress<TaskStep>? progress, CancellationToken ct)
     {
+        var rows = Rows(progress, "Önceki tarama okunuyor", 0, 80);
         var result = await Task.Run(() =>
         {
             try
             {
-                return new ScanIndex().Load(ScanRoot);
+                return new ScanIndex().Load(ScanRoot, rows);
             }
             catch (Exception e) when (e is IOException or UnauthorizedAccessException or InvalidOperationException or Microsoft.Data.Sqlite.SqliteException)
             {
                 return null;
             }
         }, ct).ConfigureAwait(false);
-        return result is null ? null : await Build(result, null, ct).ConfigureAwait(false);
+        return result is null ? null : await Build(result, progress, ct, 80).ConfigureAwait(false);
     }
 
     public async Task<ScanSnapshot> ScanAsync(IProgress<TaskStep> progress, CancellationToken ct)
     {
-        var sink = new Relay<ScanProgress>(p => progress.Report(new TaskStep(p.Step, p.Percent, p.CurrentPath)));
+        var scan = Span(progress, 0, 85)!;
+        var sink = new Relay<ScanProgress>(p => scan.Report(new TaskStep(p.Step, p.Percent, p.CurrentPath)));
         var result = await new FileScanner().ScanAsync(ScanRoot, new ScanOptions(), sink, ct).ConfigureAwait(false);
         ct.ThrowIfCancellationRequested();
+        progress.Report(new TaskStep("Sonuç kaydediliyor", 85, "Bir sonraki açılışta hemen gösterilsin diye"));
         await Task.Run(() =>
         {
             try
@@ -144,11 +154,12 @@ public sealed class AppBackend : IAppBackend, IAsyncDisposable
 
     public async Task<ScanSnapshot> FastScanAsync(IProgress<TaskStep> progress, CancellationToken ct)
     {
-        var response = await SendAsync(new WorkerRequest { Op = Ops.FastScan, Target = ScanRoot }, progress, ct).ConfigureAwait(false);
+        var response = await SendAsync(new WorkerRequest { Op = Ops.FastScan, Target = ScanRoot }, Span(progress, 0, 75)!, ct).ConfigureAwait(false);
         if (!response.Ok)
             throw new InvalidOperationException(response.Message);
         var path = response.Payload is { Length: > 0 } p && File.Exists(p) ? p : null;
-        var result = await Task.Run(() => new ScanIndex(path).Load(ScanRoot), ct).ConfigureAwait(false)
+        var rows = Rows(progress, "Hızlı tarama sonucu okunuyor", 75, 90);
+        var result = await Task.Run(() => new ScanIndex(path).Load(ScanRoot, rows), ct).ConfigureAwait(false)
             ?? throw new InvalidOperationException("Hızlı tarama sonucu dizinde bulunamadı");
         return await Build(result, progress, ct).ConfigureAwait(false);
     }

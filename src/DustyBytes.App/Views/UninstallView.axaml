@@ -18,7 +18,7 @@
     </StackPanel>
 
     <Border DockPanel.Dock="Bottom" Background="{StaticResource Surface}" BorderBrush="{StaticResource BorderDecorative}"
-            BorderThickness="0,1,0,0" Padding="24,12">
+            BorderThickness="0,1,0,0" Padding="{StaticResource PanelPadding}">
       <Grid ColumnDefinitions="*,Auto">
         <TextBlock Theme="{StaticResource Hint}" VerticalAlignment="Center" Text="{Binding RemoveTip}" IsVisible="{Binding IsAfter}"/>
         <Button Name="UninstallRun" Grid.Column="1" Classes="danger" Content="Programı kaldır"

@@ -9,7 +9,7 @@ namespace DustyBytes.Clean.Quarantine;
 
 public sealed record QuarantineOptions
 {
-    public TimeSpan Retention { get; init; } = TimeSpan.FromDays(30);
+    public TimeSpan Retention { get; init; } = AppSettings.QuarantineDays;
     public double WarnShare { get; init; } = 0.20;
     public Func<VolumeInfo, string>? RootResolver { get; init; }
     public bool ApplyAcl { get; init; } = true;
@@ -347,7 +347,7 @@ public sealed class QuarantineStore
         return new OpResult { Path = entry.OriginalPath, Status = OpStatus.Done, Method = OpMethod.Purge, Id = entry.Id, Bytes = entry.Size, Message = "Kalıcı silindi, yer açıldı" };
     }
 
-    public IReadOnlyList<OpResult> PurgeExpired(DateTime? nowUtc = null)
+    public IReadOnlyList<OpResult> PurgeExpired(DateTime? nowUtc = null, TimeSpan? maxAge = null)
     {
         var now = nowUtc ?? DateTime.UtcNow;
         var results = new List<OpResult>();
@@ -355,7 +355,7 @@ public sealed class QuarantineStore
         {
             var manifest = new QuarantineManifest(root);
             Recover(manifest);
-            foreach (var entry in manifest.Expired(now))
+            foreach (var entry in manifest.Expired(now, maxAge))
                 results.Add(PurgeEntry(manifest, entry));
         }
         return results;

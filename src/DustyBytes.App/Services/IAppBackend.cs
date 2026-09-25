@@ -28,7 +28,7 @@ public interface IAppBackend
     bool WorkerRunning { get; }
     bool Winapp2Present { get; }
 
-    Task<ScanSnapshot?> LoadCachedAsync(CancellationToken ct);
+    Task<ScanSnapshot?> LoadCachedAsync(IProgress<TaskStep>? progress, CancellationToken ct);
     Task<ScanSnapshot> ScanAsync(IProgress<TaskStep> progress, CancellationToken ct);
     Availability FastScanAvailability();
     Task<ScanSnapshot> FastScanAsync(IProgress<TaskStep> progress, CancellationToken ct);

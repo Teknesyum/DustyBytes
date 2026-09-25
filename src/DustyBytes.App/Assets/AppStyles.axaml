@@ -243,9 +243,9 @@
       <Setter Property="BorderBrush" Value="{StaticResource BorderDefault}"/>
       <Setter Property="BorderThickness" Value="{StaticResource BorderWidth}"/>
       <Setter Property="FontFamily" Value="{StaticResource FontSans}"/>
-      <Setter Property="FontSize" Value="{StaticResource FontSize1}"/>
-      <Setter Property="MinHeight" Value="32"/>
-      <Setter Property="Padding" Value="12,0"/>
+      <Setter Property="FontSize" Value="{StaticResource FontSize2}"/>
+      <Setter Property="MinHeight" Value="{StaticResource TargetMin}"/>
+      <Setter Property="Padding" Value="12,4"/>
       <Setter Property="Margin" Value="0,0,8,0"/>
       <Setter Property="CornerRadius" Value="{StaticResource Radius}"/>
       <Setter Property="Cursor" Value="Hand"/>
@@ -445,6 +445,10 @@
 
   <Style Selector="TextBlock">
     <Setter Property="FontFeatures" Value="+tnum"/>
+    <Setter Property="ClipToBounds" Value="False"/>
+  </Style>
+
+  <Style Selector="Button">
     <Setter Property="ClipToBounds" Value="False"/>
   </Style>
 

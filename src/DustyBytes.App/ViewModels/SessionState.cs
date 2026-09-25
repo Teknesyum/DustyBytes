@@ -47,7 +47,7 @@ public sealed partial class SessionState(IAppBackend backend) : ObservableObject
         IsRestoring = true;
         try
         {
-            cached = await backend.LoadCachedAsync(CancellationToken.None);
+            cached = await Scan.RunAsync("Önceki tarama okunuyor", (p, ct) => backend.LoadCachedAsync(p, ct), cancellable: false);
         }
         catch (Exception e) when (e is IOException or InvalidOperationException or UnauthorizedAccessException)
         {

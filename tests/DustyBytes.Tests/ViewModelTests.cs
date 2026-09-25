@@ -129,10 +129,11 @@ public class ViewModelTests
     }
 
     [AvaloniaFact]
-    public void Offers_Filter_And_Selection_Exclude_External_Units()
+    public async Task Offers_Filter_And_Selection_Exclude_External_Units()
     {
         var vm = Shell(new FakeBackend());
         vm.GoTo(vm.Offers);
+        await vm.Offers.Ready;
         var offers = vm.Offers;
         Assert.Equal(5, offers.Cards.Count);
 
@@ -152,6 +153,7 @@ public class ViewModelTests
         var backend = new FakeBackend();
         var vm = Shell(backend);
         vm.GoTo(vm.Offers);
+        await vm.Offers.Ready;
         vm.Offers.Cards.First(c => c.Unit.Id == "u1").IsSelected = true;
 
         await vm.Offers.QuarantineSelectedCommand.ExecuteAsync(null);
@@ -176,6 +178,7 @@ public class ViewModelTests
         var backend = new FakeBackend { DryRun = true };
         var vm = Shell(backend);
         vm.GoTo(vm.Offers);
+        await vm.Offers.Ready;
         vm.Offers.Cards.First(c => c.Unit.Id == "u1").IsSelected = true;
         await vm.Offers.QuarantineSelectedCommand.ExecuteAsync(null);
         await Settle();
@@ -189,6 +192,7 @@ public class ViewModelTests
         var backend = new FakeBackend();
         var vm = Shell(backend, accept: false);
         vm.GoTo(vm.Offers);
+        await vm.Offers.Ready;
         vm.Offers.Cards.First(c => c.Unit.Id == "u3").IsSelected = true;
         await vm.Offers.QuarantineSelectedCommand.ExecuteAsync(null);
         await Settle();

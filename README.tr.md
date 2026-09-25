@@ -11,7 +11,7 @@ Amacına göre Windows disk temizleyici.
 | Ne | Sayı | Kaynak |
 |---|---|---|
 | İncelenen açık kaynak depo | 61, yedi raporda | `docs/inceleme/` |
-| Geçen test | 322 (tarama 18, sinyal 24, birim 40, güvenlik 44, kaldırma 105, temizlik 27, arayüz 64) | `dotnet test` |
+| Geçen test | 328 (tarama 18, sinyal 24, birim 40, güvenlik 46, kaldırma 105, temizlik 27, arayüz 68) | `dotnet test` |
 | `C:\` tam tarama, MFT okuyucu | 8,6 sn, 2,84 M dosya | tek makine, n=1 |
 | `C:\` tam tarama, `FindFirstFileEx` | 33,2 sn, 2,90 M dosya | aynı makine |
 | Bulunan kurulu program | 199 (47 MSI, 53 MSIX) | aynı makine |
@@ -37,7 +37,7 @@ Depolama Algısı ve Disk Temizleme geçici dosyaları, geri dönüşüm kutusun
 - **İki tarayıcı.** `FindFirstFileEx` her yerde çalışır; MFT okuyucu NTFS'te yönetici yetkisiyle çalışır ve hızlı yeniden tarama için USN imlecini saklar.
 - **Birimler.** Dokuz çıkarıcı taramayı oyun, program, film, dizi, geliştirici artığı, önbellek, tarayıcı önbelleği, kurulum dosyası ve sistem artığına çevirir.
 - **Kullanım sinyalleri.** Steam, Epic, GOG ve diğer launcher'lar, Prefetch, UserAssist ve son medya; her tarihin kaynağı ve güvenilirliği gösterilir.
-- **Karantina.** Kaldırılan aynı sürücüde bir karantina klasörüne manifestiyle taşınır; boşaltana kadar geri yüklenebilir.
+- **Karantina.** Kaldırılan aynı sürücüde bir karantina klasörüne manifestiyle taşınır; kalıcı silinene kadar geri yüklenebilir. Varsayılan olarak 3 günü geçenler yönetici yardımcısının bir sonraki çalışmasında kalıcı silinir; seçenek Karantina ekranından kapatılır.
 - **Kaldırıcı.** Win32, MSI ve MSIX programlar; kaldırmadan önce kayıt defteri dışa aktarımı; kalıntılar Yüksek, Orta ya da Düşük güvenle puanlanır.
 - **Temizlik kuralları.** 23 JSON kural dosyası (tarayıcı önbellekleri, Windows geçici dosyaları, çökme dökümleri, uygulama önbellekleri) ve isteğe bağlı `winapp2.ini`; ayrıca DISM bileşen temizliği, Windows Update önbelleği ve Teslim İyileştirme.
 

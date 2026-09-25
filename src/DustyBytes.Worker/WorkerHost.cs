@@ -55,7 +55,8 @@ public static class WorkerHost
             {
                 try
                 {
-                    services.Quarantine.PurgeExpired();
+                    if (AppSettings.Load().AutoPurge)
+                        services.Quarantine.PurgeExpired(maxAge: AppSettings.QuarantineDays);
                 }
                 catch (Exception)
                 {

@@ -10,6 +10,7 @@ using Avalonia.Media;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using DustyBytes.App;
+using DustyBytes.App.Services;
 using DustyBytes.App.ViewModels;
 
 namespace DustyBytes.Tests;
@@ -270,6 +271,88 @@ public class KabukStandardiTests
                 }
             }
         Assert.True(failures.Count == 0, string.Join("\n", failures.Distinct()));
+    }
+
+    static readonly string[] States = ["", ":pointerover", ":pressed", ":focus-visible"];
+
+    static IEnumerable<string> Overflows(Button button, string state)
+    {
+        var pseudo = (IPseudoClasses)button.Classes;
+        if (state.Length > 0)
+            pseudo.Add(state);
+        if (state == ":focus-visible")
+            pseudo.Add(":focus");
+        Pump();
+        var found = new List<string>();
+        foreach (var part in button.GetSelfAndVisualDescendants().Where(v => v.IsEffectivelyVisible))
+        {
+            if (part.GetTransformedBounds() is not { } tb)
+                continue;
+            var rest = new Rect(tb.Bounds.Size).TransformToAABB(tb.Transform);
+            if (!tb.Clip.Inflate(0.5).Contains(rest.Deflate(Math.Max(rest.Width, rest.Height) * 0.02 + 1)))
+                continue;
+            var drawn = tb.Bounds.TransformToAABB(tb.Transform);
+            if (part is Border { BoxShadow.Count: > 0 } shadowed)
+                drawn = Inflate(drawn, shadowed.BoxShadow);
+            if (!tb.Clip.Inflate(0.5).Contains(drawn))
+                found.Add($"{button.Name ?? button.Content?.ToString()}{state} {part.GetType().Name}: {drawn} kırpılıyor, kırpma {tb.Clip} [{string.Join(",", part.GetVisualAncestors().Where(v => v.ClipToBounds).Select(v => v.GetType().Name + "#" + (v as Control)?.Name))}]");
+        }
+        pseudo.Remove(state);
+        pseudo.Remove(":focus");
+        Pump();
+        return found;
+    }
+
+    [AvaloniaTheory]
+    [InlineData(":pointerover")]
+    [InlineData(":pressed")]
+    [InlineData(":focus-visible")]
+    public void TitleBar_States_Draw_Inside_Their_Clip(string state)
+    {
+        var window = new MainWindow { Width = 1200, Height = 780 };
+        ((MainViewModel)window.DataContext!).Update.State = UpdateState.Available;
+        window.Show();
+        Pump();
+
+        var bar = window.FindControl<Grid>("TitleBar")!;
+        var failures = new List<string>();
+        foreach (var button in All<Button>(bar))
+        {
+            failures.AddRange(Overflows(button, state));
+            ((IPseudoClasses)button.Classes).Add(state);
+            Pump();
+            window.CaptureRenderedFrame()?.Save(System.IO.Path.Combine(Shots(), $"ustcubuk-{button.Name}-{state.TrimStart(':')}.png"));
+            ((IPseudoClasses)button.Classes).Remove(state);
+            Pump();
+        }
+        window.Close();
+        Assert.True(failures.Count == 0, string.Join(Environment.NewLine, failures.Distinct()));
+    }
+
+    [AvaloniaFact]
+    public async Task Every_Button_State_Draws_Whole_Glow_And_Border()
+    {
+        var failures = new List<string>();
+        await foreach (var (name, window) in EachScreen())
+            foreach (var button in All<Button>(window).Where(b => !InScrollBar(b)).ToList())
+                foreach (var state in States)
+                    failures.AddRange(Overflows(button, state).Select(f => $"{name}: {f}"));
+        Assert.True(failures.Count == 0, string.Join(Environment.NewLine, failures.Distinct()));
+    }
+
+    static Rect Inflate(Rect rect, BoxShadows shadows)
+    {
+        var result = rect;
+        foreach (var shadow in shadows)
+            result = result.Union(rect.Translate(new Vector(shadow.OffsetX, shadow.OffsetY)).Inflate(shadow.Blur + shadow.Spread));
+        return result;
+    }
+
+    static string Shots()
+    {
+        var dir = System.IO.Path.Combine(Solution(), "tmp", "ui-onarim", "ustcubuk");
+        Directory.CreateDirectory(dir);
+        return dir;
     }
 
     static string Solution()

@@ -11,7 +11,7 @@
     </StackPanel>
 
     <Border DockPanel.Dock="Bottom" Background="{StaticResource Surface}" BorderBrush="{StaticResource BorderDecorative}"
-            BorderThickness="0,1,0,0" Padding="24,12">
+            BorderThickness="0,1,0,0" Padding="{StaticResource PanelPadding}">
       <Grid ColumnDefinitions="*,Auto">
         <StackPanel VerticalAlignment="Center">
           <TextBlock Theme="{StaticResource Body}"><Run Text="{Binding TotalText}"/><Run Text="{Binding TotalSize}" FontFamily="{StaticResource FontMono}"/></TextBlock>
@@ -54,11 +54,11 @@
             <DataTemplate x:DataType="vm:CleanRuleRow">
               <Border Theme="{StaticResource Panel}" Padding="16">
                 <StackPanel Spacing="{StaticResource FieldGap}">
-                  <Grid ColumnDefinitions="*,Auto">
-                    <TextBlock Theme="{StaticResource H3}" Text="{Binding Name}"/>
-                    <TextBlock Grid.Column="1" Theme="{StaticResource Hint}" Text="{Binding Source}" IsVisible="{Binding HasSource}" VerticalAlignment="Center"
+                  <StackPanel Spacing="{StaticResource Space1}">
+                    <TextBlock Theme="{StaticResource H3}" Text="{Binding Name}" TextWrapping="Wrap"/>
+                    <TextBlock Theme="{StaticResource Hint}" Text="{Binding Source}" IsVisible="{Binding HasSource}" TextWrapping="Wrap"
                                ToolTip.Tip="{Binding SourceTip}" Background="Transparent"/>
-                  </Grid>
+                  </StackPanel>
                   <TextBlock Theme="{StaticResource WarningBody}" Text="{Binding RunningText}" IsVisible="{Binding Running}" TextWrapping="Wrap"/>
                   <ItemsControl ItemsSource="{Binding Options}">
                     <ItemsControl.ItemTemplate>

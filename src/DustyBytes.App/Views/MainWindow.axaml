@@ -4,12 +4,13 @@
         xmlns:v="using:DustyBytes.App.Views"
         x:Class="DustyBytes.App.MainWindow"
         x:DataType="vm:MainViewModel"
-        Title="DustyBytes"
+        Title="DustyBytes" Icon="avares://DustyBytes/Assets/DustyBytes.ico"
         Width="1200" Height="780" MinHeight="640"
         WindowStartupLocation="Manual"
         ExtendClientAreaToDecorationsHint="True"
         ExtendClientAreaChromeHints="NoChrome"
         ExtendClientAreaTitleBarHeightHint="-1"
+        FontFamily="{StaticResource FontSans}" FontSize="{StaticResource FontSize2}"
         Background="{StaticResource AppBg}">
 
   <Window.DataTemplates>
@@ -28,7 +29,12 @@
     <DockPanel>
       <Grid Name="TitleBar" DockPanel.Dock="Top" Height="{StaticResource TitleBarHeightMax}"
             Background="Transparent" ColumnDefinitions="Auto,Auto,*,Auto,Auto,Auto,Auto,Auto">
-        <TextBlock Theme="{StaticResource Label}" Text="DustyBytes" VerticalAlignment="Center" Margin="16,0,12,0" IsHitTestVisible="False"/>
+        <StackPanel Name="Brand" Orientation="Horizontal" Spacing="{StaticResource Space2}" Margin="16,0,12,0"
+                    VerticalAlignment="Center" IsHitTestVisible="False">
+          <Image Source="avares://DustyBytes/Assets/DustyBytes.png" Width="{StaticResource IconSize3}" Height="{StaticResource IconSize3}"
+                 VerticalAlignment="Center" AutomationProperties.AccessibilityView="Raw"/>
+          <TextBlock Theme="{StaticResource H3}" VerticalAlignment="Center"><Run Text="Dusty" Foreground="{StaticResource NeonBlue}"/><Run Text="Bytes" Foreground="{StaticResource PinkText}"/></TextBlock>
+        </StackPanel>
         <Border Grid.Column="1" IsVisible="{Binding IsDryRun}" BorderBrush="{StaticResource Warning50}"
                 BorderThickness="{StaticResource BorderWidth}" CornerRadius="{StaticResource Radius}"
                 Padding="8,0" VerticalAlignment="Center" IsHitTestVisible="False">

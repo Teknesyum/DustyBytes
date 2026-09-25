@@ -129,7 +129,7 @@
          Hyperlegible Next is the default and is EMBEDDED in the project, not
          assumed present on the system. In Avalonia the embed path is an avares
          URI, not a pack URI; example in references/avalonia.md. -->
-    <FontFamily x:Key="FontSans">Atkinson Hyperlegible Next, Segoe UI</FontFamily>
+    <FontFamily x:Key="FontSans">avares://DustyBytes/Assets/Fonts#Atkinson Hyperlegible Next, Segoe UI</FontFamily>
     <FontFamily x:Key="FontMono">Cascadia Mono, Consolas</FontFamily>
 
     <!-- Avalonia has no Duration resource type; Transition.Duration and
@@ -349,6 +349,7 @@
       <Setter Property="Foreground" Value="Black"/>
       <Setter Property="FontWeight" Value="SemiBold"/>
       <Setter Property="FontFamily" Value="{StaticResource FontSans}"/>
+      <Setter Property="FontSize" Value="{StaticResource FontSize2}"/>
       <Setter Property="Padding" Value="20,14"/>
       <Setter Property="BorderThickness" Value="0"/>
       <Setter Property="Cursor" Value="Hand"/>

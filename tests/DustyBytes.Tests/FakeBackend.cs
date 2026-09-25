@@ -174,7 +174,7 @@ public sealed class FakeBackend : IAppBackend
         return new ScanSnapshot(result, units, DateTimeOffset.Now.AddMinutes(-5), "FindFirstFileEx");
     }
 
-    public Task<ScanSnapshot?> LoadCachedAsync(CancellationToken ct) => Task.FromResult(Cached);
+    public Task<ScanSnapshot?> LoadCachedAsync(IProgress<TaskStep>? progress, CancellationToken ct) => Task.FromResult(Cached);
 
     public async Task<ScanSnapshot> ScanAsync(IProgress<TaskStep> progress, CancellationToken ct)
     {

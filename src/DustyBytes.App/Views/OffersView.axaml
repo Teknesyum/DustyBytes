@@ -2,9 +2,20 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:DustyBytes.App.ViewModels"
              xmlns:v="using:DustyBytes.App.Views"
-             xmlns:c="using:DustyBytes.App.Controls"
              x:Class="DustyBytes.App.Views.OffersView"
              x:DataType="vm:OffersViewModel">
+  <UserControl.Styles>
+    <Style Selector="Border.bar">
+      <Setter Property="Background" Value="{StaticResource NeonBlue10}"/>
+      <Setter Property="CornerRadius" Value="{StaticResource Radius}"/>
+    </Style>
+    <Style Selector="CheckBox.placeholder">
+      <Setter Property="Opacity" Value="0"/>
+      <Setter Property="IsHitTestVisible" Value="False"/>
+      <Setter Property="Focusable" Value="False"/>
+      <Setter Property="AutomationProperties.AccessibilityView" Value="Raw"/>
+    </Style>
+  </UserControl.Styles>
   <DockPanel>
     <StackPanel DockPanel.Dock="Top" Margin="24,24,24,12" Spacing="{StaticResource FieldStack}">
       <TextBlock Theme="{StaticResource H2}" Text="Öneriler"/>
@@ -26,7 +37,7 @@
     </StackPanel>
 
     <Border DockPanel.Dock="Bottom" Background="{StaticResource Surface}" BorderBrush="{StaticResource BorderDecorative}"
-            BorderThickness="0,1,0,0" Padding="24,12">
+            BorderThickness="0,1,0,0" Padding="{StaticResource PanelPadding}">
       <Grid ColumnDefinitions="*,Auto,Auto">
         <TextBlock Theme="{StaticResource Body}" VerticalAlignment="Center"><Run Text="{Binding SelectionText}"/><Run Text="{Binding SelectionSize}" FontFamily="{StaticResource FontMono}"/></TextBlock>
         <Button Grid.Column="1" Classes="ghost" Content="Seçimi temizle" Margin="0,0,12,0"
@@ -57,29 +68,52 @@
         </StackPanel>
       </Border>
 
-      <ScrollViewer HorizontalScrollBarVisibility="Disabled" IsVisible="{Binding HasCards}">
-        <ItemsControl ItemsSource="{Binding Cards}" Margin="24,0,24,24" Grid.IsSharedSizeScope="True">
-          <ItemsControl.Styles>
-            <Style Selector="ItemsControl > ContentPresenter">
-              <Setter Property="c:Flip.IsEnabled" Value="True"/>
-            </Style>
-          </ItemsControl.Styles>
+      <StackPanel Name="Skeleton" Margin="24,0" Spacing="{StaticResource RowGap}" IsVisible="{Binding IsLoading}">
+        <TextBlock Theme="{StaticResource Hint}" Text="{Binding LoadingText}"/>
+        <Border Classes="skeleton" Theme="{StaticResource Panel}" Padding="16">
+          <Grid ColumnDefinitions="2*,3*">
+            <StackPanel Spacing="{StaticResource Space1}">
+              <Border Classes="bar"><TextBlock Theme="{StaticResource H3}" Text=" "/></Border>
+              <Border Classes="bar"><TextBlock Theme="{StaticResource Hint}" Text=" "/></Border>
+              <Border Classes="bar"><TextBlock Theme="{StaticResource Hint}" Text=" "/></Border>
+            </StackPanel>
+          </Grid>
+        </Border>
+        <Border Classes="skeleton" Theme="{StaticResource Panel}" Padding="16">
+          <Grid ColumnDefinitions="3*,2*">
+            <StackPanel Spacing="{StaticResource Space1}">
+              <Border Classes="bar"><TextBlock Theme="{StaticResource H3}" Text=" "/></Border>
+              <Border Classes="bar"><TextBlock Theme="{StaticResource Hint}" Text=" "/></Border>
+              <Border Classes="bar"><TextBlock Theme="{StaticResource Hint}" Text=" "/></Border>
+            </StackPanel>
+          </Grid>
+        </Border>
+        <Border Classes="skeleton" Theme="{StaticResource Panel}" Padding="16">
+          <Grid ColumnDefinitions="1*,1*">
+            <StackPanel Spacing="{StaticResource Space1}">
+              <Border Classes="bar"><TextBlock Theme="{StaticResource H3}" Text=" "/></Border>
+              <Border Classes="bar"><TextBlock Theme="{StaticResource Hint}" Text=" "/></Border>
+              <Border Classes="bar"><TextBlock Theme="{StaticResource Hint}" Text=" "/></Border>
+            </StackPanel>
+          </Grid>
+        </Border>
+      </StackPanel>
+
+      <ScrollViewer Name="CardScroller" HorizontalScrollBarVisibility="Disabled" IsVisible="{Binding HasCards}">
+        <ItemsControl Name="CardList" ItemsSource="{Binding Cards}" Margin="24,0,24,12">
           <ItemsControl.ItemsPanel>
             <ItemsPanelTemplate>
-              <StackPanel Spacing="{StaticResource RowGap}"/>
+              <VirtualizingStackPanel/>
             </ItemsPanelTemplate>
           </ItemsControl.ItemsPanel>
           <ItemsControl.ItemTemplate>
             <DataTemplate x:DataType="vm:UnitCard">
+              <StackPanel Spacing="{StaticResource RowGap}">
               <Border Theme="{StaticResource Panel}" Padding="16">
-                <Grid>
-                  <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto" SharedSizeGroup="check"/>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
-                  </Grid.ColumnDefinitions>
+                <Grid ColumnDefinitions="Auto,*,Auto">
                   <CheckBox VerticalAlignment="Top" Margin="0,2,12,0" IsChecked="{Binding IsSelected}"
-                            IsVisible="{Binding IsBatch}" AutomationProperties.Name="{Binding Name}"/>
+                            Classes.placeholder="{Binding IsExternal}" IsEnabled="{Binding IsBatch}"
+                            AutomationProperties.Name="{Binding Name}"/>
                   <StackPanel Grid.Column="1" Spacing="{StaticResource Space1}">
                     <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space2}">
                       <TextBlock Theme="{StaticResource H3}" Text="{Binding Name}" TextTrimming="CharacterEllipsis"/>
@@ -92,9 +126,9 @@
                         <TextBlock Theme="{StaticResource WarningBody}" FontSize="{StaticResource FontSize1}" Text="Kullanıcı verisi"/>
                       </Border>
                     </StackPanel>
-                    <TextBlock Theme="{StaticResource Hint}" Text="{Binding UsageText}"/>
-                    <TextBlock Theme="{StaticResource Hint}" Text="{Binding Reason}" IsVisible="{Binding HasReason}"/>
-                    <TextBlock Theme="{StaticResource Hint}" FontFamily="{StaticResource FontMono}" Text="{Binding PathText}" TextTrimming="PathSegmentEllipsis"/>
+                    <TextBlock Theme="{StaticResource Body}" Text="{Binding UsageText}" TextWrapping="Wrap"/>
+                    <TextBlock Theme="{StaticResource Body}" Text="{Binding Reason}" IsVisible="{Binding HasReason}" TextWrapping="Wrap"/>
+                    <TextBlock Theme="{StaticResource Hint}" FontFamily="{StaticResource FontMono}" Text="{Binding PathText}" TextWrapping="NoWrap" TextTrimming="PathSegmentEllipsis"/>
                   </StackPanel>
                   <StackPanel Grid.Column="2" Spacing="{StaticResource Space2}" HorizontalAlignment="Right" Margin="12,0,0,0">
                     <TextBlock Theme="{StaticResource MonoValue}" Classes="data" Text="{Binding SizeText}" HorizontalAlignment="Right"/>
@@ -105,6 +139,8 @@
                   </StackPanel>
                 </Grid>
               </Border>
+              <Panel/>
+              </StackPanel>
             </DataTemplate>
           </ItemsControl.ItemTemplate>
         </ItemsControl>

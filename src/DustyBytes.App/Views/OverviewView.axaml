@@ -30,14 +30,6 @@
         <v:TaskProgressView DataContext="{Binding Progress}"/>
       </Panel>
 
-      <Border Theme="{StaticResource Panel}" IsVisible="{Binding IsRestoring}">
-        <StackPanel Spacing="{StaticResource FieldGap}">
-          <TextBlock Theme="{StaticResource H3}" Text="Önceki tarama yükleniyor"/>
-          <TextBlock Theme="{StaticResource Hint}" Text="Son taramanın sonucu diskten okunuyor; bitince yeni tarama kendiliğinden başlar."/>
-          <ProgressBar IsIndeterminate="True"/>
-        </StackPanel>
-      </Border>
-
       <Border Theme="{StaticResource Panel}" IsVisible="{Binding IsEmpty}">
         <StackPanel Spacing="{StaticResource FieldGap}">
           <TextBlock Theme="{StaticResource H3}" Text="Henüz tarama yok"/>

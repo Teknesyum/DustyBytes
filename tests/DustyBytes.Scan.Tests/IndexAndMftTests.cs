@@ -15,7 +15,11 @@ public sealed class IndexAndMftTests(ScanFixture fx, ITestOutputHelper output)
             var index = new ScanIndex(db);
             index.Save(r);
             index.Save(r);
-            var back = index.Load(fx.Root)!;
+            var seen = new List<(long Read, long Total)>();
+            var back = index.Load(fx.Root, (read, total) => seen.Add((read, total)))!;
+            Assert.NotEmpty(seen);
+            Assert.Equal(seen[^1].Read, seen[^1].Total);
+            Assert.Equal(r.Files + r.Directories + 1, seen[^1].Total);
             Assert.Equal(r.Root.Size, back.Root.Size);
             Assert.Equal(r.Root.FileCount, back.Root.FileCount);
             Assert.Equal(r.Files, back.Files);

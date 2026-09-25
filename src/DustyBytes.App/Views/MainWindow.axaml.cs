@@ -68,6 +68,20 @@ public partial class MainWindow : Window
 
         if (ContextFactory?.Invoke() is { } context)
             DataContext = context;
+        TraceTabSwitch();
+    }
+
+    void TraceTabSwitch()
+    {
+        if (Environment.GetEnvironmentVariable("DUSTYBYTES_PERF_LOG") is not { Length: > 0 } log)
+            return;
+        Nav.SelectionChanged += (_, _) =>
+        {
+            var watch = System.Diagnostics.Stopwatch.StartNew();
+            var label = (Nav.SelectedItem as NavItem)?.Label ?? "?";
+            RequestAnimationFrame(_ => RequestAnimationFrame(_ =>
+                File.AppendAllText(log, $"{label}\t{watch.Elapsed.TotalMilliseconds:F1}{Environment.NewLine}")));
+        };
     }
 
     double Token(string key, double fallback)

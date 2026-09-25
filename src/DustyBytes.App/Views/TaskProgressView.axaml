@@ -23,7 +23,7 @@
           <DataTemplate x:DataType="vm:LogLine">
             <TextBlock Classes="log" Classes.newest="{Binding IsNewest}" Text="{Binding Text}"
                        FontFamily="{StaticResource FontMono}" FontSize="{StaticResource FontSize1}"
-                       Foreground="{StaticResource TextBody}" TextTrimming="CharacterEllipsis"/>
+                       Foreground="{StaticResource TextBody}" TextTrimming="LeadingCharacterEllipsis"/>
           </DataTemplate>
         </ItemsControl.ItemTemplate>
       </ItemsControl>

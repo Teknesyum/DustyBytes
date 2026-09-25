@@ -18,10 +18,14 @@
         </StackPanel>
       </Grid>
       <TextBlock Theme="{StaticResource Hint}" Text="{Binding Note}" TextWrapping="Wrap"/>
+      <CheckBox Name="AutoPurgeToggle" IsChecked="{Binding AutoPurge}"
+                ToolTip.Tip="Açıkken, karantinada 3 günü dolduran öğeler bir sonraki yönetici işleminde kalıcı silinir">
+        <TextBlock Theme="{StaticResource Body}" Text="{Binding AutoPurgeText}" TextWrapping="Wrap"/>
+      </CheckBox>
     </StackPanel>
 
     <Border DockPanel.Dock="Bottom" Background="{StaticResource Surface}" BorderBrush="{StaticResource BorderDecorative}"
-            BorderThickness="0,1,0,0" Padding="24,12" IsVisible="{Binding HasItems}">
+            BorderThickness="0,1,0,0" Padding="{StaticResource PanelPadding}" IsVisible="{Binding HasItems}">
       <Grid ColumnDefinitions="Auto,*,Auto,Auto">
         <Button Classes="ghost" Content="Tümünü seç" Command="{Binding SelectAllCommand}" Margin="0,0,12,0"/>
         <TextBlock Grid.Column="1" Theme="{StaticResource Body}" VerticalAlignment="Center"><Run Text="{Binding SelectionText}"/><Run Text="{Binding SelectionSize}" FontFamily="{StaticResource FontMono}"/></TextBlock>
@@ -61,7 +65,7 @@
         <Border Theme="{StaticResource Panel}" IsVisible="{Binding IsEmpty}">
           <StackPanel Spacing="{StaticResource FieldGap}">
             <TextBlock Theme="{StaticResource H3}" Text="Karantina boş"/>
-            <TextBlock Theme="{StaticResource Hint}" Text="Karantinaya alınanlar burada otuz gün bekler, sonra silinir." TextWrapping="Wrap"/>
+            <TextBlock Theme="{StaticResource Hint}" Text="Karantinaya alınanlar burada bekler; istediğin an geri alırsın. Üstteki seçenek açıksa 3 günü geçenler kalıcı silinir." TextWrapping="Wrap"/>
             <Button Classes="primary" Content="Önerilere git" HorizontalAlignment="Left" Command="{Binding OpenOffersCommand}"/>
           </StackPanel>
         </Border>

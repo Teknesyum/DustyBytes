@@ -1,4 +1,11 @@
-- [x] A7 Yayın — 2026-09-25 13:45 — v0.1.1 yayında, 322 test, inceleme 4 tur
-- [x] ajan: Güncelleme rozeti ve yayın akışı — 2026-09-25 12:57 — docs/dalga/guncelleme.md
-- [x] ajan: Arayüz inceleme 4 — 2026-09-25 13:20 — docs/dalga/arayuz-inceleme-3.md, -4.md
 - [ ] Kod imzası — 2026-09-25 13:45 — sertifika satın alma kararı sahibin
+- [ ] A8 İngilizce arayüz — 2026-09-25 14:05 — ertelendi: önce Türkçe tam yetkin olacak, sonra sahip başlatır
+- [x] ajan: Arayüz okunurluk ve akıcılık onarımı — 2026-09-25 17:03 — sonucu aktarılacak
+- [x] Program simgesi (exe, pencere, kısayol) — 2026-09-25 17:08 — jobs.md
+- [x] Varsayılan açık ayar: karantinada 3 günü geçen öğeler kalıcı silinsin — 2026-09-25 17:08 — jobs.md
+- [x] Üst çubuk düğmeleri üstüne gelince tam çizilsin — 2026-09-25 17:08 — jobs.md
+- [x] Öneriler sekmesi anında açılsın; bekleme varsa sekme açıldıktan sonra — 2026-09-25 17:08 — jobs.md
+- [x] Arayüz akıcı ve tepkisel olsun — 2026-09-25 17:08 — jobs.md
+- [x] Yazılar teknesyum-ui ölçeğine göre büyütülsün, okunur olsun — 2026-09-25 17:08 — jobs.md
+- [x] Core'a rapor: arayüz teknesyum-ui'ye uymadan kuruldu (yazı boyu katliamı) — 2026-09-25 17:08 — jobs.md
+- [x] ajan: Arayüz bağımsız inceleme — 2026-09-25 18:00 — sonucu aktarılacak

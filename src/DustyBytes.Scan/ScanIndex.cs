@@ -155,20 +155,22 @@ public sealed class ScanIndex
         return scanId;
     }
 
-    public ScanResult? Load(string root)
+    public ScanResult? Load(string root, Action<long, long>? rows = null)
     {
         var key = Paths.Normalize(root);
         using var db = Open();
         long scanId;
+        long expected;
         ScanResult header;
         using (var q = db.CreateCommand())
         {
-            q.CommandText = "SELECT id, method, finished_at, elapsed_ms, cancelled, errors, usn_journal, usn_next FROM scans WHERE root = $r;";
+            q.CommandText = "SELECT id, method, finished_at, elapsed_ms, cancelled, errors, usn_journal, usn_next, files, directories FROM scans WHERE root = $r;";
             q.Parameters.AddWithValue("$r", key);
             using var r = q.ExecuteReader();
             if (!r.Read())
                 return null;
             scanId = r.GetInt64(0);
+            expected = r.GetInt64(8) + r.GetInt64(9) + 1;
             header = new ScanResult
             {
                 Root = null!,
@@ -208,6 +210,8 @@ public sealed class ScanIndex
                     ReparseTag = r.IsDBNull(11) ? null : r.GetString(11),
                 };
                 nodes.Add(node);
+                if (rows is not null && (nodes.Count & 0x3FFF) == 0)
+                    rows(nodes.Count, expected);
                 if (parent is not null)
                 {
                     (parent.Children ??= []).Add(node);
@@ -220,6 +224,7 @@ public sealed class ScanIndex
         }
         if (nodes.Count == 0)
             return null;
+        rows?.Invoke(nodes.Count, nodes.Count);
         return new ScanResult
         {
             Root = nodes[0],

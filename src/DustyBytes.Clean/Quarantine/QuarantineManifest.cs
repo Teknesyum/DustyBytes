@@ -144,8 +144,10 @@ internal sealed class QuarantineManifest
     public List<QuarantineEntry> All(bool includeClosed) =>
         includeClosed ? Query("ORDER BY moved_utc DESC") : Query("WHERE state IN ('pending', 'moving') ORDER BY moved_utc DESC");
 
-    public List<QuarantineEntry> Expired(DateTime nowUtc) =>
-        Query("WHERE state = 'pending' AND expires_utc <= $now", ("$now", nowUtc.Ticks));
+    public List<QuarantineEntry> Expired(DateTime nowUtc, TimeSpan? maxAge = null) =>
+        maxAge is { } age
+            ? Query("WHERE state = 'pending' AND (expires_utc <= $now OR moved_utc <= $moved)", ("$now", nowUtc.Ticks), ("$moved", (nowUtc - age).Ticks))
+            : Query("WHERE state = 'pending' AND expires_utc <= $now", ("$now", nowUtc.Ticks));
 
     List<QuarantineEntry> Query(string tail, params (string Name, object Value)[] args)
     {

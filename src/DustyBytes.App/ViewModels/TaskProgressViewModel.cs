@@ -16,13 +16,14 @@ public sealed partial class LogLine(string text) : ObservableObject
 public sealed partial class TaskProgressViewModel : ObservableObject
 {
     public const int MaxLines = 9;
-    public const double Ceiling = 0.95;
+    public const double Ceiling = 0.99;
     static readonly TimeSpan LineGap = TimeSpan.FromMilliseconds(160);
 
     readonly Action<TaskProgressViewModel, bool>? _register;
     CancellationTokenSource? _cts;
     DateTime _lastLine = DateTime.MinValue;
     double _stepCeiling = Ceiling;
+    bool _measured;
 
     public TaskProgressViewModel(Action<TaskProgressViewModel, bool>? register = null) => _register = register;
 
@@ -56,6 +57,7 @@ public sealed partial class TaskProgressViewModel : ObservableObject
         Step = title;
         Value = 0;
         _stepCeiling = Ceiling;
+        _measured = false;
         PercentText = "%0";
         Lines.Clear();
         CanCancel = cancellable;
@@ -63,7 +65,9 @@ public sealed partial class TaskProgressViewModel : ObservableObject
         _register?.Invoke(this, true);
         try
         {
-            return await work(new Progress<TaskStep>(Report), token);
+            var result = await work(new Progress<TaskStep>(Report), token);
+            Advance(1);
+            return result;
         }
         finally
         {
@@ -83,7 +87,10 @@ public sealed partial class TaskProgressViewModel : ObservableObject
             _stepCeiling = Math.Min(Ceiling, Value + (Ceiling - Value) * 0.5);
         }
         if (step.Percent is >= 0 and <= 100 && !double.IsNaN(step.Percent))
+        {
+            _measured = true;
             Advance(Math.Min(Ceiling, step.Percent / 100.0));
+        }
         if (!string.IsNullOrWhiteSpace(step.Line))
             AddLine(step.Line!);
     }
@@ -103,7 +110,7 @@ public sealed partial class TaskProgressViewModel : ObservableObject
 
     public void Tick()
     {
-        if (!IsRunning)
+        if (!IsRunning || _measured)
             return;
         var ceiling = Math.Max(_stepCeiling, Value);
         Advance(Value + (ceiling - Value) * 0.02);
