@@ -36,6 +36,7 @@ public sealed class IndexAndMftTests(ScanFixture fx, ITestOutputHelper output)
     }
 
     [Fact]
+    [Trait("Kind", "Machine")]
     public async Task FastScannerMatchesFileScanner()
     {
         if (!ScanFixture.IsAdmin)

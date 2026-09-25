@@ -5,6 +5,7 @@ namespace DustyBytes.Safety.Tests;
 public class RecycleBinTests
 {
     [Fact]
+    [Trait("Kind", "Machine")]
     public void Kutuya_Gonder_Bul_Geri_Yukle_Ve_Temizle()
     {
         using var tree = new TempTree();

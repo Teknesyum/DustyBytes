@@ -29,7 +29,7 @@ jobs:
           "prerelease=$([bool]($version -match '-'))".ToLower() >> $env:GITHUB_OUTPUT
 
       - name: Test
-        run: dotnet test DustyBytes.slnx -c Release -p:Version=${{ steps.version.outputs.version }}
+        run: dotnet test DustyBytes.slnx -c Release -p:Version=${{ steps.version.outputs.version }} --filter "Kind!=Machine"
 
       - name: Publish
         run: dotnet publish src/DustyBytes.App -c Release -r win-x64 --self-contained -o publish -p:Version=${{ steps.version.outputs.version }}
