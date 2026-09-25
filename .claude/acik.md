@@ -1,3 +1,4 @@
-- [ ] A7 Yayın — 2026-09-25 10:55 — README, diyagram, Kur yazıldı; güncelleme rozeti ve yayın akışı ajanda; kod imzası sahibin satın alma kararı
+- [x] A7 Yayın — 2026-09-25 13:45 — v0.1.1 yayında, 322 test, inceleme 4 tur
 - [x] ajan: Güncelleme rozeti ve yayın akışı — 2026-09-25 12:57 — docs/dalga/guncelleme.md
 - [x] ajan: Arayüz inceleme 4 — 2026-09-25 13:20 — docs/dalga/arayuz-inceleme-3.md, -4.md
+- [ ] Kod imzası — 2026-09-25 13:45 — sertifika satın alma kararı sahibin

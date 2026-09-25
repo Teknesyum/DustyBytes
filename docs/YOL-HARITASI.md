@@ -12,4 +12,4 @@ Sahibin söylediği ve bitmemiş işler. Biten silinmez, işaretlenir. Ayrıntı
 - [x] A4 Kaldırıcı
 - [x] A5 Temizlik
 - [x] A6 Hızlı Tarama
-- [ ] A7 Yayın
+- [x] A7 Yayın — v0.1.1 yayında; kod imzası açık, sertifika sahibin kararı
