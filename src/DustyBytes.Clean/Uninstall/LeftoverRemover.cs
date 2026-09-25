@@ -68,7 +68,7 @@ public sealed class LeftoverRemover
                 items.Add(new RemovalItem(c.Id, c.Kind, c.Target, true, "Zaten yok"));
                 continue;
             }
-            if (c.Kind is LeftoverKind.Folder or LeftoverKind.File or LeftoverKind.Shortcut && _scanner.GateFolder(c.Target) is { } reason)
+            if (c.Kind is LeftoverKind.Folder or LeftoverKind.File or LeftoverKind.Shortcut && _scanner.GateCandidate(c, snapshot.Program) is { } reason)
             {
                 items.Add(new RemovalItem(c.Id, c.Kind, c.Target, false, reason));
                 continue;

@@ -18,9 +18,11 @@ public static class Format
             value /= 1024;
             unit++;
         }
-        var format = value >= 100 ? "0" : value >= 10 ? "0.#" : "0.##";
+        var format = value >= 100 ? "0" : value >= 10 ? "0.0" : "0.00";
         return value.ToString(format, Tr) + " " + Units[unit];
     }
+
+    public static string Count(long count) => count.ToString("N0", Tr);
 
     public static string Ago(DateTimeOffset then, DateTimeOffset now)
     {

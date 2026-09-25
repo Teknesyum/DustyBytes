@@ -2,10 +2,13 @@
 
   <PropertyGroup>
     <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+    <IsAotCompatible>false</IsAotCompatible>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Avalonia.Headless.XUnit" Version="11.3.20" />
+    <PackageReference Include="Avalonia.Skia" Version="11.3.20" />
     <PackageReference Include="coverlet.collector" Version="6.0.4" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
     <PackageReference Include="xunit" Version="2.9.3" />
@@ -14,6 +17,10 @@
 
   <ItemGroup>
     <Using Include="Xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="../../teknesyum-ui/denetim/*.cs" Link="Denetim/%(Filename)%(Extension)" />
   </ItemGroup>
 
   <ItemGroup>

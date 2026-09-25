@@ -1,13 +1,11 @@
-- [ ] ajan: A1+A6 tarama motoru — 2026-09-25 10:39 — sonucu aktarılacak
-- [ ] ajan: A3 kullanım sinyalleri — 2026-09-25 10:39 — sonucu aktarılacak
-- [ ] ajan: A2 karantina ve worker — 2026-09-25 10:39 — sonucu aktarılacak
-- [ ] ajan: A4 kaldırıcı ve kalıntı — 2026-09-25 10:40 — sonucu aktarılacak
-- [ ] ajan: A2+A3 birim çıkarıcılar — 2026-09-25 10:41 — sonucu aktarılacak
-- [ ] A0 İskelet — 2026-09-25 10:55 — kabuk standardı testleri ve üst çubuk arayüz dalgasında; ajanlar çalışıyor
-- [ ] A1 Salt Okunur Tarama — 2026-09-25 10:55 — tarama ajanı arka planda çalışıyor
-- [ ] A2 Güvenli Silme — 2026-09-25 10:55 — karantina+worker ve birim ajanları arka planda çalışıyor
-- [ ] A3 Sinyal ve Puan — 2026-09-25 10:55 — sinyaller bitti (24/24 test); birimler, puan ve Öneriler ekranı sürüyor
-- [ ] A4 Kaldırıcı — 2026-09-25 10:55 — kaldırıcı ajanı arka planda çalışıyor
-- [ ] A5 Temizlik — 2026-09-25 10:55 — temizlik ajanı arka planda çalışıyor
-- [ ] A6 Hızlı Tarama — 2026-09-25 10:55 — tarama ajanı arka planda çalışıyor
-- [ ] A7 Yayın — 2026-09-25 10:55 — A0-A6 bitince
+- [x] A0 İskelet — 2026-09-25 10:55 — motor + arayüz, 295/295 test, bağımsız inceleme 2 kez
+- [x] A1 Salt Okunur Tarama — 2026-09-25 10:55 — motor + arayüz, 295/295 test, bağımsız inceleme 2 kez
+- [x] A2 Güvenli Silme — 2026-09-25 10:55 — motor + arayüz, 295/295 test, bağımsız inceleme 2 kez
+- [x] A3 Sinyal ve Puan — 2026-09-25 10:55 — motor + arayüz, 295/295 test, bağımsız inceleme 2 kez
+- [x] A4 Kaldırıcı — 2026-09-25 10:55 — motor + arayüz, 295/295 test, bağımsız inceleme 2 kez
+- [x] A5 Temizlik — 2026-09-25 10:55 — motor + arayüz, 295/295 test, bağımsız inceleme 2 kez
+- [x] A6 Hızlı Tarama — 2026-09-25 10:55 — motor + arayüz, 295/295 test, bağımsız inceleme 2 kez
+- [ ] A7 Yayın — 2026-09-25 10:55 — README, diyagram, Kur yazıldı; güncelleme rozeti ve yayın akışı ajanda; kod imzası sahibin satın alma kararı
+- [x] ajan: Arayüz bağımsız inceleme — 2026-09-25 12:30 — docs/dalga/arayuz-inceleme-1.md, -2.md
+- [x] ajan: Arayüz bulgularını düzelt — 2026-09-25 12:32 — docs/dalga/arayuz-duzeltme.md
+- [ ] ajan: Güncelleme rozeti ve yayın akışı — 2026-09-25 12:57 — sonucu aktarılacak

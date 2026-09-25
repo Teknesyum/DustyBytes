@@ -1,0 +1,129 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:DustyBytes.App.ViewModels"
+             xmlns:v="using:DustyBytes.App.Views"
+             x:Class="DustyBytes.App.Views.OverviewView"
+             x:DataType="vm:OverviewViewModel">
+  <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+    <StackPanel Margin="{StaticResource PanelPadding}" Spacing="{StaticResource SectionGap}">
+
+      <Grid ColumnDefinitions="*,Auto">
+        <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space3}" VerticalAlignment="Center">
+          <TextBlock Theme="{StaticResource H2}" Text="Genel bakış"/>
+          <Border IsVisible="{Binding IsRefreshing}" BorderBrush="{StaticResource NeonBlue}" BorderThickness="{StaticResource BorderWidth}"
+                  CornerRadius="{StaticResource Radius}" Padding="8,2" VerticalAlignment="Center"
+                  ToolTip.Tip="Önceki sonuç gösteriliyor; yeni tarama arka planda sürüyor">
+            <TextBlock Theme="{StaticResource Label}" Text="Tazeleniyor"/>
+          </Border>
+        </StackPanel>
+        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="{StaticResource Space3}">
+          <Button Name="FastScanButton" Classes="ghost" Content="Hızlı tarama (yönetici)"
+                  Command="{Binding FastScanCommand}"
+                  ToolTip.Tip="{Binding FastScanTip}" ToolTip.ShowOnDisabled="True"/>
+          <Button Name="ScanButton" Classes="primary" Content="{Binding PrimaryText}"
+                  Command="{Binding StartScanCommand}"
+                  ToolTip.Tip="Sistem sürücüsü yönetici izni istemeden taranır" ToolTip.ShowOnDisabled="True"/>
+        </StackPanel>
+      </Grid>
+
+      <Panel IsVisible="{Binding IsScanning}">
+        <v:TaskProgressView DataContext="{Binding Progress}"/>
+      </Panel>
+
+      <Border Theme="{StaticResource Panel}" IsVisible="{Binding IsEmpty}">
+        <StackPanel Spacing="{StaticResource FieldGap}">
+          <TextBlock Theme="{StaticResource H3}" Text="Henüz tarama yok"/>
+          <TextBlock Theme="{StaticResource Hint}" Text="Taramayı başlatın; büyük ve az kullanılan alanlar amacına göre toplanır. Hiçbir dosya silinmez."/>
+        </StackPanel>
+      </Border>
+
+      <Border Theme="{StaticResource Panel}" IsVisible="{Binding HasError}">
+        <StackPanel Spacing="{StaticResource FieldGap}">
+          <TextBlock Theme="{StaticResource H3}" Text="Tarama tamamlanamadı"/>
+          <TextBlock Theme="{StaticResource DangerBody}" Text="{Binding ErrorText}" TextWrapping="Wrap"/>
+          <TextBlock Theme="{StaticResource Hint}" Text="Yeniden dene düğmesiyle taramayı baştan başlatın."/>
+        </StackPanel>
+      </Border>
+
+      <StackPanel Spacing="{StaticResource SectionGap}" IsVisible="{Binding ShowContent}">
+        <Border Theme="{StaticResource Panel}">
+          <Grid ColumnDefinitions="*,Auto,Auto" RowDefinitions="Auto,Auto,Auto">
+            <TextBlock Theme="{StaticResource Label}" Text="Açılabilir alan"/>
+            <TextBlock Grid.Row="1" Theme="{StaticResource Hero}" Classes="data" Text="{Binding HeroText}" Margin="0,8"/>
+            <TextBlock Grid.Row="2" Theme="{StaticResource Hint}" Text="{Binding LastScanText}"/>
+            <StackPanel Grid.Column="1" Grid.RowSpan="3" Margin="24,0" VerticalAlignment="Center" Spacing="{StaticResource Space1}">
+              <TextBlock Theme="{StaticResource Label}" Text="Bekleyen"/>
+              <TextBlock Theme="{StaticResource MonoValue}" Classes="data" Text="{Binding PendingText}"/>
+            </StackPanel>
+            <StackPanel Grid.Column="2" Grid.RowSpan="3" VerticalAlignment="Center" Spacing="{StaticResource Space1}">
+              <TextBlock Theme="{StaticResource Label}" Text="Açılan"/>
+              <TextBlock Theme="{StaticResource MonoValue}" Classes="data" Text="{Binding FreedText}"/>
+            </StackPanel>
+          </Grid>
+        </Border>
+
+        <Border Theme="{StaticResource Panel}">
+          <StackPanel Spacing="{StaticResource RowGap}">
+            <Grid ColumnDefinitions="*,Auto">
+              <TextBlock Theme="{StaticResource H3}" Text="İlk beş teklif"/>
+              <Button Grid.Column="1" Classes="link" Content="Tümünü gör" Command="{Binding OpenOffersCommand}"/>
+            </Grid>
+            <ItemsControl ItemsSource="{Binding Top}">
+              <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                  <StackPanel Spacing="{StaticResource FieldGap}"/>
+                </ItemsPanelTemplate>
+              </ItemsControl.ItemsPanel>
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:TopUnit">
+                  <Grid ColumnDefinitions="*,Auto">
+                    <StackPanel>
+                      <TextBlock Theme="{StaticResource Body}" Text="{Binding Name}" TextTrimming="CharacterEllipsis"/>
+                      <TextBlock Theme="{StaticResource Hint}">
+                        <Run Text="{Binding KindLabel}"/><Run Text=" · "/><Run Text="{Binding UsageText}"/>
+                      </TextBlock>
+                    </StackPanel>
+                    <TextBlock Grid.Column="1" Theme="{StaticResource MonoValue}" Classes="data" Text="{Binding SizeText}" VerticalAlignment="Center"/>
+                  </Grid>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </StackPanel>
+        </Border>
+        <Border Theme="{StaticResource Panel}">
+          <StackPanel Spacing="{StaticResource RowGap}">
+            <Grid ColumnDefinitions="*,Auto">
+              <TextBlock Theme="{StaticResource H3}" Text="Türe göre"/>
+              <TextBlock Grid.Column="1" Theme="{StaticResource Hint}" FontFamily="{StaticResource FontMono}" Text="{Binding UnitCountText}" VerticalAlignment="Center"/>
+            </Grid>
+            <ItemsControl ItemsSource="{Binding Bars}">
+              <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                  <StackPanel Spacing="{StaticResource FieldGap}"/>
+                </ItemsPanelTemplate>
+              </ItemsControl.ItemsPanel>
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:KindBar">
+                  <Grid ColumnDefinitions="160,*,120">
+                    <TextBlock Theme="{StaticResource Body}" Text="{Binding Label}" VerticalAlignment="Center"/>
+                    <Border Grid.Column="1" MinHeight="12" VerticalAlignment="Center" CornerRadius="{StaticResource Radius}"
+                            Background="{StaticResource NeonBlue10}" ClipToBounds="True">
+                      <Border Classes="bar" CornerRadius="{StaticResource Radius}"
+                              Background="{Binding Kind, Converter={x:Static v:UiConvert.KindFill}}"
+                              BorderBrush="{Binding Kind, Converter={x:Static v:UiConvert.KindStroke}}"
+                              BorderThickness="{StaticResource BorderWidth}"
+                              RenderTransform="{Binding Share, Converter={x:Static v:UiConvert.ScaleX}}"/>
+                    </Border>
+                    <TextBlock Grid.Column="2" Theme="{StaticResource MonoValue}" Classes="data" Text="{Binding SizeText}"
+                               HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                  </Grid>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </StackPanel>
+        </Border>
+
+      </StackPanel>
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

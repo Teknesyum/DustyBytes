@@ -10,6 +10,7 @@ public sealed record UnitContext
     public required IUsageIndex UsageIndex { get; init; }
     public required ProtectedList Protected { get; init; }
     public required DateTimeOffset Now { get; init; }
+    public IReadOnlyList<ProgramInstall> Programs { get; init; } = [];
 
     public ScanNode Root => ScanResult.Root;
 }

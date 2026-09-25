@@ -5,11 +5,11 @@ Sahibin söylediği ve bitmemiş işler. Biten silinmez, işaretlenir. Ayrıntı
 - [x] Plan ve fable görüşü ([001](danisma/001-fable-dustybytes-plan.md))
 - [x] İnceleme: 61 depo, yedi rapor (`docs/inceleme/`)
 - [x] Plan sürüm 2: inceleme sonrası revizyon
-- [ ] A0 İskelet
-- [ ] A1 Salt Okunur Tarama
-- [ ] A2 Güvenli Silme
-- [ ] A3 Sinyal ve Puan
-- [ ] A4 Kaldırıcı
-- [ ] A5 Temizlik
-- [ ] A6 Hızlı Tarama
+- [x] A0 İskelet
+- [x] A1 Salt Okunur Tarama
+- [x] A2 Güvenli Silme
+- [x] A3 Sinyal ve Puan
+- [x] A4 Kaldırıcı
+- [x] A5 Temizlik
+- [x] A6 Hızlı Tarama
 - [ ] A7 Yayın

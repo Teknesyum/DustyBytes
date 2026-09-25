@@ -109,7 +109,7 @@ public sealed class LeftoverScanner
         {
             if (!Exists(c))
                 continue;
-            if (c.Kind is LeftoverKind.Folder or LeftoverKind.File or LeftoverKind.Shortcut && GateFolder(c.Target) is { } reason)
+            if (c.Kind is LeftoverKind.Folder or LeftoverKind.File or LeftoverKind.Shortcut && GateCandidate(c, before.Program) is { } reason)
             {
                 blocked.Add(new BlockedCandidate(c.Kind, c.Target, reason));
                 continue;
@@ -270,6 +270,33 @@ public sealed class LeftoverScanner
         if (!verdict.Allowed)
             return $"Korumalı liste: {verdict.Reason}";
         return null;
+    }
+
+    public string? GateCandidate(LeftoverCandidate c, InstalledProgram program) =>
+        c.Kind == LeftoverKind.Shortcut && IsProgramShortcut(c.Target, c.Detail, program) ? null : GateFolder(c.Target);
+
+    public bool IsProgramShortcut(string lnk, string? target, InstalledProgram program)
+    {
+        if (target is null || program.InstallLocation is not { } loc || string.IsNullOrWhiteSpace(loc) || _ctx.IsTooBroad(loc))
+            return false;
+        string norm, dir;
+        try
+        {
+            norm = Paths.Normalize(lnk);
+            dir = Paths.Normalize(loc);
+        }
+        catch (Exception e) when (e is ArgumentException or NotSupportedException or PathTooLongException)
+        {
+            return false;
+        }
+        if (!norm.EndsWith(".lnk", StringComparison.OrdinalIgnoreCase) || Directory.Exists(norm))
+            return false;
+        var parent = Path.GetDirectoryName(norm);
+        var placed = _ctx.ShortcutDirs.Any(d => SafeIsUnder(norm, d) && !norm.Equals(d, StringComparison.OrdinalIgnoreCase))
+            || _ctx.DesktopDirs.Any(d => d.Equals(parent, StringComparison.OrdinalIgnoreCase));
+        if (!placed || !_ctx.Protection.CheckPath(dir).Allowed)
+            return false;
+        return SafeIsUnder(target, dir) && !target.Equals(dir, StringComparison.OrdinalIgnoreCase);
     }
 
     InstalledProgram? OtherInstallOverlap(string path, InstalledProgram self)
@@ -619,7 +646,8 @@ public sealed class LeftoverScanner
                 if (target is null || !SafeIsUnder(target, dir))
                     continue;
                 var norm = Paths.Normalize(lnk);
-                if (GateFolder(norm) is { } reason)
+                var own = IsProgramShortcut(norm, target, b.Program);
+                if (!own && GateFolder(norm) is { } reason)
                 {
                     b.Block(LeftoverKind.Shortcut, norm, $"{reason}; kısayol elle silinebilir");
                     continue;
@@ -627,7 +655,7 @@ public sealed class LeftoverScanner
                 var ev = new List<Evidence> { Confidence.InsideInstallDir(target) };
                 AddNameEvidence(ev, Path.GetFileNameWithoutExtension(lnk), b.Program);
                 AddExeIdentity(ev, [target], b.Program);
-                Add(b, LeftoverKind.Shortcut, norm, ev, detail: target, bytes: FolderSize.MeasureAny(norm));
+                Add(b, LeftoverKind.Shortcut, norm, ev, detail: target, bytes: FolderSize.MeasureAny(norm), forceHigh: own);
             }
         }
     }
@@ -717,9 +745,14 @@ public sealed class LeftoverScanner
         return d;
     }
 
-    static void Add(Builder b, LeftoverKind kind, string target, List<Evidence> ev, RegKeyRef? key = null, string? valueName = null, string? detail = null, long bytes = 0)
+    static void Add(Builder b, LeftoverKind kind, string target, List<Evidence> ev, RegKeyRef? key = null, string? valueName = null, string? detail = null, long bytes = 0, bool forceHigh = false)
     {
         var (score, anchors, tier) = Confidence.Evaluate(ev);
+        if (forceHigh)
+        {
+            ev.Add(Confidence.ProgramShortcut());
+            tier = ConfidenceTier.High;
+        }
         var id = kind switch
         {
             LeftoverKind.RegistryKey or LeftoverKind.Service or LeftoverKind.FileAssociation when key is not null => $"{kind}:{key.Identity}",

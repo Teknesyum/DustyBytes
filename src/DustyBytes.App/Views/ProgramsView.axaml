@@ -1,0 +1,67 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:DustyBytes.App.ViewModels"
+             xmlns:v="using:DustyBytes.App.Views"
+             x:Class="DustyBytes.App.Views.ProgramsView"
+             x:DataType="vm:ProgramsViewModel">
+  <DockPanel>
+    <StackPanel DockPanel.Dock="Top" Margin="24,24,24,12" Spacing="{StaticResource FieldStack}">
+      <Grid ColumnDefinitions="*,Auto">
+        <TextBlock Theme="{StaticResource H2}" Text="Programlar"/>
+        <TextBlock Grid.Column="1" Theme="{StaticResource Hint}" Classes="data" Text="{Binding CountText}" VerticalAlignment="Center"/>
+      </Grid>
+      <StackPanel Spacing="{StaticResource Space1}">
+        <TextBlock Theme="{StaticResource Label}" Text="Ad ya da yayıncı ara"/>
+        <TextBox Name="Search" Text="{Binding Query}" AutomationProperties.Name="Ad ya da yayıncı ara" MaxWidth="480" HorizontalAlignment="Left" MinWidth="320"/>
+      </StackPanel>
+    </StackPanel>
+
+    <Border DockPanel.Dock="Bottom" Background="{StaticResource Surface}" BorderBrush="{StaticResource BorderDecorative}"
+            BorderThickness="0,1,0,0" Padding="24,12">
+      <Grid ColumnDefinitions="*,Auto">
+        <TextBlock Theme="{StaticResource Hint}" Text="{Binding UninstallTip}" VerticalAlignment="Center"/>
+        <Button Name="UninstallButton" Grid.Column="1" Classes="primary" Content="Seçili programı kaldır"
+                Command="{Binding UninstallCommand}"
+                ToolTip.Tip="{Binding UninstallTip}" ToolTip.ShowOnDisabled="True"/>
+      </Grid>
+    </Border>
+
+    <Panel DockPanel.Dock="Top" Margin="24,0,24,12" IsVisible="{Binding IsLoading}">
+      <v:TaskProgressView DataContext="{Binding Progress}"/>
+    </Panel>
+
+    <Panel>
+      <Border Theme="{StaticResource Panel}" Margin="24,0" VerticalAlignment="Top" IsVisible="{Binding HasError}">
+        <StackPanel Spacing="{StaticResource FieldGap}">
+          <TextBlock Theme="{StaticResource H3}" Text="Liste okunamadı"/>
+          <TextBlock Theme="{StaticResource DangerBody}" Text="{Binding Error}" TextWrapping="Wrap"/>
+          <Button Classes="ghost" Content="Yeniden dene" HorizontalAlignment="Left" Command="{Binding LoadCommand}"/>
+        </StackPanel>
+      </Border>
+      <Border Theme="{StaticResource Panel}" Margin="24,0" VerticalAlignment="Top" IsVisible="{Binding IsEmpty}">
+        <StackPanel Spacing="{StaticResource FieldGap}">
+          <TextBlock Theme="{StaticResource H3}" Text="Eşleşen program yok"/>
+          <TextBlock Theme="{StaticResource Hint}" Text="Arama kutusunu temizleyin ya da başka bir ad deneyin."/>
+        </StackPanel>
+      </Border>
+      <ListBox Name="ProgramList" Theme="{StaticResource PlainList}" ItemContainerTheme="{StaticResource RowItem}"
+               Margin="24,0,24,12" IsVisible="{Binding HasRows}"
+               ItemsSource="{Binding Rows}" SelectedItem="{Binding Selected}"
+               AutomationProperties.Name="Kurulu programlar">
+        <ListBox.ItemTemplate>
+          <DataTemplate x:DataType="vm:ProgramRow">
+            <Grid ColumnDefinitions="*,Auto">
+              <StackPanel Spacing="2">
+                <TextBlock Theme="{StaticResource Body}" FontWeight="SemiBold" Text="{Binding Name}" TextTrimming="CharacterEllipsis"/>
+                <TextBlock Theme="{StaticResource Hint}" TextTrimming="CharacterEllipsis">
+                  <Run Text="{Binding Publisher}"/><Run Text=" · "/><Run Text="{Binding UsageText}"/>
+                </TextBlock>
+              </StackPanel>
+              <TextBlock Grid.Column="1" Theme="{StaticResource MonoValue}" Classes="data" Text="{Binding SizeText}" VerticalAlignment="Center" Margin="12,0,0,0"/>
+            </Grid>
+          </DataTemplate>
+        </ListBox.ItemTemplate>
+      </ListBox>
+    </Panel>
+  </DockPanel>
+</UserControl>

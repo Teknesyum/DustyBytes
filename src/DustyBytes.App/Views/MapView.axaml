@@ -1,0 +1,75 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:DustyBytes.App.ViewModels"
+             xmlns:v="using:DustyBytes.App.Views"
+             xmlns:c="using:DustyBytes.App.Controls"
+             x:Class="DustyBytes.App.Views.MapView"
+             x:DataType="vm:MapViewModel">
+  <DockPanel Margin="{StaticResource PanelPadding}">
+    <StackPanel DockPanel.Dock="Top" Spacing="{StaticResource FieldStack}" Margin="0,0,0,12">
+      <Grid ColumnDefinitions="*,Auto">
+        <TextBlock Theme="{StaticResource H2}" Text="Harita"/>
+        <Button Grid.Column="1" Classes="ghost" Content="Üst klasör" Command="{Binding UpCommand}"
+                ToolTip.Tip="Bir üst klasöre çıkar; en üstteyken kapalıdır" ToolTip.ShowOnDisabled="True"/>
+      </Grid>
+      <ItemsControl ItemsSource="{Binding Crumbs}" IsVisible="{Binding HasMap}">
+        <ItemsControl.ItemsPanel>
+          <ItemsPanelTemplate>
+            <WrapPanel Orientation="Horizontal"/>
+          </ItemsPanelTemplate>
+        </ItemsControl.ItemsPanel>
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="vm:Crumb">
+            <StackPanel Orientation="Horizontal">
+              <Button Classes="link" Content="{Binding Name}"
+                      Command="{Binding $parent[ItemsControl].((vm:MapViewModel)DataContext).JumpCommand}"
+                      CommandParameter="{Binding}"/>
+              <TextBlock Theme="{StaticResource Body}" Text="/" VerticalAlignment="Center" Margin="4,0"/>
+            </StackPanel>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </StackPanel>
+
+    <Border DockPanel.Dock="Bottom" Theme="{StaticResource Panel}" Padding="16" Margin="0,12,0,0" IsVisible="{Binding HasMap}">
+      <Grid ColumnDefinitions="*,Auto">
+        <TextBlock Theme="{StaticResource Body}" TextWrapping="Wrap" VerticalAlignment="Center"><Run Text="{Binding SelectionText}"/><Run Text="{Binding SelectionSize}" FontFamily="{StaticResource FontMono}"/><Run Text="{Binding SelectionTail}"/></TextBlock>
+        <ItemsControl Grid.Column="1" ItemsSource="{Binding Legend}" VerticalAlignment="Center">
+          <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate>
+              <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space3}"/>
+            </ItemsPanelTemplate>
+          </ItemsControl.ItemsPanel>
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:LegendItem">
+              <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space1}">
+                <Border Width="14" MinHeight="14" CornerRadius="{StaticResource Radius}" VerticalAlignment="Center"
+                        Background="{Binding Kind, Converter={x:Static v:UiConvert.KindFill}}"
+                        BorderBrush="{Binding Kind, Converter={x:Static v:UiConvert.KindStroke}}"
+                        BorderThickness="2"/>
+                <TextBlock Theme="{StaticResource Hint}" Text="{Binding Label}" VerticalAlignment="Center"/>
+              </StackPanel>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </Grid>
+    </Border>
+
+    <Panel>
+      <Border Theme="{StaticResource Panel}" VerticalAlignment="Top" IsVisible="{Binding IsEmpty}">
+        <StackPanel Spacing="{StaticResource FieldGap}">
+          <TextBlock Theme="{StaticResource H3}" Text="Harita için tarama gerekiyor"/>
+          <TextBlock Theme="{StaticResource Hint}" Text="Tarama bitince sürücü burada kutular hâlinde görünür."/>
+          <Button Classes="primary" Content="Genel bakışa git" HorizontalAlignment="Left" Command="{Binding OpenOverviewCommand}"/>
+        </StackPanel>
+      </Border>
+      <c:TreemapControl Name="Treemap" IsVisible="{Binding HasMap}"
+                        Entries="{Binding Entries}"
+                        Selected="{Binding Selected}"
+                        EnterCommand="{Binding EnterCommand}"
+                        UpCommand="{Binding UpCommand}"
+                        AutomationProperties.Name="Disk haritası"
+                        ToolTip.Tip="Tıkla seç, çift tıkla içine gir; ok tuşlarıyla gezin, geri tuşu üste çıkar"/>
+    </Panel>
+  </DockPanel>
+</UserControl>

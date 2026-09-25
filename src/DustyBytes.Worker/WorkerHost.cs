@@ -50,6 +50,7 @@ public static class WorkerHost
         try
         {
             var services = WorkerServices.CreateDefault();
+            WorkerBindings.Register(services);
             _ = Task.Run(() =>
             {
                 try

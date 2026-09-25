@@ -1,0 +1,446 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+  <Styles.Resources>
+
+    <ControlTheme x:Key="GhostButton" TargetType="Button">
+      <Setter Property="Background" Value="Transparent"/>
+      <Setter Property="Foreground" Value="{StaticResource PurpleText}"/>
+      <Setter Property="BorderBrush" Value="{StaticResource BorderDefault}"/>
+      <Setter Property="BorderThickness" Value="{StaticResource BorderWidth}"/>
+      <Setter Property="CornerRadius" Value="{StaticResource Radius}"/>
+      <Setter Property="FontFamily" Value="{StaticResource FontSans}"/>
+      <Setter Property="FontSize" Value="{StaticResource FontSize2}"/>
+      <Setter Property="FontWeight" Value="SemiBold"/>
+      <Setter Property="Padding" Value="16,8"/>
+      <Setter Property="MinHeight" Value="{StaticResource InputHeight}"/>
+      <Setter Property="MinWidth" Value="{StaticResource TargetMin}"/>
+      <Setter Property="Cursor" Value="Hand"/>
+      <Setter Property="HorizontalContentAlignment" Value="Center"/>
+      <Setter Property="VerticalContentAlignment" Value="Center"/>
+      <Setter Property="Template">
+        <ControlTemplate TargetType="Button">
+          <Border Name="bd"
+                  Background="{TemplateBinding Background}"
+                  BorderBrush="{TemplateBinding BorderBrush}"
+                  BorderThickness="{TemplateBinding BorderThickness}"
+                  CornerRadius="{TemplateBinding CornerRadius}"
+                  Padding="{TemplateBinding Padding}"
+                  RenderTransformOrigin="50%,50%">
+            <Border.Transitions>
+              <Transitions>
+                <TransformOperationsTransition Property="RenderTransform" Duration="{StaticResource TInstant}" Easing="{StaticResource EOut}"/>
+              </Transitions>
+            </Border.Transitions>
+            <ContentPresenter Name="PART_ContentPresenter"
+                              Content="{TemplateBinding Content}"
+                              ContentTemplate="{TemplateBinding ContentTemplate}"
+                              Foreground="{TemplateBinding Foreground}"
+                              HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                              VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}"/>
+          </Border>
+        </ControlTemplate>
+      </Setter>
+      <Style Selector="^:pointerover /template/ Border#bd">
+        <Setter Property="BorderBrush" Value="{StaticResource PurpleText}"/>
+      </Style>
+      <Style Selector="^:pressed /template/ Border#bd">
+        <Setter Property="RenderTransform" Value="scale(0.98)"/>
+      </Style>
+      <Style Selector="^:disabled">
+        <Setter Property="Foreground" Value="{StaticResource Disabled}"/>
+        <Setter Property="Cursor" Value="No"/>
+      </Style>
+      <Style Selector="^:disabled /template/ Border#bd">
+        <Setter Property="BorderBrush" Value="{StaticResource Disabled}"/>
+      </Style>
+    </ControlTheme>
+
+    <ControlTheme x:Key="DangerButton" TargetType="Button" BasedOn="{StaticResource PrimaryButton}">
+      <Setter Property="Background" Value="{StaticResource DangerText}"/>
+      <Setter Property="Foreground" Value="Black"/>
+    </ControlTheme>
+
+    <ControlTheme x:Key="LinkButton" TargetType="Button" BasedOn="{StaticResource GhostButton}">
+      <Setter Property="BorderThickness" Value="0"/>
+      <Setter Property="Padding" Value="4,2"/>
+      <Setter Property="MinHeight" Value="{StaticResource TargetMin}"/>
+      <Style Selector="^:pointerover /template/ Border#bd">
+        <Setter Property="BorderBrush" Value="Transparent"/>
+        <Setter Property="Background" Value="Transparent"/>
+      </Style>
+    </ControlTheme>
+
+    <ControlTheme x:Key="WindowButton" TargetType="Button">
+      <Setter Property="Background" Value="Transparent"/>
+      <Setter Property="Foreground" Value="{StaticResource TextBody}"/>
+      <Setter Property="BorderThickness" Value="0"/>
+      <Setter Property="Width" Value="46"/>
+      <Setter Property="MinHeight" Value="{StaticResource TitleBarHeightMax}"/>
+      <Setter Property="VerticalAlignment" Value="Stretch"/>
+      <Setter Property="Focusable" Value="False"/>
+      <Setter Property="Template">
+        <ControlTemplate TargetType="Button">
+          <Border Name="bd" Background="{TemplateBinding Background}">
+            <ContentPresenter Name="PART_ContentPresenter"
+                              Content="{TemplateBinding Content}"
+                              Foreground="{TemplateBinding Foreground}"
+                              HorizontalContentAlignment="Center"
+                              VerticalContentAlignment="Center"/>
+          </Border>
+        </ControlTemplate>
+      </Setter>
+      <Style Selector="^:pointerover /template/ Border#bd">
+        <Setter Property="Background" Value="{StaticResource NeonBlue20}"/>
+      </Style>
+      <Style Selector="^.close:pointerover /template/ Border#bd">
+        <Setter Property="Background" Value="{StaticResource DangerText}"/>
+      </Style>
+      <Style Selector="^.close:pointerover">
+        <Setter Property="Foreground" Value="{StaticResource OnDangerText}"/>
+      </Style>
+      <Style Selector="^.close:pressed">
+        <Setter Property="Foreground" Value="{StaticResource OnDangerText}"/>
+      </Style>
+      <Style Selector="^.close:pressed /template/ Border#bd">
+        <Setter Property="Background" Value="{StaticResource DangerText}"/>
+      </Style>
+    </ControlTheme>
+
+    <ControlTheme x:Key="NavList" TargetType="ListBox">
+      <Setter Property="Background" Value="Transparent"/>
+      <Setter Property="BorderThickness" Value="0"/>
+      <Setter Property="Padding" Value="0"/>
+      <Setter Property="Template">
+        <ControlTemplate TargetType="ListBox">
+          <ItemsPresenter Name="PART_ItemsPresenter" ItemsPanel="{TemplateBinding ItemsPanel}"/>
+        </ControlTemplate>
+      </Setter>
+    </ControlTheme>
+
+    <ControlTheme x:Key="PlainList" TargetType="ListBox">
+      <Setter Property="Background" Value="Transparent"/>
+      <Setter Property="BorderThickness" Value="0"/>
+      <Setter Property="Padding" Value="0"/>
+      <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled"/>
+      <Setter Property="Template">
+        <ControlTemplate TargetType="ListBox">
+          <ScrollViewer Name="PART_ScrollViewer"
+                        HorizontalScrollBarVisibility="Disabled"
+                        VerticalScrollBarVisibility="Auto">
+            <ItemsPresenter Name="PART_ItemsPresenter" ItemsPanel="{TemplateBinding ItemsPanel}"/>
+          </ScrollViewer>
+        </ControlTemplate>
+      </Setter>
+    </ControlTheme>
+
+    <ControlTheme x:Key="NavItem" TargetType="ListBoxItem">
+      <Setter Property="Background" Value="Transparent"/>
+      <Setter Property="Foreground" Value="{StaticResource TextBody}"/>
+      <Setter Property="FontFamily" Value="{StaticResource FontSans}"/>
+      <Setter Property="FontSize" Value="{StaticResource FontSize2}"/>
+      <Setter Property="MinHeight" Value="{StaticResource InputHeight}"/>
+      <Setter Property="Padding" Value="12,0"/>
+      <Setter Property="Margin" Value="8,2"/>
+      <Setter Property="CornerRadius" Value="{StaticResource Radius}"/>
+      <Setter Property="Cursor" Value="Hand"/>
+      <Setter Property="Template">
+        <ControlTemplate TargetType="ListBoxItem">
+          <Border Name="bd"
+                  Background="{TemplateBinding Background}"
+                  CornerRadius="{TemplateBinding CornerRadius}">
+            <Grid ColumnDefinitions="3,*">
+              <Border Name="mark" Grid.Column="0" Margin="0,8" CornerRadius="{StaticResource Radius}"
+                      Background="{StaticResource NeonBlue}" Opacity="0">
+                <Border.Transitions>
+                  <Transitions>
+                    <DoubleTransition Property="Opacity" Duration="{StaticResource TFast}" Easing="{StaticResource EOut}"/>
+                  </Transitions>
+                </Border.Transitions>
+              </Border>
+              <ContentPresenter Name="PART_ContentPresenter" Grid.Column="1"
+                                Padding="{TemplateBinding Padding}"
+                                Content="{TemplateBinding Content}"
+                                ContentTemplate="{TemplateBinding ContentTemplate}"
+                                Foreground="{TemplateBinding Foreground}"
+                                VerticalContentAlignment="Center"/>
+            </Grid>
+          </Border>
+        </ControlTemplate>
+      </Setter>
+      <Style Selector="^:pointerover /template/ Border#bd">
+        <Setter Property="Background" Value="{StaticResource NeonBlue10}"/>
+      </Style>
+      <Style Selector="^:selected /template/ Border#bd">
+        <Setter Property="Background" Value="{StaticResource NeonBlue20}"/>
+      </Style>
+      <Style Selector="^:selected /template/ Border#mark">
+        <Setter Property="Opacity" Value="1"/>
+      </Style>
+      <Style Selector="^:selected">
+        <Setter Property="FontWeight" Value="SemiBold"/>
+      </Style>
+    </ControlTheme>
+
+    <ControlTheme x:Key="ChipItem" TargetType="ListBoxItem">
+      <Setter Property="Background" Value="Transparent"/>
+      <Setter Property="Foreground" Value="{StaticResource TextBody}"/>
+      <Setter Property="BorderBrush" Value="{StaticResource BorderDefault}"/>
+      <Setter Property="BorderThickness" Value="{StaticResource BorderWidth}"/>
+      <Setter Property="FontFamily" Value="{StaticResource FontSans}"/>
+      <Setter Property="FontSize" Value="{StaticResource FontSize1}"/>
+      <Setter Property="MinHeight" Value="32"/>
+      <Setter Property="Padding" Value="12,0"/>
+      <Setter Property="Margin" Value="0,0,8,0"/>
+      <Setter Property="CornerRadius" Value="{StaticResource Radius}"/>
+      <Setter Property="Cursor" Value="Hand"/>
+      <Setter Property="Template">
+        <ControlTemplate TargetType="ListBoxItem">
+          <Border Name="bd"
+                  Background="{TemplateBinding Background}"
+                  BorderBrush="{TemplateBinding BorderBrush}"
+                  BorderThickness="{TemplateBinding BorderThickness}"
+                  CornerRadius="{TemplateBinding CornerRadius}"
+                  Padding="{TemplateBinding Padding}">
+            <ContentPresenter Name="PART_ContentPresenter"
+                              Content="{TemplateBinding Content}"
+                              ContentTemplate="{TemplateBinding ContentTemplate}"
+                              Foreground="{TemplateBinding Foreground}"
+                              VerticalContentAlignment="Center"/>
+          </Border>
+        </ControlTemplate>
+      </Setter>
+      <Style Selector="^:pointerover /template/ Border#bd">
+        <Setter Property="BorderBrush" Value="{StaticResource NeonBlue}"/>
+      </Style>
+      <Style Selector="^:selected /template/ Border#bd">
+        <Setter Property="Background" Value="{StaticResource NeonBlue}"/>
+        <Setter Property="BorderBrush" Value="{StaticResource NeonBlue}"/>
+      </Style>
+      <Style Selector="^:selected">
+        <Setter Property="Foreground" Value="{StaticResource OnBlue}"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+      </Style>
+    </ControlTheme>
+
+    <ControlTheme x:Key="RowItem" TargetType="ListBoxItem">
+      <Setter Property="Background" Value="Transparent"/>
+      <Setter Property="Foreground" Value="{StaticResource TextBody}"/>
+      <Setter Property="BorderBrush" Value="Transparent"/>
+      <Setter Property="BorderThickness" Value="{StaticResource BorderWidth}"/>
+      <Setter Property="Padding" Value="12,8"/>
+      <Setter Property="Margin" Value="0,0,0,4"/>
+      <Setter Property="MinHeight" Value="{StaticResource InputHeight}"/>
+      <Setter Property="CornerRadius" Value="{StaticResource Radius}"/>
+      <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+      <Setter Property="Template">
+        <ControlTemplate TargetType="ListBoxItem">
+          <Border Name="bd"
+                  Background="{TemplateBinding Background}"
+                  BorderBrush="{TemplateBinding BorderBrush}"
+                  BorderThickness="{TemplateBinding BorderThickness}"
+                  CornerRadius="{TemplateBinding CornerRadius}"
+                  Padding="{TemplateBinding Padding}">
+            <ContentPresenter Name="PART_ContentPresenter"
+                              Content="{TemplateBinding Content}"
+                              ContentTemplate="{TemplateBinding ContentTemplate}"
+                              Foreground="{TemplateBinding Foreground}"
+                              HorizontalContentAlignment="Stretch"
+                              VerticalContentAlignment="Center"/>
+          </Border>
+        </ControlTemplate>
+      </Setter>
+      <Style Selector="^:pointerover /template/ Border#bd">
+        <Setter Property="BorderBrush" Value="{StaticResource BorderDecorative}"/>
+      </Style>
+      <Style Selector="^:selected /template/ Border#bd">
+        <Setter Property="Background" Value="{StaticResource NeonBlue10}"/>
+        <Setter Property="BorderBrush" Value="{StaticResource NeonBlue}"/>
+      </Style>
+    </ControlTheme>
+
+    <ControlTheme x:Key="{x:Type CheckBox}" TargetType="CheckBox">
+      <Setter Property="Background" Value="Transparent"/>
+      <Setter Property="Foreground" Value="{StaticResource TextBody}"/>
+      <Setter Property="BorderBrush" Value="{StaticResource BorderStrong}"/>
+      <Setter Property="FontFamily" Value="{StaticResource FontSans}"/>
+      <Setter Property="FontSize" Value="{StaticResource FontSize2}"/>
+      <Setter Property="MinHeight" Value="{StaticResource TargetMin}"/>
+      <Setter Property="MinWidth" Value="{StaticResource TargetMin}"/>
+      <Setter Property="Cursor" Value="Hand"/>
+      <Setter Property="Template">
+        <ControlTemplate TargetType="CheckBox">
+          <Grid ColumnDefinitions="Auto,*" Background="Transparent">
+            <Border Name="box" Grid.Column="0" Width="20" Height="20" VerticalAlignment="Center"
+                    Background="{TemplateBinding Background}"
+                    BorderBrush="{TemplateBinding BorderBrush}"
+                    BorderThickness="2"
+                    CornerRadius="{StaticResource Radius}">
+              <Path Name="check" Stroke="{StaticResource OnBlue}" StrokeThickness="2"
+                    StrokeLineCap="Round" StrokeJoin="Round"
+                    Data="M4 10 L8 14 L15 6" Opacity="0"/>
+            </Border>
+            <ContentPresenter Name="PART_ContentPresenter" Grid.Column="1"
+                              Margin="8,0,0,0"
+                              Content="{TemplateBinding Content}"
+                              ContentTemplate="{TemplateBinding ContentTemplate}"
+                              Foreground="{TemplateBinding Foreground}"
+                              IsVisible="{TemplateBinding Content, Converter={x:Static ObjectConverters.IsNotNull}}"
+                              VerticalContentAlignment="Center"/>
+          </Grid>
+        </ControlTemplate>
+      </Setter>
+      <Style Selector="^:pointerover /template/ Border#box">
+        <Setter Property="BorderBrush" Value="{StaticResource NeonBlue}"/>
+      </Style>
+      <Style Selector="^:checked /template/ Border#box">
+        <Setter Property="Background" Value="{StaticResource NeonBlue}"/>
+        <Setter Property="BorderBrush" Value="{StaticResource NeonBlue}"/>
+      </Style>
+      <Style Selector="^:checked /template/ Path#check">
+        <Setter Property="Opacity" Value="1"/>
+      </Style>
+      <Style Selector="^:disabled">
+        <Setter Property="Foreground" Value="{StaticResource Disabled}"/>
+        <Setter Property="Cursor" Value="No"/>
+      </Style>
+      <Style Selector="^:disabled /template/ Border#box">
+        <Setter Property="BorderBrush" Value="{StaticResource Disabled}"/>
+        <Setter Property="Background" Value="Transparent"/>
+      </Style>
+      <Style Selector="^:disabled /template/ Path#check">
+        <Setter Property="Stroke" Value="{StaticResource Disabled}"/>
+      </Style>
+    </ControlTheme>
+
+    <ControlTheme x:Key="{x:Type TextBox}" TargetType="TextBox">
+      <Setter Property="Background" Value="{StaticResource Surface}"/>
+      <Setter Property="Foreground" Value="{StaticResource TextBody}"/>
+      <Setter Property="BorderBrush" Value="{StaticResource BorderDefault}"/>
+      <Setter Property="BorderThickness" Value="{StaticResource BorderWidth}"/>
+      <Setter Property="CornerRadius" Value="{StaticResource Radius}"/>
+      <Setter Property="FontFamily" Value="{StaticResource FontSans}"/>
+      <Setter Property="FontSize" Value="{StaticResource FontSize2}"/>
+      <Setter Property="MinHeight" Value="{StaticResource InputHeight}"/>
+      <Setter Property="Padding" Value="{StaticResource InputPadding}"/>
+      <Setter Property="CaretBrush" Value="{StaticResource NeonBlue}"/>
+      <Setter Property="SelectionBrush" Value="{StaticResource NeonBlue30}"/>
+      <Setter Property="SelectionForegroundBrush" Value="{StaticResource TextBody}"/>
+      <Setter Property="VerticalContentAlignment" Value="Center"/>
+      <Setter Property="Template">
+        <ControlTemplate TargetType="TextBox">
+          <Border Name="bd"
+                  Background="{TemplateBinding Background}"
+                  BorderBrush="{TemplateBinding BorderBrush}"
+                  BorderThickness="{TemplateBinding BorderThickness}"
+                  CornerRadius="{TemplateBinding CornerRadius}"
+                  Padding="{TemplateBinding Padding}">
+            <ScrollViewer Name="PART_ScrollViewer"
+                          HorizontalScrollBarVisibility="Hidden"
+                          VerticalScrollBarVisibility="Disabled">
+              <TextPresenter Name="PART_TextPresenter"
+                             Text="{TemplateBinding Text, Mode=TwoWay}"
+                             CaretIndex="{TemplateBinding CaretIndex}"
+                             SelectionStart="{TemplateBinding SelectionStart}"
+                             SelectionEnd="{TemplateBinding SelectionEnd}"
+                             TextAlignment="{TemplateBinding TextAlignment}"
+                             TextWrapping="{TemplateBinding TextWrapping}"
+                             PasswordChar="{TemplateBinding PasswordChar}"
+                             RevealPassword="{TemplateBinding RevealPassword}"
+                             SelectionBrush="{TemplateBinding SelectionBrush}"
+                             SelectionForegroundBrush="{TemplateBinding SelectionForegroundBrush}"
+                             CaretBrush="{TemplateBinding CaretBrush}"
+                             VerticalAlignment="Center"/>
+            </ScrollViewer>
+          </Border>
+        </ControlTemplate>
+      </Setter>
+      <Style Selector="^:focus /template/ Border#bd">
+        <Setter Property="BorderBrush" Value="{StaticResource NeonBlue}"/>
+      </Style>
+    </ControlTheme>
+
+    <ControlTheme x:Key="ToolTipTheme" TargetType="ToolTip">
+      <Setter Property="Background" Value="{StaticResource Surface}"/>
+      <Setter Property="Foreground" Value="{StaticResource TextBody}"/>
+      <Setter Property="BorderBrush" Value="{StaticResource BorderDefault}"/>
+      <Setter Property="BorderThickness" Value="{StaticResource BorderWidth}"/>
+      <Setter Property="CornerRadius" Value="{StaticResource Radius}"/>
+      <Setter Property="FontFamily" Value="{StaticResource FontSans}"/>
+      <Setter Property="FontSize" Value="{StaticResource FontSize1}"/>
+      <Setter Property="Padding" Value="8,4"/>
+      <Setter Property="MaxWidth" Value="{StaticResource ToastWidth}"/>
+      <Setter Property="Template">
+        <ControlTemplate TargetType="ToolTip">
+          <Border Background="{TemplateBinding Background}"
+                  BorderBrush="{TemplateBinding BorderBrush}"
+                  BorderThickness="{TemplateBinding BorderThickness}"
+                  CornerRadius="{TemplateBinding CornerRadius}"
+                  Padding="{TemplateBinding Padding}">
+            <ContentPresenter Name="PART_ContentPresenter"
+                              Content="{TemplateBinding Content}"
+                              ContentTemplate="{TemplateBinding ContentTemplate}"
+                              TextBlock.TextWrapping="Wrap"/>
+          </Border>
+        </ControlTemplate>
+      </Setter>
+    </ControlTheme>
+
+  </Styles.Resources>
+
+  <Style Selector="TextBlock">
+    <Setter Property="FontFeatures" Value="+tnum"/>
+    <Setter Property="ClipToBounds" Value="False"/>
+  </Style>
+
+  <Style Selector="ToolTip">
+    <Setter Property="Theme" Value="{StaticResource ToolTipTheme}"/>
+  </Style>
+
+  <Style Selector="Button.primary">
+    <Setter Property="Theme" Value="{StaticResource PrimaryButton}"/>
+    <Setter Property="MinHeight" Value="{StaticResource InputHeight}"/>
+  </Style>
+
+  <Style Selector="Button.danger">
+    <Setter Property="Theme" Value="{StaticResource DangerButton}"/>
+    <Setter Property="MinHeight" Value="{StaticResource InputHeight}"/>
+  </Style>
+
+  <Style Selector="Button.ghost">
+    <Setter Property="Theme" Value="{StaticResource GhostButton}"/>
+  </Style>
+
+  <Style Selector="Button.link">
+    <Setter Property="Theme" Value="{StaticResource LinkButton}"/>
+  </Style>
+
+  <Style Selector="TextBlock.log.newest">
+    <Setter Property="Foreground" Value="{StaticResource NeonBlue}"/>
+  </Style>
+
+  <Style Selector="Border.bar">
+    <Setter Property="RenderTransformOrigin" Value="0%,50%"/>
+  </Style>
+
+  <Style Selector="Window.anim Border.bar">
+    <Setter Property="Transitions">
+      <Transitions>
+        <TransformOperationsTransition Property="RenderTransform" Duration="{StaticResource TBase}" Easing="{StaticResource EOut}"/>
+      </Transitions>
+    </Setter>
+  </Style>
+
+  <Style Selector="Window.anim Border.fade">
+    <Setter Property="Transitions">
+      <Transitions>
+        <DoubleTransition Property="Opacity" Duration="{StaticResource TFast}" Easing="{StaticResource EOut}"/>
+      </Transitions>
+    </Setter>
+  </Style>
+
+  <Style Selector="ScrollBar:vertical">
+    <Setter Property="Width" Value="{StaticResource ScrollbarWidth}"/>
+  </Style>
+
+</Styles>

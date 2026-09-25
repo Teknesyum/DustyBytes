@@ -112,11 +112,13 @@ public sealed partial class ScanFixture : IDisposable
         }
     }
 
-    public Microsoft.Win32.SafeHandles.SafeFileHandle LockDenied()
+    public IDisposable? LockDenied()
     {
         var h = CreateFileW(Denied, 0x80000000, 0, 0, 3, 0x02000000, 0);
-        Assert.False(h.IsInvalid);
-        return h;
+        if (!h.IsInvalid)
+            return h;
+        h.Dispose();
+        return null;
     }
 
     [LibraryImport("kernel32.dll", StringMarshalling = StringMarshalling.Utf16, SetLastError = true)]

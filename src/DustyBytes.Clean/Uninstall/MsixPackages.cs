@@ -40,7 +40,7 @@ public static class MsixPackages
                     Source = ProgramSource.Msix,
                     Publisher = Safe(() => p.PublisherDisplayName) ?? id.Publisher,
                     DisplayVersion = $"{v.Major}.{v.Minor}.{v.Build}.{v.Revision}",
-                    InstallLocation = OperatingSystem.IsWindowsVersionAtLeast(10, 0, 19041) ? Safe(() => p.InstalledPath) : Safe(() => p.InstalledLocation?.Path),
+                    InstallLocation = Safe(() => OperatingSystem.IsWindowsVersionAtLeast(10, 0, 19041) ? p.InstalledPath : p.InstalledLocation?.Path),
                     InstallDate = Safe(() => (DateOnly?)DateOnly.FromDateTime(p.InstalledDate.LocalDateTime)),
                     Installer = InstallerType.Msix,
                     PackageFullName = id.FullName,

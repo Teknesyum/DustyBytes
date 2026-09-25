@@ -1,0 +1,114 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:DustyBytes.App.ViewModels"
+             xmlns:v="using:DustyBytes.App.Views"
+             xmlns:c="using:DustyBytes.App.Controls"
+             x:Class="DustyBytes.App.Views.OffersView"
+             x:DataType="vm:OffersViewModel">
+  <DockPanel>
+    <StackPanel DockPanel.Dock="Top" Margin="24,24,24,12" Spacing="{StaticResource FieldStack}">
+      <TextBlock Theme="{StaticResource H2}" Text="Öneriler"/>
+      <ListBox Name="Filters" Theme="{StaticResource NavList}" ItemContainerTheme="{StaticResource ChipItem}"
+               ItemsSource="{Binding Filters}" SelectedItem="{Binding SelectedFilter}"
+               KeyboardNavigation.TabNavigation="Once"
+               AutomationProperties.Name="Tür süzgeci">
+        <ListBox.ItemsPanel>
+          <ItemsPanelTemplate>
+            <WrapPanel Orientation="Horizontal"/>
+          </ItemsPanelTemplate>
+        </ListBox.ItemsPanel>
+        <ListBox.ItemTemplate>
+          <DataTemplate x:DataType="vm:OfferFilter">
+            <TextBlock Text="{Binding Label}" VerticalAlignment="Center"/>
+          </DataTemplate>
+        </ListBox.ItemTemplate>
+      </ListBox>
+    </StackPanel>
+
+    <Border DockPanel.Dock="Bottom" Background="{StaticResource Surface}" BorderBrush="{StaticResource BorderDecorative}"
+            BorderThickness="0,1,0,0" Padding="24,12">
+      <Grid ColumnDefinitions="*,Auto,Auto">
+        <TextBlock Theme="{StaticResource Body}" VerticalAlignment="Center"><Run Text="{Binding SelectionText}"/><Run Text="{Binding SelectionSize}" FontFamily="{StaticResource FontMono}"/></TextBlock>
+        <Button Grid.Column="1" Classes="ghost" Content="Seçimi temizle" Margin="0,0,12,0"
+                Command="{Binding ClearSelectionCommand}"/>
+        <Button Name="QuarantineButton" Grid.Column="2" Classes="primary" Content="Seçilenleri karantinaya al"
+                Command="{Binding QuarantineSelectedCommand}"
+                ToolTip.Tip="{Binding DisabledTip}" ToolTip.ShowOnDisabled="True"/>
+      </Grid>
+    </Border>
+
+    <Panel DockPanel.Dock="Top" Margin="24,0,24,12" IsVisible="{Binding Progress.IsRunning}">
+      <v:TaskProgressView DataContext="{Binding Progress}"/>
+    </Panel>
+
+    <Panel>
+      <Border Theme="{StaticResource Panel}" Margin="24,0" VerticalAlignment="Top" IsVisible="{Binding NoScan}">
+        <StackPanel Spacing="{StaticResource FieldGap}">
+          <TextBlock Theme="{StaticResource H3}" Text="Önce tarama gerekiyor"/>
+          <TextBlock Theme="{StaticResource Hint}" Text="Genel bakış ekranında taramayı başlatın; öneriler burada toplanır."/>
+          <Button Classes="link" Content="Genel bakışa git" HorizontalAlignment="Left" Command="{Binding OpenOverviewCommand}"/>
+        </StackPanel>
+      </Border>
+
+      <Border Theme="{StaticResource Panel}" Margin="24,0" VerticalAlignment="Top" IsVisible="{Binding IsEmpty}">
+        <StackPanel Spacing="{StaticResource FieldGap}">
+          <TextBlock Theme="{StaticResource H3}" Text="{Binding EmptyText}"/>
+          <TextBlock Theme="{StaticResource Hint}" Text="Başka bir tür seçin ya da taramayı yenileyin."/>
+        </StackPanel>
+      </Border>
+
+      <ScrollViewer HorizontalScrollBarVisibility="Disabled" IsVisible="{Binding HasCards}">
+        <ItemsControl ItemsSource="{Binding Cards}" Margin="24,0,24,24" Grid.IsSharedSizeScope="True">
+          <ItemsControl.Styles>
+            <Style Selector="ItemsControl > ContentPresenter">
+              <Setter Property="c:Flip.IsEnabled" Value="True"/>
+            </Style>
+          </ItemsControl.Styles>
+          <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate>
+              <StackPanel Spacing="{StaticResource RowGap}"/>
+            </ItemsPanelTemplate>
+          </ItemsControl.ItemsPanel>
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:UnitCard">
+              <Border Theme="{StaticResource Panel}" Padding="16">
+                <Grid>
+                  <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" SharedSizeGroup="check"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                  </Grid.ColumnDefinitions>
+                  <CheckBox VerticalAlignment="Top" Margin="0,2,12,0" IsChecked="{Binding IsSelected}"
+                            IsVisible="{Binding IsBatch}" AutomationProperties.Name="{Binding Name}"/>
+                  <StackPanel Grid.Column="1" Spacing="{StaticResource Space1}">
+                    <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space2}">
+                      <TextBlock Theme="{StaticResource H3}" Text="{Binding Name}" TextTrimming="CharacterEllipsis"/>
+                      <Border BorderBrush="{StaticResource BorderDefault}" BorderThickness="{StaticResource BorderWidth}"
+                              CornerRadius="{StaticResource Radius}" Padding="6,0" VerticalAlignment="Center">
+                        <TextBlock Theme="{StaticResource Label}" Text="{Binding KindLabel}"/>
+                      </Border>
+                      <Border IsVisible="{Binding HasUserData}" BorderBrush="{StaticResource Warning50}" BorderThickness="{StaticResource BorderWidth}"
+                              CornerRadius="{StaticResource Radius}" Padding="6,0" VerticalAlignment="Center">
+                        <TextBlock Theme="{StaticResource WarningBody}" FontSize="{StaticResource FontSize1}" Text="Kullanıcı verisi"/>
+                      </Border>
+                    </StackPanel>
+                    <TextBlock Theme="{StaticResource Hint}" Text="{Binding UsageText}"/>
+                    <TextBlock Theme="{StaticResource Hint}" Text="{Binding Reason}" IsVisible="{Binding HasReason}"/>
+                    <TextBlock Theme="{StaticResource Hint}" FontFamily="{StaticResource FontMono}" Text="{Binding PathText}" TextTrimming="PathSegmentEllipsis"/>
+                  </StackPanel>
+                  <StackPanel Grid.Column="2" Spacing="{StaticResource Space2}" HorizontalAlignment="Right" Margin="12,0,0,0">
+                    <TextBlock Theme="{StaticResource MonoValue}" Classes="data" Text="{Binding SizeText}" HorizontalAlignment="Right"/>
+                    <Button Classes="ghost" IsVisible="{Binding IsExternal}" Content="{Binding ExternalText}"
+                            ToolTip.Tip="{Binding ExternalHint}"
+                            Command="{Binding $parent[ItemsControl].((vm:OffersViewModel)DataContext).ExternalCommand}"
+                            CommandParameter="{Binding}"/>
+                  </StackPanel>
+                </Grid>
+              </Border>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </ScrollViewer>
+    </Panel>
+  </DockPanel>
+</UserControl>

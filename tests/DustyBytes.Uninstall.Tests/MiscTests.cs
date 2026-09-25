@@ -79,9 +79,9 @@ public class MiscTests
     }
 
     [Fact]
-    public void MsixRemovalRefusesWildcards()
+    public async Task MsixRemovalRefusesWildcards()
     {
-        var r = MsixPackages.RemoveAsync("Microsoft.*", null, default).GetAwaiter().GetResult();
+        var r = await MsixPackages.RemoveAsync("Microsoft.*", null, default);
         Assert.False(r.Ok);
     }
 

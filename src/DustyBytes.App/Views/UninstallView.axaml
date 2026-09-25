@@ -1,0 +1,102 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:DustyBytes.App.ViewModels"
+             xmlns:v="using:DustyBytes.App.Views"
+             x:Class="DustyBytes.App.Views.UninstallView"
+             x:DataType="vm:UninstallViewModel">
+  <DockPanel>
+    <StackPanel DockPanel.Dock="Top" Margin="24,24,24,12" Spacing="{StaticResource FieldGap}">
+      <Button Classes="link" Content="Programlara dön" HorizontalAlignment="Left" Command="{Binding BackCommand}"/>
+      <Grid ColumnDefinitions="*,Auto">
+        <StackPanel>
+          <TextBlock Theme="{StaticResource H2}" Text="{Binding Name}" TextTrimming="CharacterEllipsis"/>
+          <TextBlock Theme="{StaticResource Hint}" Text="{Binding Publisher}"/>
+        </StackPanel>
+        <TextBlock Grid.Column="1" Theme="{StaticResource MonoValue}" Classes="data" Text="{Binding SizeText}" VerticalAlignment="Center"/>
+      </Grid>
+      <TextBlock Theme="{StaticResource Body}" Text="{Binding Summary}" TextWrapping="Wrap"/>
+    </StackPanel>
+
+    <Border DockPanel.Dock="Bottom" Background="{StaticResource Surface}" BorderBrush="{StaticResource BorderDecorative}"
+            BorderThickness="0,1,0,0" Padding="24,12">
+      <Grid ColumnDefinitions="*,Auto">
+        <TextBlock Theme="{StaticResource Hint}" VerticalAlignment="Center" Text="{Binding RemoveTip}" IsVisible="{Binding IsAfter}"/>
+        <Button Name="UninstallRun" Grid.Column="1" Classes="danger" Content="Programı kaldır"
+                IsVisible="{Binding IsPreview}" Command="{Binding UninstallCommand}"
+                ToolTip.Tip="Onay sorulur; önce geri yükleme noktası oluşturulur" ToolTip.ShowOnDisabled="True"/>
+        <Button Name="RemoveLeftovers" Grid.Column="1" Classes="danger" Content="Seçili kalıntıları sil"
+                IsVisible="{Binding IsAfter}" Command="{Binding RemoveLeftoversCommand}"
+                ToolTip.Tip="{Binding RemoveTip}" ToolTip.ShowOnDisabled="True"/>
+      </Grid>
+    </Border>
+
+    <Panel DockPanel.Dock="Top" Margin="24,0,24,12" IsVisible="{Binding IsBusy}">
+      <v:TaskProgressView DataContext="{Binding Progress}"/>
+    </Panel>
+
+    <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+      <StackPanel Margin="24,0,24,24" Spacing="{StaticResource SectionGap}">
+        <Border Theme="{StaticResource Panel}" IsVisible="{Binding HasError}">
+          <TextBlock Theme="{StaticResource DangerBody}" Text="{Binding Error}" TextWrapping="Wrap"/>
+        </Border>
+
+        <Border Theme="{StaticResource Panel}">
+          <StackPanel Spacing="{StaticResource FieldGap}">
+            <TextBlock Theme="{StaticResource H3}" Text="Adımlar"/>
+            <ItemsControl ItemsSource="{Binding Steps}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:UninstallStep">
+                  <Grid ColumnDefinitions="*,Auto" Margin="0,4">
+                    <StackPanel>
+                      <TextBlock Theme="{StaticResource Body}" Text="{Binding Label}"/>
+                      <TextBlock Theme="{StaticResource Hint}" Text="{Binding Detail}" IsVisible="{Binding Detail, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                    </StackPanel>
+                    <TextBlock Grid.Column="1" Theme="{StaticResource Label}" Text="{Binding StateText}" VerticalAlignment="Center"/>
+                  </Grid>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </StackPanel>
+        </Border>
+
+        <Border Theme="{StaticResource Panel}">
+          <StackPanel Spacing="{StaticResource FieldGap}">
+            <TextBlock Theme="{StaticResource H3}" Text="Olası kalıntılar"/>
+            <TextBlock Theme="{StaticResource Hint}" Text="Yüksek güvenliler işaretli gelir; ortalar elle seçilir." />
+            <TextBlock Theme="{StaticResource Hint}" Text="Kalıntı bulunmadı" IsVisible="{Binding !HasLeftovers}"/>
+            <ItemsControl ItemsSource="{Binding Leftovers}">
+              <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                  <StackPanel Spacing="{StaticResource FieldGap}"/>
+                </ItemsPanelTemplate>
+              </ItemsControl.ItemsPanel>
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:LeftoverRow">
+                  <Grid ColumnDefinitions="Auto,*,Auto">
+                    <CheckBox IsChecked="{Binding IsChecked}" VerticalAlignment="Top" Margin="0,2,12,0"
+                              AutomationProperties.Name="{Binding Target}"/>
+                    <StackPanel Grid.Column="1">
+                      <TextBlock Theme="{StaticResource Body}" FontFamily="{StaticResource FontMono}" Text="{Binding Target}" TextTrimming="PathSegmentEllipsis"/>
+                      <TextBlock Theme="{StaticResource Hint}">
+                        <Run Text="{Binding KindLabel}"/><Run Text=" · "/><Run Text="{Binding TierText}"/><Run Text=" · "/><Run Text="{Binding Reason}"/>
+                      </TextBlock>
+                    </StackPanel>
+                    <TextBlock Grid.Column="2" Theme="{StaticResource MonoValue}" Classes="data" Text="{Binding SizeText}" VerticalAlignment="Center"/>
+                  </Grid>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <Button Classes="link" HorizontalAlignment="Left" Content="{Binding MoreText}" IsVisible="{Binding HasMore}" Command="{Binding ShowMoreCommand}"/>
+          </StackPanel>
+        </Border>
+
+        <Border Theme="{StaticResource Panel}" IsVisible="{Binding Notes, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+          <StackPanel Spacing="{StaticResource FieldGap}">
+            <TextBlock Theme="{StaticResource H3}" Text="Notlar"/>
+            <TextBlock Theme="{StaticResource Hint}" Text="{Binding Notes}"/>
+          </StackPanel>
+        </Border>
+      </StackPanel>
+    </ScrollViewer>
+  </DockPanel>
+</UserControl>

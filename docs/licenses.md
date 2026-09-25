@@ -9,9 +9,9 @@ dependency is listed here with its license and how it is used.
 |---|---|---|
 | Avalonia, Avalonia.Desktop, Avalonia.Themes.Fluent, Avalonia.Skia, Avalonia.Fonts.Inter | MIT | UI framework |
 | CommunityToolkit.Mvvm | MIT | Observable view models, source generated |
+| System.ServiceProcess.ServiceController | MIT | Stops and starts Windows Update services during system cleanup |
 | Microsoft.Windows.CsWin32 | MIT | Win32 P/Invoke source generator |
 | Microsoft.Data.Sqlite | MIT | Scan index, quarantine manifest |
-| SteamKit2 | LGPL-2.1 | `KeyValue` VDF parser only, consumed as a package; no source copied |
 | xunit, Microsoft.NET.Test.Sdk, Avalonia.Headless.XUnit | Apache-2.0 / MIT | Tests only |
 
 ## Algorithms and Data
@@ -30,4 +30,4 @@ dependency is listed here with its license and how it is used.
 ## Not Used
 
 qdirstat (GPL-2.0-only), menees/Treemap (MSR-SSLA), ntfs-cpu-search (no license),
-optimizer (archived), jwalk (deprecated), squirreldisk (unmaintained, bundles a binary).
+SteamKit2 (LGPL-2.1, protobuf-net is not AOT safe; own `Vdf.cs` instead), optimizer (archived), jwalk (deprecated), squirreldisk (unmaintained, bundles a binary).

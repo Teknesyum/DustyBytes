@@ -17,6 +17,9 @@ public static class Confidence
     public static Evidence ReferencesInstallDir(string value) =>
         new("refs-install-dir", 12, AnchorClass.InstallFolder, $"Değeri kurulum klasörünü gösteriyor: {value}");
 
+    public static Evidence ProgramShortcut() =>
+        new("program-shortcut", 0, AnchorClass.None, "Programın kendi kısayolu: hedefi InstallLocation altında, Başlat menüsünde ya da masaüstünde");
+
     public static Evidence UninstallKeySelf() =>
         new("uninstall-key", 20, AnchorClass.UninstallKey, "Programın kendi Uninstall anahtarı");
 

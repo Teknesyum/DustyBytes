@@ -31,5 +31,48 @@
     "surface": "#08090a",
     "dark": true
   },
-  "installedAt": "2026-09-25T07:32:30.176Z"
+  "installedAt": "2026-09-25T07:32:30.176Z",
+  "ignore": [
+    {
+      "rule": "forms/no-ui-string-literal",
+      "file": "src/DustyBytes.App/Views/CleanupView.axaml",
+      "reason": "Tek dilli Türkçe uygulama; docs/plan.md yerelleştirme içermiyor. Metinler locale/*.json'a taşınırsa en.json eşliği de gerekir — ürün kararı, arayüz dalgasının dışında."
+    },
+    {
+      "rule": "forms/no-ui-string-literal",
+      "file": "src/DustyBytes.App/Views/MapView.axaml",
+      "reason": "Tek dilli Türkçe uygulama; docs/plan.md yerelleştirme içermiyor. Metinler locale/*.json'a taşınırsa en.json eşliği de gerekir — ürün kararı, arayüz dalgasının dışında."
+    },
+    {
+      "rule": "forms/no-ui-string-literal",
+      "file": "src/DustyBytes.App/Views/OffersView.axaml",
+      "reason": "Tek dilli Türkçe uygulama; docs/plan.md yerelleştirme içermiyor. Metinler locale/*.json'a taşınırsa en.json eşliği de gerekir — ürün kararı, arayüz dalgasının dışında."
+    },
+    {
+      "rule": "forms/no-ui-string-literal",
+      "file": "src/DustyBytes.App/Views/OverviewView.axaml",
+      "reason": "Tek dilli Türkçe uygulama; docs/plan.md yerelleştirme içermiyor. Metinler locale/*.json'a taşınırsa en.json eşliği de gerekir — ürün kararı, arayüz dalgasının dışında."
+    },
+    {
+      "rule": "forms/no-ui-string-literal",
+      "file": "src/DustyBytes.App/Views/ProgramsView.axaml",
+      "reason": "Tek dilli Türkçe uygulama; docs/plan.md yerelleştirme içermiyor. Metinler locale/*.json'a taşınırsa en.json eşliği de gerekir — ürün kararı, arayüz dalgasının dışında."
+    },
+    {
+      "rule": "forms/no-ui-string-literal",
+      "file": "src/DustyBytes.App/Views/QuarantineView.axaml",
+      "reason": "Tek dilli Türkçe uygulama; docs/plan.md yerelleştirme içermiyor. Metinler locale/*.json'a taşınırsa en.json eşliği de gerekir — ürün kararı, arayüz dalgasının dışında."
+    },
+    {
+      "rule": "forms/no-ui-string-literal",
+      "file": "src/DustyBytes.App/Views/UninstallView.axaml",
+      "reason": "Tek dilli Türkçe uygulama; docs/plan.md yerelleştirme içermiyor. Metinler locale/*.json'a taşınırsa en.json eşliği de gerekir — ürün kararı, arayüz dalgasının dışında."
+    },
+    {
+      "rule": "okunurluk/pair-contrast",
+      "file": "src/DustyBytes.App/Assets/AppStyles.axaml",
+      "line": 297,
+      "reason": "Yanlış eşleşme: NeonBlue zeminli kutunun içindeki işaret OnBlue ile çizilir (satır 279); TextBody yalnız kutunun dışındaki etikete uygulanır. KontrastTests altı ekranda ve üç ölçekte geçiyor."
+    }
+  ]
 }

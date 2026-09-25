@@ -1,0 +1,97 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:DustyBytes.App.ViewModels"
+             xmlns:v="using:DustyBytes.App.Views"
+             x:Class="DustyBytes.App.Views.QuarantineView"
+             x:DataType="vm:QuarantineViewModel">
+  <DockPanel>
+    <StackPanel DockPanel.Dock="Top" Margin="24,24,24,12" Spacing="{StaticResource FieldGap}">
+      <Grid ColumnDefinitions="*,Auto,Auto">
+        <TextBlock Theme="{StaticResource H2}" Text="Karantina"/>
+        <StackPanel Grid.Column="1" Margin="0,0,24,0" VerticalAlignment="Center">
+          <TextBlock Theme="{StaticResource Label}" Text="Bekleyen"/>
+          <TextBlock Theme="{StaticResource MonoValue}" Classes="data" Text="{Binding PendingText}"/>
+        </StackPanel>
+        <StackPanel Grid.Column="2" VerticalAlignment="Center">
+          <TextBlock Theme="{StaticResource Label}" Text="Açılan"/>
+          <TextBlock Theme="{StaticResource MonoValue}" Classes="data" Text="{Binding FreedText}"/>
+        </StackPanel>
+      </Grid>
+      <TextBlock Theme="{StaticResource Hint}" Text="{Binding Note}" TextWrapping="Wrap"/>
+    </StackPanel>
+
+    <Border DockPanel.Dock="Bottom" Background="{StaticResource Surface}" BorderBrush="{StaticResource BorderDecorative}"
+            BorderThickness="0,1,0,0" Padding="24,12" IsVisible="{Binding HasItems}">
+      <Grid ColumnDefinitions="Auto,*,Auto,Auto">
+        <Button Classes="ghost" Content="Tümünü seç" Command="{Binding SelectAllCommand}" Margin="0,0,12,0"/>
+        <TextBlock Grid.Column="1" Theme="{StaticResource Body}" VerticalAlignment="Center"><Run Text="{Binding SelectionText}"/><Run Text="{Binding SelectionSize}" FontFamily="{StaticResource FontMono}"/></TextBlock>
+        <Button Name="PurgeButton" Grid.Column="2" Classes="ghost" Content="Kalıcı sil" Margin="0,0,12,0"
+                Command="{Binding PurgeCommand}"
+                ToolTip.Tip="{Binding DisabledTip}" ToolTip.ShowOnDisabled="True"/>
+        <Button Name="RestoreButton" Grid.Column="3" Classes="primary" Content="Seçilenleri geri al"
+                Command="{Binding RestoreCommand}"
+                ToolTip.Tip="{Binding DisabledTip}" ToolTip.ShowOnDisabled="True"/>
+      </Grid>
+    </Border>
+
+    <Panel DockPanel.Dock="Top" Margin="24,0,24,12" IsVisible="{Binding Progress.IsRunning}">
+      <v:TaskProgressView DataContext="{Binding Progress}"/>
+    </Panel>
+
+    <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+      <StackPanel Margin="24,0,24,24" Spacing="{StaticResource SectionGap}">
+        <Border Theme="{StaticResource WarningPanel}" IsVisible="{Binding HasWarnings}">
+          <ItemsControl ItemsSource="{Binding Warnings}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:VolumeWarning">
+                <TextBlock Theme="{StaticResource WarningBody}" Text="{Binding Text}" TextWrapping="Wrap"/>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </Border>
+
+        <Border Theme="{StaticResource Panel}" IsVisible="{Binding Incomplete}">
+          <StackPanel Spacing="{StaticResource FieldGap}">
+            <TextBlock Theme="{StaticResource H3}" Text="Liste eksik olabilir"/>
+            <TextBlock Theme="{StaticResource Hint}" Text="Yönetici izniyle taşınanlar yalnız yönetici oturumunda görünür." TextWrapping="Wrap"/>
+            <Button Classes="ghost" Content="Yönetici izniyle aç" HorizontalAlignment="Left" Command="{Binding OpenElevatedCommand}"/>
+          </StackPanel>
+        </Border>
+
+        <Border Theme="{StaticResource Panel}" IsVisible="{Binding IsEmpty}">
+          <StackPanel Spacing="{StaticResource FieldGap}">
+            <TextBlock Theme="{StaticResource H3}" Text="Karantina boş"/>
+            <TextBlock Theme="{StaticResource Hint}" Text="Karantinaya alınanlar burada otuz gün bekler, sonra silinir." TextWrapping="Wrap"/>
+            <Button Classes="primary" Content="Önerilere git" HorizontalAlignment="Left" Command="{Binding OpenOffersCommand}"/>
+          </StackPanel>
+        </Border>
+
+        <ItemsControl ItemsSource="{Binding Items}" IsVisible="{Binding HasItems}">
+          <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate>
+              <StackPanel Spacing="{StaticResource RowGap}"/>
+            </ItemsPanelTemplate>
+          </ItemsControl.ItemsPanel>
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:QuarantineRow">
+              <Border Theme="{StaticResource Panel}" Padding="16">
+                <Grid ColumnDefinitions="Auto,*,Auto">
+                  <CheckBox IsChecked="{Binding IsSelected}" VerticalAlignment="Top" Margin="0,2,12,0"
+                            AutomationProperties.Name="{Binding Name}"/>
+                  <StackPanel Grid.Column="1" Spacing="{StaticResource Space1}">
+                    <TextBlock Theme="{StaticResource H3}" Text="{Binding Name}" TextTrimming="CharacterEllipsis"/>
+                    <TextBlock Theme="{StaticResource Hint}" FontFamily="{StaticResource FontMono}" Text="{Binding OriginalPath}" TextTrimming="PathSegmentEllipsis"/>
+                    <TextBlock Theme="{StaticResource Hint}">
+                      <Run Text="{Binding MovedText}"/><Run Text=" · "/><Run Text="{Binding DaysText}"/>
+                    </TextBlock>
+                  </StackPanel>
+                  <TextBlock Grid.Column="2" Theme="{StaticResource MonoValue}" Classes="data" Text="{Binding SizeText}" VerticalAlignment="Center"/>
+                </Grid>
+              </Border>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </StackPanel>
+    </ScrollViewer>
+  </DockPanel>
+</UserControl>

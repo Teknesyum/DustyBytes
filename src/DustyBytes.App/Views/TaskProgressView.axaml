@@ -1,0 +1,32 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:DustyBytes.App.ViewModels"
+             xmlns:v="using:DustyBytes.App.Views"
+             x:Class="DustyBytes.App.Views.TaskProgressView"
+             x:DataType="vm:TaskProgressViewModel">
+  <Border Theme="{StaticResource Panel}">
+    <StackPanel Spacing="{StaticResource FieldStack}">
+      <Grid ColumnDefinitions="*,Auto,Auto">
+        <TextBlock Theme="{StaticResource H3}" Text="{Binding Step}" TextWrapping="Wrap" VerticalAlignment="Center"/>
+        <TextBlock Grid.Column="1" Theme="{StaticResource MonoValue}" Classes="data" Text="{Binding PercentText}"
+                   VerticalAlignment="Center" Margin="12,0"/>
+        <Button Grid.Column="2" Classes="ghost" Content="İptal et" Command="{Binding CancelCommand}"
+                IsVisible="{Binding CanCancel}" ToolTip.Tip="İşlemi durdurur; tamamlanan adımlar kalır"/>
+      </Grid>
+      <Border Name="Track" MinHeight="8" CornerRadius="{StaticResource Radius}" Background="{StaticResource NeonBlue20}" ClipToBounds="True"
+              HorizontalAlignment="Stretch">
+        <Border Classes="bar" Background="{StaticResource NeonBlue}" CornerRadius="{StaticResource Radius}"
+                RenderTransform="{Binding Value, Converter={x:Static v:UiConvert.ScaleX}}"/>
+      </Border>
+      <ItemsControl ItemsSource="{Binding Lines}">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="vm:LogLine">
+            <TextBlock Classes="log" Classes.newest="{Binding IsNewest}" Text="{Binding Text}"
+                       FontFamily="{StaticResource FontMono}" FontSize="{StaticResource FontSize1}"
+                       Foreground="{StaticResource TextBody}" TextTrimming="CharacterEllipsis"/>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </StackPanel>
+  </Border>
+</UserControl>

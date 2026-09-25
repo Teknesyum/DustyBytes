@@ -5,5 +5,6 @@
   <Application.Styles>
     <FluentTheme />
     <StyleInclude Source="avares://DustyBytes/Assets/Theme.axaml" />
+    <StyleInclude Source="avares://DustyBytes/Assets/AppStyles.axaml" />
   </Application.Styles>
 </Application>

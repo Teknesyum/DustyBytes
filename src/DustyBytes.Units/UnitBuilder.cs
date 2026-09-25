@@ -1,5 +1,6 @@
 using DustyBytes.Core;
 using DustyBytes.Core.Model;
+using DustyBytes.Core.Protection;
 using DustyBytes.Scan;
 
 namespace DustyBytes.Units;
@@ -9,6 +10,7 @@ public static class UnitBuilder
     static readonly IReadOnlyList<IUnitExtractor> DefaultExtractors =
     [
         new GameExtractor(),
+        new ProgramExtractor(),
         new DevArtifactExtractor(),
         new BrowserCacheExtractor(),
         new CacheExtractor(),
@@ -51,7 +53,7 @@ public static class UnitBuilder
             if (unit.Paths.Any(p => claimed.Any(c => Paths.IsUnder(p, c) || Paths.IsUnder(c, p))))
                 continue;
 
-            if (unit.Kind != UnitKind.SystemArtifact && unit.Paths.Any(p => !ctx.Protected.CheckPath(p).Allowed))
+            if (unit.Kind != UnitKind.SystemArtifact && unit.Paths.Any(p => Blocks(unit, ctx.Protected.CheckPath(p))))
                 continue;
 
             if (unit.Paths.Any(p => IsExcludedByFlags(ctx.Root, p)))
@@ -68,6 +70,9 @@ public static class UnitBuilder
             .OrderByDescending(u => u.Score)
             .ToList();
     }
+
+    static bool Blocks(Unit unit, Verdict verdict) =>
+        !verdict.Allowed && !(unit.Removal == RemovalMethod.Launcher && verdict.Badge == Badge.Launcher);
 
     static bool IsExcludedByFlags(ScanNode root, string path)
     {
