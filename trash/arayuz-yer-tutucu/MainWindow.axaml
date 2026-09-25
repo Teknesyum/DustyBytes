@@ -1,8 +1,0 @@
-<Window xmlns="https://github.com/avaloniaui"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        x:Class="DustyBytes.App.Views.MainWindow"
-        Title="DustyBytes"
-        Width="1200" Height="780" MinWidth="960" MinHeight="640"
-        Background="{StaticResource AppBg}">
-  <TextBlock Text="DustyBytes" Theme="{StaticResource H2}" HorizontalAlignment="Center" VerticalAlignment="Center" />
-</Window>
