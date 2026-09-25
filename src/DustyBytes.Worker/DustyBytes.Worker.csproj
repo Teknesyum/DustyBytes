@@ -1,0 +1,15 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\DustyBytes.Core\DustyBytes.Core.csproj" />
+    <ProjectReference Include="..\DustyBytes.Scan\DustyBytes.Scan.csproj" />
+    <ProjectReference Include="..\DustyBytes.Clean\DustyBytes.Clean.csproj" />
+    <ProjectReference Include="..\DustyBytes.Units\DustyBytes.Units.csproj" />
+    <ProjectReference Include="..\DustyBytes.Signals\DustyBytes.Signals.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    
+  </PropertyGroup>
+
+</Project>

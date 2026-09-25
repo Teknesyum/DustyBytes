@@ -1,0 +1,14 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/DustyBytes.App/DustyBytes.App.csproj" />
+    <Project Path="src/DustyBytes.Clean/DustyBytes.Clean.csproj" />
+    <Project Path="src/DustyBytes.Core/DustyBytes.Core.csproj" />
+    <Project Path="src/DustyBytes.Scan/DustyBytes.Scan.csproj" />
+    <Project Path="src/DustyBytes.Signals/DustyBytes.Signals.csproj" />
+    <Project Path="src/DustyBytes.Units/DustyBytes.Units.csproj" />
+    <Project Path="src/DustyBytes.Worker/DustyBytes.Worker.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/DustyBytes.Tests/DustyBytes.Tests.csproj" />
+  </Folder>
+</Solution>

@@ -1,0 +1,8 @@
+- [ ] A0 İskelet
+- [ ] A1 Salt Okunur Tarama
+- [ ] A2 Güvenli Silme
+- [ ] A3 Sinyal ve Puan
+- [ ] A4 Kaldırıcı
+- [ ] A5 Temizlik
+- [ ] A6 Hızlı Tarama
+- [ ] A7 Yayın

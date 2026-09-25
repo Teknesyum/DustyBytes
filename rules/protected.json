@@ -1,0 +1,81 @@
+{
+  "roots": [
+    { "path": "%WINDIR%", "reason": "Windows sistem klasörü" },
+    { "path": "%SYSTEMDRIVE%/System Volume Information", "reason": "Sistem geri yükleme alanı" },
+    { "path": "%SYSTEMDRIVE%/$Recycle.Bin", "reason": "Geri Dönüşüm Kutusu" },
+    { "path": "%SYSTEMDRIVE%/Recovery", "reason": "Kurtarma bölümü" },
+    { "path": "%PROGRAMDATA%/Package Cache", "reason": "Kurulum önbelleği, onarım ve kaldırma için gerekli" },
+    { "path": "%PROGRAMDATA%/Microsoft", "reason": "Windows ortak verisi" },
+    { "path": "%PROGRAMFILES%/Common Files", "reason": "Paylaşılan bileşen" },
+    { "path": "%PROGRAMFILES(X86)%/Common Files", "reason": "Paylaşılan bileşen" },
+    { "path": "%PROGRAMFILES%/WindowsApps", "reason": "Store paketleri, PackageManager ile kaldırılır" },
+    { "path": "%PROGRAMFILES%/dotnet", "reason": ".NET çalışma zamanı" },
+    { "path": "%PROGRAMFILES(X86)%/dotnet", "reason": ".NET çalışma zamanı" },
+    { "path": "%PROGRAMFILES%/Java", "reason": "Java çalışma zamanı" },
+    { "path": "%PROGRAMFILES%/Windows Defender", "reason": "Güvenlik yazılımı" },
+    { "path": "%PROGRAMFILES%/Windows NT", "reason": "Windows bileşeni" },
+    { "path": "%PROGRAMFILES%/WindowsPowerShell", "reason": "Windows bileşeni" },
+    { "path": "%USERPROFILE%/AppData/Local/Microsoft/WindowsApps", "reason": "Uygulama yürütme takma adları" },
+    { "path": "%USERPROFILE%/AppData/Roaming/Microsoft/Windows/Start Menu", "reason": "Başlat menüsü" },
+    { "path": "%USERPROFILE%/NTUSER.DAT", "reason": "Kullanıcı kayıt defteri" }
+  ],
+  "segments": [
+    { "name": "Microsoft Shared", "reason": "Paylaşılan bileşen" },
+    { "name": "Common Files", "reason": "Paylaşılan bileşen" },
+    { "name": "WinSxS", "reason": "Bileşen deposu, yalnız DISM ile" },
+    { "name": "System Volume Information", "reason": "Sistem geri yükleme alanı" },
+    { "name": "$Recycle.Bin", "reason": "Geri Dönüşüm Kutusu" },
+    { "name": ".git", "reason": "Kaynak denetimi deposu" }
+  ],
+  "files": [
+    { "name": "hiberfil.sys", "reason": "Sistem, ayarlardan: hazırda bekletme" },
+    { "name": "pagefile.sys", "reason": "Sistem, ayarlardan: sanal bellek" },
+    { "name": "swapfile.sys", "reason": "Sistem, ayarlardan: sanal bellek" },
+    { "name": "bootmgr", "reason": "Önyükleme" },
+    { "name": "NTUSER.DAT", "reason": "Kullanıcı kayıt defteri" }
+  ],
+  "runtimePrefixes": [
+    { "prefix": "Microsoft Visual C++", "reason": "VC++ çalışma zamanı" },
+    { "prefix": "Microsoft .NET", "reason": ".NET çalışma zamanı" },
+    { "prefix": "Microsoft Windows Desktop Runtime", "reason": ".NET çalışma zamanı" },
+    { "prefix": "Microsoft ASP.NET Core", "reason": ".NET çalışma zamanı" },
+    { "prefix": "Java", "reason": "Java çalışma zamanı" },
+    { "prefix": "Microsoft Edge WebView2", "reason": "Paylaşılan çalışma zamanı" },
+    { "prefix": "DirectX", "reason": "Paylaşılan çalışma zamanı" }
+  ],
+  "cloud": [
+    { "env": "OneDrive", "reason": "Bulut, senkron: OneDrive" },
+    { "env": "OneDriveConsumer", "reason": "Bulut, senkron: OneDrive" },
+    { "env": "OneDriveCommercial", "reason": "Bulut, senkron: OneDrive" },
+    { "path": "%USERPROFILE%/Dropbox", "reason": "Bulut, senkron: Dropbox" },
+    { "path": "%USERPROFILE%/Google Drive", "reason": "Bulut, senkron: Google Drive" },
+    { "path": "%USERPROFILE%/iCloudDrive", "reason": "Bulut, senkron: iCloud" }
+  ],
+  "neverLeftover": [
+    "%USERPROFILE%/Downloads",
+    "%USERPROFILE%/Desktop",
+    "%USERPROFILE%/Documents",
+    "%USERPROFILE%/Pictures",
+    "%USERPROFILE%/Music",
+    "%USERPROFILE%/Videos",
+    "%PUBLIC%",
+    "%USERPROFILE%/Saved Games"
+  ],
+  "appx": [
+    "Microsoft.WindowsTerminal",
+    "Microsoft.DesktopAppInstaller",
+    "Microsoft.StorePurchaseApp",
+    "Microsoft.WindowsStore",
+    "MicrosoftCorporationII.WindowsSubsystemForLinux",
+    "Microsoft.HEIFImageExtension",
+    "Microsoft.HEVCVideoExtension",
+    "Microsoft.VP9VideoExtensions",
+    "Microsoft.WebMediaExtensions",
+    "Microsoft.WebpImageExtension",
+    "Microsoft.AV1VideoExtension",
+    "Microsoft.RawImageExtension",
+    "Microsoft.VCLibs",
+    "Microsoft.UI.Xaml",
+    "Microsoft.NET.Native"
+  ]
+}

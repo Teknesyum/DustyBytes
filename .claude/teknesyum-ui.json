@@ -1,0 +1,35 @@
+{
+  "version": "1.1.0",
+  "template": "neon",
+  "off": false,
+  "targets": [
+    "avalonia"
+  ],
+  "typography": {
+    "sans": "'Atkinson Hyperlegible Next', 'Segoe UI', system-ui, sans-serif",
+    "mono": "'Cascadia Mono', Consolas, ui-monospace, monospace",
+    "scale": [
+      10,
+      13,
+      14,
+      18,
+      24
+    ]
+  },
+  "signature": {
+    "off": false,
+    "text": "by Teknesyum",
+    "github": "https://github.com/Teknesyum",
+    "sponsor": "https://github.com/sponsors/Teknesyum",
+    "supportText": "Buy me a coffee"
+  },
+  "note": "",
+  "palette": {
+    "primary": "#00f3ff",
+    "secondary": "#ff00ea",
+    "tertiary": "#b026ff",
+    "surface": "#08090a",
+    "dark": true
+  },
+  "installedAt": "2026-09-25T07:32:30.176Z"
+}

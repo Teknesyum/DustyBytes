@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <AssemblyName>DustyBytes</AssemblyName>
+    <RootNamespace>DustyBytes.App</RootNamespace>
+    <BuiltInComInteropSupport>false</BuiltInComInteropSupport>
+    <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+  </PropertyGroup>
+  <ItemGroup>
+    <AvaloniaResource Include="Assets\**" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Avalonia" Version="11.3.20" />
+    <PackageReference Include="Avalonia.Desktop" Version="11.3.20" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="11.3.20" />
+    <PackageReference Include="Avalonia.Fonts.Inter" Version="11.3.20" />
+    <PackageReference Include="Avalonia.Skia" Version="11.3.20" />
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\DustyBytes.Core\DustyBytes.Core.csproj" />
+    <ProjectReference Include="..\DustyBytes.Scan\DustyBytes.Scan.csproj" />
+    <ProjectReference Include="..\DustyBytes.Signals\DustyBytes.Signals.csproj" />
+    <ProjectReference Include="..\DustyBytes.Units\DustyBytes.Units.csproj" />
+    <ProjectReference Include="..\DustyBytes.Clean\DustyBytes.Clean.csproj" />
+    <ProjectReference Include="..\DustyBytes.Worker\DustyBytes.Worker.csproj" />
+  </ItemGroup>
+</Project>
