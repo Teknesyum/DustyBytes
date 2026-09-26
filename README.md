@@ -11,7 +11,7 @@ Windows disk cleaner, by purpose.
 | What | Count | Source |
 |---|---|---|
 | Open source repositories reviewed | 61, in 7 reports | `docs/inceleme/` |
-| Tests passing | 328 (scan 18, signals 24, units 40, safety 46, uninstall 105, cleaning 27, UI 68) | `dotnet test` |
+| Tests passing | 337 (scan 18, signals 24, units 40, safety 46, uninstall 105, cleaning 27, UI 77) | `dotnet test` |
 | Full scan of `C:\` with the MFT reader | 8.6 s, 2.84 M files | one machine, n=1 |
 | Full scan of `C:\` with `FindFirstFileEx` | 33.2 s, 2.90 M files | same machine |
 | Installed programs detected | 199 (47 MSI, 53 MSIX) | same machine |
@@ -37,7 +37,7 @@ Storage Sense and Disk Cleanup clear temp files, the recycle bin and old Windows
 - **Two scanners.** `FindFirstFileEx` works everywhere; the MFT reader works on NTFS with admin rights and keeps a USN cursor for quick rescans.
 - **Units.** Nine extractors turn the scan into games, programs, films, series, developer artifacts, caches, browser caches, installers and system artifacts.
 - **Usage signals.** Steam, Epic, GOG and other launchers, Prefetch, UserAssist and recent media; the source and reliability of each date is shown.
-- **Quarantine.** Removed items move to a quarantine folder on the same drive with a manifest; they can be restored until they are purged. By default, items older than 3 days are purged the next time the elevated worker runs; the option can be turned off on the Quarantine screen.
+- **Quarantine.** Removed items move to a quarantine folder on the same drive with a manifest; they can be restored until they are purged. Items older than 3 days (default, unmeasured) are purged the next time the elevated worker runs; the option can be turned off on the Quarantine screen.
 - **Uninstaller.** Win32, MSI and MSIX programs; registry export before removal; leftovers scored High, Medium or Low confidence.
 - **Cleaning rules.** 23 JSON rule files (browser caches, Windows temp, crash dumps, app caches) and optional `winapp2.ini`, plus DISM component cleanup, Windows Update cache and Delivery Optimization.
 
@@ -121,11 +121,11 @@ Rules live in `rules/` as JSON and are copied next to the executable. The code i
 
 ## Contributing
 
-Open an issue first, then send a small pull request. Code, commits and issues are in English. Contributions are accepted under the project license, AGPL-3.0-or-later; there is no CLA or DCO. New cleaning rules are welcome as JSON files in `rules/cleaners/`.
+Open an issue first, then send a small pull request. Code, commits and issues are in English. Contributions are accepted under the project license, AGPL-3.0-or-later; there is no CLA or DCO. New cleaning rules are welcome as JSON files in `rules/cleaners/`. Sponsorship keeps development going; the badge is at the bottom of this page.
 
 ## License
 
-[AGPL-3.0-or-later](LICENSE)
+AGPL-3.0-or-later. See [LICENSE](LICENSE).
 
 <!-- signature -->
 <div align="center">

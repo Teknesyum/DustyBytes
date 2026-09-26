@@ -1,5 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using DustyBytes.App.Kabuk;
 using DustyBytes.App.Services;
 
 namespace DustyBytes.App.ViewModels;
@@ -43,8 +44,11 @@ public sealed partial class UpdateViewModel : ObservableObject
     public Action? Exit { get; set; }
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsVisible), nameof(IsReady), nameof(Text), nameof(Tip))]
+    [NotifyPropertyChangedFor(nameof(IsVisible), nameof(IsReady), nameof(Text), nameof(Tip), nameof(Badge), nameof(Panel), nameof(Version))]
     private UpdateState _state;
+
+    [ObservableProperty]
+    private bool _isPanelOpen;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(Text))]
@@ -52,6 +56,23 @@ public sealed partial class UpdateViewModel : ObservableObject
 
     public bool IsVisible => State != UpdateState.None;
     public bool IsReady => State is UpdateState.Ready or UpdateState.Installing;
+
+    public RozetDurumu Badge => State switch
+    {
+        UpdateState.Available => RozetDurumu.Var,
+        UpdateState.Downloading => RozetDurumu.Iniyor,
+        UpdateState.Ready or UpdateState.Installing => RozetDurumu.Hazir,
+        _ => RozetDurumu.Yok,
+    };
+
+    public GuncellemeDurumu Panel => State switch
+    {
+        UpdateState.Downloading => GuncellemeDurumu.Iniyor,
+        UpdateState.Ready or UpdateState.Installing => GuncellemeDurumu.Hazir,
+        _ => GuncellemeDurumu.Var,
+    };
+
+    public string Version => VersionText;
 
     public string Text => State switch
     {
@@ -63,9 +84,9 @@ public sealed partial class UpdateViewModel : ObservableObject
 
     public string Tip => State switch
     {
-        UpdateState.Available => $"Yeni sürüm var: DustyBytes {VersionText}. İndirmek için tıkla.",
-        UpdateState.Downloading => "Arka planda düşük öncelikle iniyor; tarama ya da silme sürerken yavaşlar. Tıklamak bir şey değiştirmez; bitince rozet yeşile döner ve kurmak için tıklarsın.",
-        UpdateState.Ready => $"İndi: DustyBytes {VersionText} doğrulandı. Kurmak için tıkla.",
+        UpdateState.Available => $"Yeni sürüm var: DustyBytes {VersionText}. Seçenekler için tıkla.",
+        UpdateState.Downloading => "Arka planda düşük öncelikle iniyor; tarama ya da silme sürerken yavaşlar. İptal için tıkla.",
+        UpdateState.Ready => $"İndi: DustyBytes {VersionText} doğrulandı. Yüklemek için tıkla.",
         UpdateState.Installing => "Program kapanıp yeni sürümle açılacak.",
         _ => "",
     };
@@ -114,6 +135,26 @@ public sealed partial class UpdateViewModel : ObservableObject
     }
 
     [RelayCommand]
+    private void TogglePanel()
+    {
+        if (State == UpdateState.None)
+            return;
+        IsPanelOpen = !IsPanelOpen;
+    }
+
+    [RelayCommand]
+    private Task Download() => DownloadAsync();
+
+    [RelayCommand]
+    private Task DownloadAndInstall() => DownloadAsync(install: true);
+
+    [RelayCommand]
+    private void Cancel() => _download?.Cancel();
+
+    [RelayCommand]
+    private Task Install() => InstallAsync();
+
+    [RelayCommand]
     private async Task Act()
     {
         switch (State)
@@ -127,7 +168,7 @@ public sealed partial class UpdateViewModel : ObservableObject
         }
     }
 
-    public async Task DownloadAsync()
+    public async Task DownloadAsync(bool install = false)
     {
         if (State != UpdateState.Available || Info is null)
             return;
@@ -140,19 +181,28 @@ public sealed partial class UpdateViewModel : ObservableObject
             _zip = result.ZipPath;
             Percent = 100;
             State = UpdateState.Ready;
+            if (install)
+            {
+                if (_busy())
+                    _notify("Güncelleme indi; süren iş bitince rozetten yükleyebilirsin.");
+                else
+                    await InstallAsync(ask: false);
+            }
             return;
         }
         State = UpdateState.Available;
+        if (_download.IsCancellationRequested)
+            return;
         _fail(result.Status == DownloadStatus.Failed
             ? "Güncelleme inemedi: " + result.Error
             : "İnen güncelleme doğrulanamadı (" + result.Error + "); kurulmayacak.");
     }
 
-    public async Task InstallAsync()
+    public async Task InstallAsync(bool ask = true)
     {
         if (State != UpdateState.Ready || Info is null)
             return;
-        var ok = await _confirm("Güncelleme kurulsun mu",
+        var ok = !ask || await _confirm("Güncelleme kurulsun mu?",
             $"DustyBytes {VersionText} kurulacak. Program kapanıp yeni sürümle açılacak; açık bir tarama ya da silme varsa önce bitmesini bekle.",
             "Kur ve yeniden başlat");
         if (!ok || State != UpdateState.Ready)

@@ -1,6 +1,6 @@
 {
   "version": "1.1.0",
-  "template": "neon",
+  "template": "benim",
   "off": false,
   "targets": [
     "avalonia"
@@ -13,7 +13,7 @@
       16,
       20,
       24,
-      30
+      32
     ]
   },
   "signature": {
@@ -25,10 +25,10 @@
   },
   "note": "",
   "palette": {
-    "primary": "#00f3ff",
-    "secondary": "#ff00ea",
-    "tertiary": "#b026ff",
-    "surface": "#08090a",
+    "primary": "#6fb7ff",
+    "secondary": "#cba7d2",
+    "tertiary": "#c3a3ff",
+    "surface": "#000000",
     "dark": true
   },
   "installedAt": "2026-09-25T07:32:30.176Z",
@@ -74,5 +74,20 @@
       "line": 352,
       "reason": "Yanlış eşleşme: NeonBlue zeminli kutunun içindeki işaret OnBlue ile çizilir (satır 279); TextBody yalnız kutunun dışındaki etikete uygulanır. KontrastTests altı ekranda ve üç ölçekte geçiyor."
     }
-  ]
+  ],
+  "duzen": "b3a56d17ff70849c",
+  "notlar": [
+    "Arka plan tasarımı: duz (token karşılığı yok).",
+    "Kaydırma çubuğu biçimi: solan.",
+    "Arayüz geçiş eğrisi: emphasized (önizlemede --tk-e-out yerine).",
+    "Cam bulanıklığı: 0 px.",
+    "Panel gölgesi gücü: ×0.",
+    "Pencere kenarı: yok.",
+    "Düğme: 28 px yükseklik, 10 px yatay dolgu.",
+    "Üst çubuk yüksekliği: 28 px (titlebar-h-min)."
+  ],
+  "denetim": {
+    "tarih": "2026-09-26T23:14:50.043Z",
+    "duzen": "b3a56d17ff70849c"
+  }
 }

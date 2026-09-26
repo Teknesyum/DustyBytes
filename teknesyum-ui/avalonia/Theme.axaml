@@ -13,17 +13,17 @@
 
   <Styles.Resources>
 
-    <Color x:Key="NeonBlueColor">#FF00F3FF</Color>
-    <Color x:Key="NeonPinkColor">#FFFF00EA</Color>
-    <Color x:Key="NeonPurpleColor">#FFB026FF</Color>
-    <Color x:Key="PinkTextColor">#FFFF54EB</Color>
-    <Color x:Key="PurpleTextColor">#FFC67EFF</Color>
+    <Color x:Key="Renk1Color">#FF6FB7FF</Color>
+    <Color x:Key="Renk2Color">#FFCBA7D2</Color>
+    <Color x:Key="Renk3Color">#FFC3A3FF</Color>
+    <Color x:Key="Renk2TextColor">#FFFA8CFF</Color>
+    <Color x:Key="Renk3TextColor">#FFAC7FFF</Color>
 
-    <SolidColorBrush x:Key="NeonBlue"    Color="#FF00F3FF"/>
-    <SolidColorBrush x:Key="NeonPink"    Color="#FFFF00EA"/>
-    <SolidColorBrush x:Key="NeonPurple"  Color="#FFB026FF"/>
-    <SolidColorBrush x:Key="Success"     Color="#FF34D399"/>
-    <SolidColorBrush x:Key="Surface"     Color="#F208090A"/>
+    <SolidColorBrush x:Key="Renk1"     Color="#FF6FB7FF"/>
+    <SolidColorBrush x:Key="Renk2"     Color="#FFCBA7D2"/>
+    <SolidColorBrush x:Key="Renk3"     Color="#FFC3A3FF"/>
+    <SolidColorBrush x:Key="Success"     Color="#FF66F09A"/>
+    <SolidColorBrush x:Key="Surface"     Color="#F5000000"/>
     <SolidColorBrush x:Key="AppBg"       Color="#FF000000"/>
 
     <!-- Window background: not a flat colour, an 11-stop soft gradient (SKILL §2).
@@ -38,16 +38,21 @@
     <LinearGradientBrush x:Key="AppBgGradient"
                          StartPoint="0%,0%" EndPoint="60%,100%">
       <GradientStop Offset="0.0" Color="#FF000000"/>
-      <GradientStop Offset="0.1" Color="#FF010101"/>
-      <GradientStop Offset="0.2" Color="#FF020202"/>
-      <GradientStop Offset="0.3" Color="#FF020303"/>
-      <GradientStop Offset="0.4" Color="#FF030404"/>
-      <GradientStop Offset="0.5" Color="#FF040505"/>
-      <GradientStop Offset="0.6" Color="#FF050506"/>
-      <GradientStop Offset="0.7" Color="#FF060607"/>
-      <GradientStop Offset="0.8" Color="#FF060708"/>
-      <GradientStop Offset="0.9" Color="#FF070809"/>
-      <GradientStop Offset="1.0" Color="#FF08090A"/>
+      <GradientStop Offset="0.1" Color="#FF000000"/>
+      <GradientStop Offset="0.1" Color="#FF000000"/>
+      <GradientStop Offset="0.2" Color="#FF000000"/>
+      <GradientStop Offset="0.3" Color="#FF000000"/>
+      <GradientStop Offset="0.3" Color="#FF000000"/>
+      <GradientStop Offset="0.4" Color="#FF000000"/>
+      <GradientStop Offset="0.5" Color="#FF000000"/>
+      <GradientStop Offset="0.5" Color="#FF000000"/>
+      <GradientStop Offset="0.6" Color="#FF000000"/>
+      <GradientStop Offset="0.7" Color="#FF000000"/>
+      <GradientStop Offset="0.7" Color="#FF000000"/>
+      <GradientStop Offset="0.8" Color="#FF000000"/>
+      <GradientStop Offset="0.9" Color="#FF000000"/>
+      <GradientStop Offset="0.9" Color="#FF000000"/>
+      <GradientStop Offset="1.0" Color="#FF000000"/>
     </LinearGradientBrush>
 
     <!-- There is NO resource counterpart to WPF's AppBgRotate storyboard, and that
@@ -56,89 +61,89 @@
          sub-property (Background.EndPoint). The counterpart is the
          "Window.anim Panel.appbg" rule below. -->
 
-    <SolidColorBrush x:Key="PinkText"   Color="#FFFF54EB"/>
-    <SolidColorBrush x:Key="PurpleText" Color="#FFC67EFF"/>
+    <SolidColorBrush x:Key="Renk2Text" Color="#FFFA8CFF"/>
+    <SolidColorBrush x:Key="Renk3Text" Color="#FFAC7FFF"/>
 
     <!-- SEMANTIC ROLE LAYER (SKILL §2). Identical to Theme.xaml; the rationale is
          written there and is not repeated here. The hex comes from the single
          source of truth and is never edited by hand. The Success brush was renamed
          from NeonSuccess on 2026-08-23 and this file carries the new name. -->
-    <SolidColorBrush x:Key="Danger"     Color="#FFFF00EA"/>
-    <SolidColorBrush x:Key="DangerText" Color="#FFFF54EB"/>
-    <SolidColorBrush x:Key="Warning"    Color="#FFFBBF24"/>
-    <SolidColorBrush x:Key="Warning50"  Color="#80FBBF24"/>
+    <SolidColorBrush x:Key="Danger"     Color="#FFCBA7D2"/>
+    <SolidColorBrush x:Key="DangerText" Color="#FFFA8CFF"/>
+    <SolidColorBrush x:Key="Warning"    Color="#FFFFD24D"/>
+    <SolidColorBrush x:Key="Warning50"  Color="#80FFD24D"/>
 
     <SolidColorBrush x:Key="TextBody"  Color="#FFFFFFFF"/>
-    <SolidColorBrush x:Key="TextLabel" Color="#FF00F3FF"/>
+    <SolidColorBrush x:Key="TextLabel" Color="#FF6FB7FF"/>
     <!-- A disabled control is exempt from 7:1 (SKILL §2) and there is a price: a
          colour-blind user cannot see the grey. This brush is never used alone;
          every disabled control carries a marker in addition to the grey:
          ToolTip.Tip text is MANDATORY, plus Cursor="No" and, where possible, an
          icon. A merely dimmed control is an incomplete delivery. For secondary
          text the answer is not grey, it is deleting the text. -->
-    <SolidColorBrush x:Key="Disabled"  Color="#FF71717A"/>
+    <SolidColorBrush x:Key="Disabled"  Color="#FF8A8F9A"/>
 
     <!-- On pairs: the text brush each fill takes, measured by generate.js at 7:1
          after compositing a translucent fill over Surface. A fill with no On brush
          carries no text. -->
-    <SolidColorBrush x:Key="OnBlue"        Color="#FF000000"/>
+    <SolidColorBrush x:Key="OnRenk1"       Color="#FF000000"/>
+    <SolidColorBrush x:Key="OnRenk2"       Color="#FF000000"/>
+    <SolidColorBrush x:Key="OnRenk3"       Color="#FF000000"/>
     <SolidColorBrush x:Key="OnSuccess"     Color="#FF000000"/>
+    <SolidColorBrush x:Key="OnDanger"      Color="#FF000000"/>
     <SolidColorBrush x:Key="OnDangerText"  Color="#FF000000"/>
     <SolidColorBrush x:Key="OnPanel"       Color="#FFFFFFFF"/>
     <SolidColorBrush x:Key="OnGlass"       Color="#FFFFFFFF"/>
-    <SolidColorBrush x:Key="OnBlue10"      Color="#FFFFFFFF"/>
-    <SolidColorBrush x:Key="OnBlue20"      Color="#FFFFFFFF"/>
-    <SolidColorBrush x:Key="OnBlue30"      Color="#FFFFFFFF"/>
-    <SolidColorBrush x:Key="OnPink10"      Color="#FFFFFFFF"/>
-    <SolidColorBrush x:Key="OnPink20"      Color="#FFFFFFFF"/>
-    <SolidColorBrush x:Key="OnPink30"      Color="#FFFFFFFF"/>
-    <SolidColorBrush x:Key="OnPink50"      Color="#FFFFFFFF"/>
-    <SolidColorBrush x:Key="OnPink60"      Color="#FFFFFFFF"/>
-    <SolidColorBrush x:Key="OnPurple10"    Color="#FFFFFFFF"/>
-    <SolidColorBrush x:Key="OnPurple20"    Color="#FFFFFFFF"/>
-    <SolidColorBrush x:Key="OnPurple30"    Color="#FFFFFFFF"/>
-    <SolidColorBrush x:Key="OnPurple50"    Color="#FFFFFFFF"/>
-    <SolidColorBrush x:Key="OnPurple60"    Color="#FFFFFFFF"/>
+    <SolidColorBrush x:Key="OnRenk1x10"    Color="#FFFFFFFF"/>
+    <SolidColorBrush x:Key="OnRenk1x20"    Color="#FFFFFFFF"/>
+    <SolidColorBrush x:Key="OnRenk1x30"    Color="#FFFFFFFF"/>
+    <SolidColorBrush x:Key="OnRenk1x50"    Color="#FFFFFFFF"/>
+    <SolidColorBrush x:Key="OnRenk2x10"    Color="#FFFFFFFF"/>
+    <SolidColorBrush x:Key="OnRenk2x20"    Color="#FFFFFFFF"/>
+    <SolidColorBrush x:Key="OnRenk2x30"    Color="#FFFFFFFF"/>
+    <SolidColorBrush x:Key="OnRenk3x10"    Color="#FFFFFFFF"/>
+    <SolidColorBrush x:Key="OnRenk3x20"    Color="#FFFFFFFF"/>
+    <SolidColorBrush x:Key="OnRenk3x30"    Color="#FFFFFFFF"/>
 
-    <SolidColorBrush x:Key="NeonBlue10"   Color="#1A00F3FF"/>
-    <SolidColorBrush x:Key="NeonBlue20"   Color="#3300F3FF"/>
-    <SolidColorBrush x:Key="NeonBlue30"   Color="#4D00F3FF"/>
-    <SolidColorBrush x:Key="NeonBlue50"   Color="#8000F3FF"/>
-    <SolidColorBrush x:Key="NeonBlue60"   Color="#9900F3FF"/>
+    <SolidColorBrush x:Key="Renk1x10"     Color="#1A6FB7FF"/>
+    <SolidColorBrush x:Key="Renk1x20"     Color="#336FB7FF"/>
+    <SolidColorBrush x:Key="Renk1x30"     Color="#4D6FB7FF"/>
+    <SolidColorBrush x:Key="Renk1x50"     Color="#806FB7FF"/>
+    <SolidColorBrush x:Key="Renk1x60"     Color="#996FB7FF"/>
 
-    <SolidColorBrush x:Key="NeonPink10"   Color="#1AFF00EA"/>
-    <SolidColorBrush x:Key="NeonPink20"   Color="#33FF00EA"/>
-    <SolidColorBrush x:Key="NeonPink30"   Color="#4DFF00EA"/>
-    <SolidColorBrush x:Key="NeonPink50"   Color="#80FF00EA"/>
-    <SolidColorBrush x:Key="NeonPink60"   Color="#99FF00EA"/>
+    <SolidColorBrush x:Key="Renk2x10"     Color="#1ACBA7D2"/>
+    <SolidColorBrush x:Key="Renk2x20"     Color="#33CBA7D2"/>
+    <SolidColorBrush x:Key="Renk2x30"     Color="#4DCBA7D2"/>
+    <SolidColorBrush x:Key="Renk2x50"     Color="#80CBA7D2"/>
+    <SolidColorBrush x:Key="Renk2x60"     Color="#99CBA7D2"/>
 
-    <SolidColorBrush x:Key="NeonPurple10" Color="#1AB026FF"/>
-    <SolidColorBrush x:Key="NeonPurple20" Color="#33B026FF"/>
-    <SolidColorBrush x:Key="NeonPurple30" Color="#4DB026FF"/>
-    <SolidColorBrush x:Key="NeonPurple50" Color="#80B026FF"/>
-    <SolidColorBrush x:Key="NeonPurple60" Color="#99B026FF"/>
+    <SolidColorBrush x:Key="Renk3x10"     Color="#1AC3A3FF"/>
+    <SolidColorBrush x:Key="Renk3x20"     Color="#33C3A3FF"/>
+    <SolidColorBrush x:Key="Renk3x30"     Color="#4DC3A3FF"/>
+    <SolidColorBrush x:Key="Renk3x50"     Color="#80C3A3FF"/>
+    <SolidColorBrush x:Key="Renk3x60"     Color="#99C3A3FF"/>
 
-    <SolidColorBrush x:Key="PinkText50"   Color="#80FF54EB"/>
-    <SolidColorBrush x:Key="PurpleText50" Color="#80C67EFF"/>
+    <SolidColorBrush x:Key="Renk2Text50"  Color="#80FA8CFF"/>
+    <SolidColorBrush x:Key="Renk3Text50"  Color="#80AC7FFF"/>
 
-    <SolidColorBrush x:Key="BorderDefault"    Color="#8000F3FF"/>
-    <SolidColorBrush x:Key="BorderStrong"     Color="#9900F3FF"/>
-    <SolidColorBrush x:Key="BorderDecorative" Color="#4D00F3FF"/>
+    <SolidColorBrush x:Key="BorderDefault"    Color="#8C6FB7FF"/>
+    <SolidColorBrush x:Key="BorderStrong"     Color="#B36FB7FF"/>
+    <SolidColorBrush x:Key="BorderDecorative" Color="#336FB7FF"/>
 
     <!-- The chain's only source is SKILL §3; the order matches. Atkinson
          Hyperlegible Next is the default and is EMBEDDED in the project, not
-         assumed present on the system. In Avalonia the embed path is an avares
-         URI, not a pack URI; example in references/avalonia.md. -->
-    <FontFamily x:Key="FontSans">Atkinson Hyperlegible Next, Segoe UI</FontFamily>
+         assumed present on the system. setup.js copies the font into the app's
+         Assets/Fonts and rewrites this line to an avares URI. -->
+    <FontFamily x:Key="FontSans">avares://DustyBytes/Assets/Fonts#Atkinson Hyperlegible Next, Segoe UI</FontFamily>
     <FontFamily x:Key="FontMono">Cascadia Mono, Consolas</FontFamily>
 
     <!-- Avalonia has no Duration resource type; Transition.Duration and
          Animation.Duration take a TimeSpan. The names are kept verbatim, the type
          changed. -->
-    <sys:TimeSpan x:Key="TInstant">0:0:0.09</sys:TimeSpan>
-    <sys:TimeSpan x:Key="TFast">0:0:0.16</sys:TimeSpan>
-    <sys:TimeSpan x:Key="TBase">0:0:0.24</sys:TimeSpan>
-    <sys:TimeSpan x:Key="TSlow">0:0:0.36</sys:TimeSpan>
+    <sys:TimeSpan x:Key="TInstant">0:0:0.04</sys:TimeSpan>
+    <sys:TimeSpan x:Key="TFast">0:0:0.08</sys:TimeSpan>
+    <sys:TimeSpan x:Key="TBase">0:0:0.15</sys:TimeSpan>
+    <sys:TimeSpan x:Key="TSlow">0:0:0.24</sys:TimeSpan>
 
     <!-- Hero glow: same intensity as the CSS token tk-glow-hero, blur 8, opacity
          0.8. The council had put this name on the banned-string list; the reason
@@ -146,8 +151,8 @@
          and the only way to glow text. The deviation is recorded in the contract's
          Output section. The WPF-specific ShadowDepth property is ABSENT here and
          the test looks for it. -->
-    <DropShadowEffect x:Key="HeroGlow" Color="#FF00F3FF"
-                      BlurRadius="8" OffsetX="0" OffsetY="0" Opacity="0.8"/>
+    <DropShadowEffect x:Key="HeroGlow" Color="#FF6FB7FF"
+                      BlurRadius="0" OffsetX="0" OffsetY="0" Opacity="0"/>
 
     <!-- SKILL §5.4 tokens: e-out cubic-bezier(0.2,0,0,1), e-in (0.4,0,1,1).
          SplineEasing carries the CSS curve verbatim. If your version has no
@@ -156,24 +161,24 @@
     <SplineEasing x:Key="EOut" X1="0.2" Y1="0" X2="0" Y2="1"/>
     <SplineEasing x:Key="EIn"  X1="0.4" Y1="0" X2="1" Y2="1"/>
 
-    <!-- Numeric tokens: the same values as the CSS tk-* layer, in DIP.
+    <!-- Numeric tokens: the same values as the CSS tk-* custom properties, in DIP.
          Tracking is em, line height a multiplier, ratios unitless. -->
     <sys:Double x:Key="FontSize1">14</sys:Double>
     <sys:Double x:Key="FontSize2">16</sys:Double>
     <sys:Double x:Key="FontSize3">20</sys:Double>
     <sys:Double x:Key="FontSize4">24</sys:Double>
-    <sys:Double x:Key="FontSize5">30</sys:Double>
-    <sys:Double x:Key="LineHeightBody">1.5</sys:Double>
-    <sys:Double x:Key="LineHeightHeading">1.2</sys:Double>
-    <sys:Double x:Key="LineHeightMono">1.4</sys:Double>
+    <sys:Double x:Key="FontSize5">32</sys:Double>
+    <sys:Double x:Key="LineHeightBody">1.6</sys:Double>
+    <sys:Double x:Key="LineHeightHeading">1.25</sys:Double>
+    <sys:Double x:Key="LineHeightMono">1.5</sys:Double>
     <sys:Double x:Key="MeasureCh">65</sys:Double>
-    <sys:Double x:Key="TrackingLabel">0.15</sys:Double>
-    <sys:Double x:Key="TrackingH3">0.05</sys:Double>
-    <sys:Double x:Key="TrackingH2">0.02</sys:Double>
-    <sys:Double x:Key="TrackingHero">-0.01</sys:Double>
+    <sys:Double x:Key="TrackingLabel">0.08</sys:Double>
+    <sys:Double x:Key="TrackingH3">0.02</sys:Double>
+    <sys:Double x:Key="TrackingH2">0</sys:Double>
+    <sys:Double x:Key="TrackingHero">-0.015</sys:Double>
     <FontWeight x:Key="WeightBody">Normal</FontWeight>
     <FontWeight x:Key="WeightSemi">SemiBold</FontWeight>
-    <FontWeight x:Key="WeightHero">Black</FontWeight>
+    <FontWeight x:Key="WeightHero">ExtraBold</FontWeight>
 
     <sys:Double x:Key="Space1">4</sys:Double>
     <sys:Double x:Key="Space2">8</sys:Double>
@@ -189,14 +194,14 @@
     <sys:Double x:Key="ToastInset">24</sys:Double>
     <sys:Double x:Key="ToastGap">12</sys:Double>
 
-    <CornerRadius x:Key="Radius">6</CornerRadius>
-    <CornerRadius x:Key="WindowRadius">12</CornerRadius>
+    <CornerRadius x:Key="Radius">3</CornerRadius>
+    <CornerRadius x:Key="WindowRadius">3</CornerRadius>
     <Thickness x:Key="BorderWidth">1</Thickness>
     <sys:Double x:Key="FocusWidth">2</sys:Double>
     <sys:Double x:Key="FocusOffset">2</sys:Double>
 
     <sys:Double x:Key="TargetMin">24</sys:Double>
-    <sys:Double x:Key="ScrollbarWidth">10</sys:Double>
+    <sys:Double x:Key="ScrollbarWidth">3</sys:Double>
     <sys:Double x:Key="TitleBarHeightMin">32</sys:Double>
     <sys:Double x:Key="TitleBarHeightMax">40</sys:Double>
     <sys:Double x:Key="SidebarWidth">240</sys:Double>
@@ -242,7 +247,7 @@
       <Setter Property="FontSize" Value="24"/>
       <Setter Property="FontWeight" Value="SemiBold"/>
       <Setter Property="LineHeight" Value="29"/>
-      <Setter Property="Foreground" Value="{StaticResource NeonBlue}"/>
+      <Setter Property="Foreground" Value="{StaticResource Renk1}"/>
     </ControlTheme>
 
     <ControlTheme x:Key="H3" TargetType="TextBlock">
@@ -291,7 +296,7 @@
       <Setter Property="FontSize" Value="30"/>
       <Setter Property="FontWeight" Value="Black"/>
       <Setter Property="LineHeight" Value="36"/>
-      <Setter Property="Foreground" Value="{StaticResource NeonBlue}"/>
+      <Setter Property="Foreground" Value="{StaticResource Renk1}"/>
       <!-- This is the only role where text is given a glow (SKILL §2). -->
       <Setter Property="Effect" Value="{StaticResource HeroGlow}"/>
     </ControlTheme>
@@ -301,7 +306,7 @@
       <Setter Property="FontSize" Value="16"/>
       <Setter Property="FontWeight" Value="SemiBold"/>
       <Setter Property="LineHeight" Value="22"/>
-      <Setter Property="Foreground" Value="{StaticResource PinkText}"/>
+      <Setter Property="Foreground" Value="{StaticResource Renk2Text}"/>
     </ControlTheme>
 
     <ControlTheme x:Key="Panel" TargetType="Border">
@@ -328,7 +333,7 @@
       <Setter Property="Foreground" Value="{StaticResource Warning}"/>
     </ControlTheme>
 
-    <!-- Error text writes the text pink, not the fill pink — the 7:1 threshold. -->
+    <!-- Error text writes the text renk-2, not the fill renk-2 — the 7:1 threshold. -->
     <ControlTheme x:Key="DangerBody" TargetType="TextBlock"
                   BasedOn="{StaticResource Body}">
       <Setter Property="Foreground" Value="{StaticResource DangerText}"/>
@@ -345,10 +350,11 @@
          to you: do not write
          <Setter Property="RenderTransform"><ScaleTransform .../></Setter>. -->
     <ControlTheme x:Key="PrimaryButton" TargetType="Button">
-      <Setter Property="Background" Value="{StaticResource NeonBlue}"/>
+      <Setter Property="Background" Value="{StaticResource Renk1}"/>
       <Setter Property="Foreground" Value="Black"/>
       <Setter Property="FontWeight" Value="SemiBold"/>
       <Setter Property="FontFamily" Value="{StaticResource FontSans}"/>
+      <Setter Property="FontSize" Value="{StaticResource FontSize2}"/>
       <Setter Property="Padding" Value="20,14"/>
       <Setter Property="BorderThickness" Value="0"/>
       <Setter Property="Cursor" Value="Hand"/>
@@ -367,7 +373,7 @@
                   Padding="{TemplateBinding Padding}"
                   CornerRadius="6"
                   RenderTransformOrigin="50%,50%"
-                  BoxShadow="0 0 20 0 #5900F3FF">
+                  BoxShadow="0 0 0 0 #006FB7FF">
             <!-- Do NOT write keyframe animations for hover and press. Avalonia does
                  not rewind a keyframe when leaving a pseudo-class; the button stays
                  stuck on the last frame. The right tool is Transitions, which run
@@ -395,7 +401,7 @@
            a single Easing. Separate curves for entry and exit are not possible; an
            accepted simplification, noted in the contract's Output section. -->
       <Style Selector="^:pointerover /template/ Border#bd">
-        <Setter Property="Opacity" Value="0.85"/>
+        <Setter Property="RenderTransform" Value="scale(1.02)"/>
       </Style>
 
       <Style Selector="^:pressed /template/ Border#bd">
@@ -414,7 +420,17 @@
       </Style>
     </ControlTheme>
 
+    <ControlTheme x:Key="DangerButton" TargetType="Button" BasedOn="{StaticResource PrimaryButton}">
+      <Setter Property="Background" Value="{StaticResource DangerText}"/>
+      <Setter Property="Foreground" Value="{StaticResource OnDangerText}"/>
+    </ControlTheme>
+
   </Styles.Resources>
+
+  <Style Selector=":is(Window)">
+    <Setter Property="FontFamily" Value="{StaticResource FontSans}"/>
+    <Setter Property="FontSize" Value="{StaticResource FontSize2}"/>
+  </Style>
 
   <!-- FOCUS RING, application wide.
        In WPF this was done with a style keyed on
@@ -431,7 +447,7 @@
           <Rectangle Margin="4" RadiusX="7" RadiusY="7"
                      Stroke="#FF000000" StrokeThickness="2"/>
           <Rectangle Margin="2" RadiusX="9" RadiusY="9"
-                     Stroke="#FF00F3FF" StrokeThickness="2"/>
+                     Stroke="#FF6FB7FF" StrokeThickness="2"/>
         </Panel>
       </FocusAdornerTemplate>
     </Setter>

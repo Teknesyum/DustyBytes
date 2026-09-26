@@ -141,7 +141,7 @@ public sealed class TreemapControl : Control
         var scaling = TopLevel.GetTopLevel(this)?.RenderScaling ?? 1;
         var tiles = _tiles.Select(t => new DrawTile(Snap(t.Rect, scaling), t.Item.Name, t.Item.SizeText, t.Item.Kind, t.Item.IsOthers, ReferenceEquals(t.Item, Selected))).ToList();
         var palette = new Palette(
-            ColorOf("NeonBlue"), ColorOf("PinkText"), ColorOf("PurpleText"), ColorOf("Success"), ColorOf("Warning"),
+            ColorOf("Renk1"), ColorOf("Renk2Text"), ColorOf("Renk3Text"), ColorOf("Success"), ColorOf("Warning"),
             ColorOf("BorderDecorative"), ColorOf("Surface"), ColorOf("TextBody"));
         context.Custom(new TreemapDraw(new Rect(Bounds.Size), tiles, palette, Selected is not null, FamilyOf("FontSans", "Segoe UI"), FamilyOf("FontMono", "Consolas")));
     }
@@ -212,9 +212,9 @@ public sealed class TreemapControl : Control
                 var (key, filled) = UiConvert.KindStyle(t.Kind);
                 var color = key switch
                 {
-                    "NeonBlue" => palette.Blue,
-                    "PinkText" => palette.Pink,
-                    "PurpleText" => palette.Purple,
+                    "Renk1" => palette.Blue,
+                    "Renk2Text" => palette.Pink,
+                    "Renk3Text" => palette.Purple,
                     "Success" => palette.Success,
                     "Warning" => palette.Warning,
                     _ => palette.Other,

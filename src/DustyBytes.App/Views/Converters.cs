@@ -27,9 +27,9 @@ public static class UiConvert
 
     public static (string Key, bool Filled) KindStyle(UnitKind? kind) => kind switch
     {
-        UnitKind.Game => ("NeonBlue", true),
-        UnitKind.Film or UnitKind.Series => ("PinkText", true),
-        UnitKind.Program => ("PurpleText", false),
+        UnitKind.Game => ("Renk1", true),
+        UnitKind.Film or UnitKind.Series => ("Renk2Text", true),
+        UnitKind.Program => ("Renk3Text", false),
         UnitKind.DevArtifact => ("Success", true),
         UnitKind.Cache or UnitKind.BrowserCache => ("Warning", false),
         _ => ("BorderDecorative", true),

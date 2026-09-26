@@ -10,6 +10,8 @@
   </PropertyGroup>
   <ItemGroup>
     <AvaloniaResource Include="Assets\**" />
+    <AvaloniaXaml Include="../../teknesyum-ui/ustcubuk/*.axaml;../../teknesyum-ui/durum/*.axaml" Link="Kabuk/%(Filename)%(Extension)" />
+    <Compile Include="../../teknesyum-ui/ustcubuk/*.cs;../../teknesyum-ui/durum/*.cs" Link="Kabuk/%(Filename)%(Extension)" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Avalonia" Version="11.3.20" />

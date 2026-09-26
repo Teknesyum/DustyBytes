@@ -1,0 +1,8 @@
+Başarılı!  - Başarısız:     0, Başarılı:   105, Atlanan:     0, Toplam:   105, Süre: 565 ms - DustyBytes.Uninstall.Tests.dll (net10.0)
+Başarılı!  - Başarısız:     0, Başarılı:    40, Atlanan:     0, Toplam:    40, Süre: 133 ms - DustyBytes.Units.Tests.dll (net10.0)
+Başarılı!  - Başarısız:     0, Başarılı:    24, Atlanan:     0, Toplam:    24, Süre: 1 s - DustyBytes.Signals.Tests.dll (net10.0)
+Başarılı!  - Başarısız:     0, Başarılı:    17, Atlanan:     0, Toplam:    17, Süre: 660 ms - DustyBytes.Scan.Tests.dll (net10.0)
+Başarılı!  - Başarısız:     0, Başarılı:    45, Atlanan:     0, Toplam:    45, Süre: 2 s - DustyBytes.Safety.Tests.dll (net10.0)
+Başarılı!  - Başarısız:     0, Başarılı:    27, Atlanan:     0, Toplam:    27, Süre: 1 m 5 s - DustyBytes.Rules.Tests.dll (net10.0)
+Başarılı!  - Başarısız:     0, Başarılı:    77, Atlanan:     0, Toplam:    77, Süre: 7 m 33 s - DustyBytes.Tests.dll (net10.0)
+dotnet test DustyBytes.slnx --filter "Kind!=Machine" --blame-hang-timeout 4m

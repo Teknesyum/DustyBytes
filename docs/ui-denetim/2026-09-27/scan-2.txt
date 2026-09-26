@@ -1,0 +1,3 @@
+README.md:40  forms/unmeasured-label  Unmeasured number: carry the (default, unmeasured) label.
+src/DustyBytes.App/Assets/AppStyles.axaml:203  okunurluk/pair-contrast  bg Renk1 (#6fb7ff) on fg TextBody (#ffffff) — 2.1:1, below 7:1
+249 files · 2 open · 0 fixed · 1 error(s) · 28 ignored

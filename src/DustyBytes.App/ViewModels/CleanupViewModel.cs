@@ -41,7 +41,7 @@ public sealed class CleanRuleRow
     public CleanRuleInfo Info { get; }
     public string Name => Info.Rule.Name;
     public bool Running => Info.Running;
-    public string RunningText => Info.RunningReason is { Length: > 0 } r ? $"Açık görünüyor ({r}); kapatınca temizlenir" : "Açık görünüyor; kapatınca temizlenir";
+    public string RunningText => Info.RunningReason is { Length: > 0 } r ? $"{r}; kapatınca temizlenir" : "Açık görünüyor; kapatınca temizlenir";
     public string? Source => Info.Rule.Source;
     public bool HasSource => !string.IsNullOrWhiteSpace(Info.Rule.Source);
     public string SourceTip => string.Equals(Source, "Winapp2", StringComparison.OrdinalIgnoreCase)
@@ -162,7 +162,8 @@ public sealed partial class CleanupViewModel : ViewModelBase
     {
         var bytes = CheckedOptions.Sum(o => Math.Max(0, o.Bytes)) + CheckedTasks.Sum(t => t.Info.Bytes);
         var count = CheckedOptions.Count() + CheckedTasks.Count();
-        TotalText = count == 0 ? "Hiçbir seçenek işaretlenmedi" : $"{Format.Count(count)} seçenek · yaklaşık ";
+        var olculmedi = CheckedOptions.Any(o => o.Bytes < 0);
+        TotalText = count == 0 ? "Hiçbir seçenek işaretlenmedi" : $"{Format.Count(count)} seçenek · {(olculmedi ? "ölçülenler en az" : "yaklaşık")} ";
         TotalSize = count == 0 ? "" : Format.Bytes(bytes);
         CleanCommand.NotifyCanExecuteChanged();
         Raise();
@@ -187,7 +188,7 @@ public sealed partial class CleanupViewModel : ViewModelBase
         if (options.Count == 0 && tasks.Count == 0)
             return;
         if (!await _main.ConfirmAsync(
-                "Seçilenler temizlensin mi",
+                "Seçilenler temizlensin mi?",
                 "Önbellek ve sistem artıkları karantinaya alınmadan silinir; bu işlem geri alınamaz. Açık programların dosyaları atlanır.",
                 "Temizle"))
             return;

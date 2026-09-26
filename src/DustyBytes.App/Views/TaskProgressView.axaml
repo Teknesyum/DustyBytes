@@ -13,9 +13,9 @@
         <Button Grid.Column="2" Classes="ghost" Content="İptal et" Command="{Binding CancelCommand}"
                 IsVisible="{Binding CanCancel}" ToolTip.Tip="İşlemi durdurur; tamamlanan adımlar kalır"/>
       </Grid>
-      <Border Name="Track" MinHeight="8" CornerRadius="{StaticResource Radius}" Background="{StaticResource NeonBlue20}" ClipToBounds="True"
+      <Border Name="Track" MinHeight="8" CornerRadius="{StaticResource Radius}" Background="{StaticResource Renk1x20}" ClipToBounds="True"
               HorizontalAlignment="Stretch">
-        <Border Classes="bar" Background="{StaticResource NeonBlue}" CornerRadius="{StaticResource Radius}"
+        <Border Classes="bar" Background="{StaticResource Renk1}" CornerRadius="{StaticResource Radius}"
                 RenderTransform="{Binding Value, Converter={x:Static v:UiConvert.ScaleX}}"/>
       </Border>
       <ItemsControl ItemsSource="{Binding Lines}">

@@ -9,7 +9,10 @@ using Avalonia.Controls.Shapes;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.Media;
+using Avalonia.Input;
+using Avalonia.Input.Raw;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
 using DustyBytes.App;
 using DustyBytes.App.Services;
 using DustyBytes.App.ViewModels;
@@ -242,6 +245,48 @@ public class UpdateTests
     }
 
     [Fact]
+    public async Task Download_And_Install_Installs_Without_A_Second_Question()
+    {
+        using var f = new UpdateFixture();
+        f.Release("v0.2.0", "SHA-256: " + f.Sha);
+        var vm = f.Model(f.Service());
+        var exited = false;
+        vm.Exit = () => exited = true;
+        await vm.CheckAsync();
+        await vm.DownloadAndInstallCommand.ExecuteAsync(null);
+        Assert.Empty(f.ConfirmAsked);
+        Assert.Single(f.Launched);
+        Assert.True(exited);
+    }
+
+    [Fact]
+    public async Task Download_And_Install_Waits_While_Work_Runs()
+    {
+        using var f = new UpdateFixture { Busy = true };
+        f.Release("v0.2.0", "SHA-256: " + f.Sha);
+        var vm = f.Model(f.Service());
+        await vm.CheckAsync();
+        await vm.DownloadAndInstallCommand.ExecuteAsync(null);
+        Assert.Equal(UpdateState.Ready, vm.State);
+        Assert.Empty(f.Launched);
+        Assert.Single(f.Notes);
+    }
+
+    [Fact]
+    public async Task Cancel_Returns_To_Available_Without_A_Failure()
+    {
+        using var f = new UpdateFixture();
+        var vm = f.Model(f.Service(fake: new Version(0, 2, 0)));
+        await vm.CheckAsync();
+        vm.CancelCommand.Execute(null);
+        var run = vm.DownloadAsync();
+        vm.CancelCommand.Execute(null);
+        await run;
+        Assert.Equal(UpdateState.Available, vm.State);
+        Assert.Empty(f.Failures);
+    }
+
+    [Fact]
     public async Task State_Machine_Walks_Yellow_Downloading_Green_Installing()
     {
         using var f = new UpdateFixture();
@@ -383,13 +428,46 @@ public class UpdateBadgeTests
         return dir;
     }
 
+    static DustyBytes.App.Kabuk.TitleBar Bar(Window window) => window.FindControl<DustyBytes.App.Kabuk.TitleBar>("TitleBar")!;
+
+    [AvaloniaTheory]
+    [InlineData("var", UpdateState.Available, "IndirDugmesi,IndirVeYukleDugmesi")]
+    [InlineData("iniyor", UpdateState.Downloading, "IptalDugmesi")]
+    [InlineData("hazir", UpdateState.Ready, "YukleDugmesi")]
+    public void Badge_Opens_Panel_With_The_Buttons_Of_Its_State(string tag, UpdateState state, string buttons)
+    {
+        var window = new MainWindow { Width = 1200, Height = 780 };
+        var vm = (MainViewModel)window.DataContext!;
+        vm.Update.Percent = 42;
+        vm.Update.State = state;
+        window.Show();
+        Pump();
+
+        var layer = window.FindControl<Panel>("UpdateLayer")!;
+        Assert.False(layer.IsVisible);
+        Bar(window).FindControl<Button>("Rozet")!.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+        Pump();
+        Assert.True(layer.IsVisible);
+
+        var panel = window.FindControl<DustyBytes.App.Kabuk.GuncellemePaneli>("UpdatePanel")!;
+        var expected = buttons.Split(',');
+        foreach (var name in new[] { "IndirDugmesi", "IndirVeYukleDugmesi", "IptalDugmesi", "YukleDugmesi" })
+            Assert.Equal(expected.Contains(name), panel.FindControl<Button>(name)!.IsVisible);
+
+        window.CaptureRenderedFrame()?.Save(System.IO.Path.Combine(Output(), "panel-" + tag + ".png"));
+        window.KeyPressQwerty(PhysicalKey.Escape, RawInputModifiers.None);
+        Pump();
+        Assert.False(layer.IsVisible);
+        window.Close();
+    }
+
     [AvaloniaFact]
     public void Badge_Hidden_Until_An_Update_Is_Found()
     {
         var window = new MainWindow();
         window.Show();
         Pump();
-        Assert.False(window.FindControl<Button>("UpdateBadge")!.IsEffectivelyVisible);
+        Assert.False(Bar(window).FindControl<Button>("Rozet")!.IsEffectivelyVisible);
         window.Close();
     }
 
@@ -406,12 +484,13 @@ public class UpdateBadgeTests
         window.Show();
         Pump();
 
-        var badge = window.FindControl<Button>("UpdateBadge")!;
-        var signature = window.FindControl<Control>("Signature")!;
+        var bar = Bar(window);
+        var badge = bar.FindControl<Button>("Rozet")!;
+        var signature = bar.FindControl<Control>("DestekDugmesi")!;
         Assert.True(badge.IsEffectivelyVisible);
-        Assert.Equal(text, window.FindControl<TextBlock>("UpdateText")!.Text);
+        Assert.Equal(text, bar.FindControl<TextBlock>("RozetYazisi")!.Text);
         var expected = (ISolidColorBrush)window.FindResource(brush)!;
-        var dot = (ISolidColorBrush)window.FindControl<Ellipse>("UpdateDot")!.Fill!;
+        var dot = (ISolidColorBrush)badge.GetVisualDescendants().OfType<Ellipse>().First().Fill!;
         Assert.Equal(expected.Color, dot.Color);
         Assert.True(badge.Bounds.Height >= 24 && badge.Bounds.Width >= 24);
         var badgeRight = badge.TranslatePoint(new Point(badge.Bounds.Width, 0), window)!.Value.X;

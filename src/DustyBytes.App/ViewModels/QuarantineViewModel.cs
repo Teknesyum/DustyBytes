@@ -150,7 +150,7 @@ public sealed partial class QuarantineViewModel : ViewModelBase
         var chosen = Selected;
         var bytes = chosen.Sum(c => c.Entry.Size);
         if (!await _main.ConfirmAsync(
-                $"{chosen.Count} öğe kalıcı silinsin mi",
+                $"{chosen.Count} öğe kalıcı silinsin mi?",
                 $"{Format.Bytes(bytes)} karantinadan tamamen silinir. Bu işlem geri alınamaz.",
                 "Kalıcı sil"))
             return;

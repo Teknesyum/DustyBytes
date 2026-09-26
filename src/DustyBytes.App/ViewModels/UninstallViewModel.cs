@@ -96,10 +96,10 @@ public sealed partial class UninstallViewModel : ViewModelBase
         Progress = main.NewProgress();
         Steps =
         [
-            new UninstallStep("restore-point", "Geri yükleme noktası oluşturuluyor"),
-            new UninstallStep("snapshot", "Önceki durum kaydediliyor"),
-            new UninstallStep("vendor", "Programın kendi kaldırıcısı çalışıyor"),
-            new UninstallStep("diff", "Kalan izler karşılaştırılıyor"),
+            new UninstallStep("restore-point", "Geri yükleme noktası oluşturma"),
+            new UninstallStep("snapshot", "Önceki durumu kaydetme"),
+            new UninstallStep("vendor", "Programın kendi kaldırıcısı"),
+            new UninstallStep("diff", "Kalan izleri karşılaştırma"),
         ];
     }
 
@@ -222,7 +222,7 @@ public sealed partial class UninstallViewModel : ViewModelBase
     private async Task Uninstall()
     {
         if (!await _main.ConfirmAsync(
-                $"{Name} kaldırılsın mı",
+                $"{Name} kaldırılsın mı?",
                 "Önce geri yükleme noktası oluşturulur, sonra programın kendi kaldırıcısı çalışır. Kaldırılan program yeniden kurulmadan geri gelmez.",
                 "Programı kaldır"))
             return;
@@ -307,7 +307,7 @@ public sealed partial class UninstallViewModel : ViewModelBase
         if (_snapshot is null || chosen.Count == 0)
             return;
         if (!await _main.ConfirmAsync(
-                $"{chosen.Count} kalıntı silinsin mi",
+                $"{chosen.Count} kalıntı silinsin mi?",
                 "Dosyalar karantinaya alınır, kayıt girdileri önce dışa aktarılır. Hizmet ve görev silme geri alınamaz.",
                 "Kalıntıları sil"))
             return;

@@ -294,3 +294,18 @@ Kod alınmayacaklar: qdirstat (GPL-2.0-only), menees/Treemap (MSR-SSLA), ntfs-cp
 
 - teknesyum-ui A0'da `setup.js` ile bağlanır; `teknesyum-ui.json` ve token'lar gelmeden renk yazılmaz.
 - Kod imzası sertifikası: satın alma sahibin kararı, A7'den önce.
+
+## UI Denetimi (uc) — 2026-09-27
+
+Kaynak: raf `ui-denetim`, `ui-duzeni`; eklenti teknesyum-ui 0.11.0. Rapor `docs/ui-denetim/2026-09-27.md`.
+
+1. Kurulum: `setup.js --apply` projeyi `neon`dan sahibin kayıtlı düzenine (`benim.tokens.json`) geçirir; Theme.axaml yeniden üretilir, uygulama stilleri yeni kaynak adlarına bağlanır.
+2. Üst çubuk, güncelleme rozeti/paneli ve kurulum ekranı eklentinin Avalonia şablonlarından (`scaffold.js ustcubuk|durum|kur --avalonia`) gelir; elle yazılmış eşleri `trash/`a.
+3. Ekran envanteri: altı sekme, kaldırma akışı, iletişim kutuları, güncelleme paneli; her birinin boş, hata ve yükleme hâli.
+4. Durağan tarama `scan.js --fix`, kalan bulgu 0.
+5. Canlı kontrast: `scaffold.js denetim DustyBytes` başsız testi; her yazı ve simge her durumda gerçek zeminine karşı 7:1.
+6. Gerçek pencere görüntüsü %100, %125, %150; önce ve sonra.
+7. İşi yapmamış alt ajan görüntülere bakar; bulgular kapanana dek 4–7 yinelenir.
+8. Raf kitapları: depo, guncelleme-paneli, kabuk-standardi, kurulum-paneli, lisans, README-kabuk-standardi, readme-protokolu, ui, ui-duzeni; her biri `raf.js --uydu` ile kaydedilir.
+
+Durum 2026-09-27: 1–5, 7 ve 8 tamam. 6 gerçek pencerede yalnız %100 (ölçek sistem ayarı), %125/%150 başsız. Kur penceresinin kaynağı şablon işine bağlı (Teknesyum-UI). Rapor: `docs/ui-denetim/2026-09-27.md`.

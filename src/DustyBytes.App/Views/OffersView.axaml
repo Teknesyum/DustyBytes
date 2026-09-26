@@ -6,7 +6,7 @@
              x:DataType="vm:OffersViewModel">
   <UserControl.Styles>
     <Style Selector="Border.bar">
-      <Setter Property="Background" Value="{StaticResource NeonBlue10}"/>
+      <Setter Property="Background" Value="{StaticResource Renk1x10}"/>
       <Setter Property="CornerRadius" Value="{StaticResource Radius}"/>
     </Style>
     <Style Selector="CheckBox.placeholder">

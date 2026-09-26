@@ -81,10 +81,10 @@ public class KabukStandardiTests
         Assert.True(window.ExtendClientAreaToDecorationsHint);
         Assert.Equal(Avalonia.Platform.ExtendClientAreaChromeHints.NoChrome, window.ExtendClientAreaChromeHints);
         Assert.Equal(-1, window.ExtendClientAreaTitleBarHeightHint);
-        var bar = window.FindControl<Grid>("TitleBar")!;
+        var bar = window.FindControl<DustyBytes.App.Kabuk.TitleBar>("TitleBar")!;
         Assert.True(bar.Bounds.Height <= 40);
         Assert.Equal(Win32Properties.Win32HitTestValue.MaxButton,
-            Win32Properties.GetNonClientHitTestResult(window.FindControl<Button>("MaximizeButton")!));
+            Win32Properties.GetNonClientHitTestResult(bar.FindControl<Button>("BuyutDugmesi")!));
         window.Close();
     }
 
@@ -92,8 +92,9 @@ public class KabukStandardiTests
     public void Signature_Sits_Left_Of_Minimize()
     {
         var window = Open();
-        var signature = window.FindControl<Control>("Signature")!;
-        var minimize = window.FindControl<Button>("MinimizeButton")!;
+        var bar = window.FindControl<DustyBytes.App.Kabuk.TitleBar>("TitleBar")!;
+        var signature = bar.FindControl<Control>("ImzaDugmesi")!;
+        var minimize = bar.FindControl<Button>("KucultDugmesi")!;
         var sigRight = signature.TranslatePoint(new Point(signature.Bounds.Width, 0), window)!.Value.X;
         var minLeft = minimize.TranslatePoint(new Point(0, 0), window)!.Value.X;
         Assert.True(signature.IsEffectivelyVisible);
@@ -229,7 +230,7 @@ public class KabukStandardiTests
     {
         var window = Open();
         var vm = (MainViewModel)window.DataContext!;
-        _ = vm.ConfirmAsync("Silinsin mi", "Geri alınamaz.", "Sil");
+        _ = vm.ConfirmAsync("Silinsin mi?", "Geri alınamaz.", "Sil");
         Pump();
         Assert.True(window.FindControl<Button>("ConfirmDanger")!.IsEffectivelyVisible);
         Assert.False(window.FindControl<Button>("ConfirmAccept")!.IsEffectivelyVisible);
@@ -314,7 +315,7 @@ public class KabukStandardiTests
         window.Show();
         Pump();
 
-        var bar = window.FindControl<Grid>("TitleBar")!;
+        var bar = window.FindControl<DustyBytes.App.Kabuk.TitleBar>("TitleBar")!;
         var failures = new List<string>();
         foreach (var button in All<Button>(bar))
         {

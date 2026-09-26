@@ -205,11 +205,11 @@ function Renk([string]$h, [int]$a = 255) { [System.Drawing.Color]::FromArgb($a, 
 function Yazi([int]$px, [string]$stil = "Regular", [string]$aile = "Segoe UI") { New-Object System.Drawing.Font($aile, $px, [System.Drawing.FontStyle]$stil, [System.Drawing.GraphicsUnit]::Pixel) }
 
 $R = @{
-  zemin = Renk "#08090a"; metin = Renk "#ffffff"; mavi = Renk "#00f3ff"; mor = Renk "#b026ff"
-  basari = Renk "#34d399"; tehlike = Renk "#ff54eb"; sonuk = Renk "#71717a"
-  kenar = Renk "#00f3ff" 128; iz = Renk "#00f3ff" 77
+  zemin = Renk "#000000"; metin = Renk "#ffffff"; mavi = Renk "#6fb7ff"; mor = Renk "#cba7d2"; ad2 = Renk "#fa8cff"
+  basari = Renk "#66f09a"; tehlike = Renk "#fa8cff"
+  kenar = Renk "#6fb7ff" 140; iz = Renk "#6fb7ff" 77
 }
-$YZ = @{ baslik = Yazi 24 "Bold"; adim = Yazi 16; kucuk = Yazi 14; log = Yazi 14 "Regular" "Consolas"; dugme = Yazi 14 "Bold" }
+$YZ = @{ baslik = Yazi 24 "Bold"; adim = Yazi 16; kucuk = Yazi 16; log = Yazi 16 "Regular" "Consolas"; dugme = Yazi 16 "Bold" }
 $B = @{}
 foreach ($k in $R.Keys) { $B[$k] = New-Object System.Drawing.SolidBrush $R[$k] }
 $G = @{ goster = 0.0; faz = 0.0; surukle = $null; sonlandi = $false; ikon = $null }
@@ -244,13 +244,13 @@ $f.Add_Paint({
   $bicim.FormatFlags = "NoWrap"
   $cz.DrawRectangle((New-Object System.Drawing.Pen($R.kenar, 1)), 0, 0, $w - 1, $h - 1)
   if ($G.ikon) { $cz.DrawImage($G.ikon, 24, 24, 48, 48) }
-  $cz.DrawString($S.ad, $YZ.baslik, $B.metin, 84, 20)
+  $cz.DrawString($S.ad, $YZ.baslik, $B.mavi, 84, 20)
   $gen = $cz.MeasureString($S.ad, $YZ.baslik).Width
-  $cz.DrawString("Kurulum", $YZ.baslik, $B.mavi, 84 + $gen - 4, 20)
+  $cz.DrawString("Kurulum", $YZ.baslik, $B.ad2, 84 + $gen - 4, 20)
   if ($S.durum -eq "hata") { $alt = "Günlük  ·  " + $S.gunluk }
   elseif ($S.altbaslik) { $alt = $S.altbaslik + "  ·  " + $S.hedef }
   else { $alt = $S.hedef }
-  $cz.DrawString($alt, $YZ.kucuk, $B.sonuk, (New-Object System.Drawing.RectangleF(86, 52, ($w - 110), 20)), $bicim)
+  $cz.DrawString($alt, $YZ.kucuk, $B.metin, (New-Object System.Drawing.RectangleF(86, 52, ($w - 110), 20)), $bicim)
 
   $renk = switch ($S.durum) { "bitti" { $R.basari } "hata" { $R.tehlike } default { $R.metin } }
   $yuzdeMetin = [string][math]::Floor($G.goster) + "%"
@@ -287,7 +287,7 @@ $f.Add_Paint({
   $bas = [math]::Max(0, $n - 9)
   $y = 160
   for ($i = $bas; $i -lt $n; $i++) {
-    $fircaLog = if ($i -eq $n - 1) { $B.mavi } else { $B.sonuk }
+    $fircaLog = if ($i -ne $n - 1) { $B.metin } elseif ($S.durum -eq "hata") { $B.tehlike } else { $B.mavi }
     $cz.DrawString($satirlar[$i], $YZ.log, $fircaLog, (New-Object System.Drawing.RectangleF(24, $y, ($w - 48), 20)), $bicim)
     $y += 20
   }

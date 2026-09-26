@@ -10,7 +10,7 @@
       <Grid ColumnDefinitions="*,Auto">
         <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space3}" VerticalAlignment="Center">
           <TextBlock Theme="{StaticResource H2}" Text="Genel bakış"/>
-          <Border IsVisible="{Binding IsRefreshing}" BorderBrush="{StaticResource NeonBlue}" BorderThickness="{StaticResource BorderWidth}"
+          <Border IsVisible="{Binding IsRefreshing}" BorderBrush="{StaticResource Renk1}" BorderThickness="{StaticResource BorderWidth}"
                   CornerRadius="{StaticResource Radius}" Padding="8,2" VerticalAlignment="Center"
                   ToolTip.Tip="Önceki sonuç gösteriliyor; yeni tarama arka planda sürüyor">
             <TextBlock Theme="{StaticResource Label}" Text="Tazeleniyor"/>
@@ -107,7 +107,7 @@
                   <Grid ColumnDefinitions="160,*,120">
                     <TextBlock Theme="{StaticResource Body}" Text="{Binding Label}" VerticalAlignment="Center"/>
                     <Border Grid.Column="1" MinHeight="12" VerticalAlignment="Center" CornerRadius="{StaticResource Radius}"
-                            Background="{StaticResource NeonBlue10}" ClipToBounds="True">
+                            Background="{StaticResource Renk1x10}" ClipToBounds="True">
                       <Border Classes="bar" CornerRadius="{StaticResource Radius}"
                               Background="{Binding Kind, Converter={x:Static v:UiConvert.KindFill}}"
                               BorderBrush="{Binding Kind, Converter={x:Static v:UiConvert.KindStroke}}"

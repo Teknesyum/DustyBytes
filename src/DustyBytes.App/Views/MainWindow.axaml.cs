@@ -30,13 +30,10 @@ public partial class MainWindow : Window
         if (!ReducedMotion.IsOn())
             Classes.Add("anim");
         ApplyMotion();
-        Toasts.Margin = new Thickness(Token("ToastInset", 24));
-
-        Win32Properties.SetNonClientHitTestResult(MaximizeButton, Win32Properties.Win32HitTestValue.MaxButton);
-        TitleBar.PointerPressed += OnTitleBarPressed;
-        MinimizeButton.Click += (_, _) => WindowState = WindowState.Minimized;
-        MaximizeButton.Click += (_, _) => ToggleMaximize();
-        CloseButton.Click += (_, _) => Close();
+        var inset = Token("ToastInset", 24);
+        Toasts.Margin = new Thickness(inset);
+        UpdatePanel.Margin = new Thickness(0, Token("TitleBarHeightMax", 40), inset, 0);
+        KeyDown += OnWindowKeyDown;
 
         _ticker = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(100) };
         _ticker.Tick += (_, _) =>
@@ -162,30 +159,19 @@ public partial class MainWindow : Window
         _store.Save(new WindowPlacement(Position.X, Position.Y, Bounds.Width, Bounds.Height, maximized));
     }
 
-    void ToggleMaximize() =>
-        WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
-
-    void OnTitleBarPressed(object? sender, PointerPressedEventArgs e)
+    void OnWindowKeyDown(object? sender, KeyEventArgs e)
     {
-        if (e.Source is Visual source && IsInsideButton(source))
-            return;
-        if (!e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
-            return;
-        if (e.ClickCount == 2)
+        if (e.Key == Key.Escape && DataContext is MainViewModel { Update.IsPanelOpen: true } vm)
         {
-            ToggleMaximize();
+            vm.Update.IsPanelOpen = false;
             e.Handled = true;
-            return;
         }
-        BeginMoveDrag(e);
     }
 
-    static bool IsInsideButton(Visual source)
+    void OnUpdateLayerPressed(object? sender, PointerPressedEventArgs e)
     {
-        for (Visual? v = source; v is not null; v = v.GetVisualParentSafe())
-            if (v is Button)
-                return true;
-        return false;
+        if (DataContext is MainViewModel vm)
+            vm.Update.IsPanelOpen = false;
     }
 
     public void BringForward()
@@ -210,9 +196,4 @@ public partial class MainWindow : Window
         if ((sender as Control)?.DataContext is ToastViewModel toast)
             toast.IsPaused = false;
     }
-}
-
-static class VisualParentExtensions
-{
-    public static Visual? GetVisualParentSafe(this Visual visual) => Avalonia.VisualTree.VisualExtensions.GetVisualParent(visual);
 }
