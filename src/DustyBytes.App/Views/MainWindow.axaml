@@ -32,6 +32,7 @@
       <k:TitleBar Name="TitleBar" DockPanel.Dock="Top" Ad1="Dusty" Ad2="Bytes"
                   ImzaMetni="{x:Static s:Labels.Brand}" ImzaIpucu="{x:Static s:Labels.BrandTitle}"
                   DestekMetni="{x:Static s:Labels.Support}" DestekIpucu="{x:Static s:Labels.SupportTitle}"
+                  SiteMetni="{x:Static s:Labels.Site}" SiteIpucu="{x:Static s:Labels.SiteTitle}"
                   RozetDurumu="{Binding Update.Badge}" RozetMetni="{Binding Update.Text}"
                   RozetIpucu="{Binding Update.Tip}" RozetKomutu="{Binding Update.TogglePanelCommand}"/>
 

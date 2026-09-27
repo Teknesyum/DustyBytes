@@ -1,0 +1,5 @@
+quarantine	Game-5D4D1850AABAA22D	IncludeUserData=True	UserApproved=True	C:\Games\Steam\steamapps\common\DOOMTheDarkAges | C:\Games\Steam\steamapps\appmanifest_3017860.acf
+quarantine	AppContent-D41C7E63043538B1	IncludeUserData=True	UserApproved=True	C:\Users\Administrator\.lmstudio\models\Blackfrost-Research\Muse-Glimmer-30B-Abliterated-GGUF
+Onay penceresi: yok
+Bildirim: DOOM: The Dark Ages karantinada, 98,8 GB yer açıldı. 7 gün sonra kendiliğinden silinir.
+Bildirim: Muse-Glimmer-30B-Abliterated-GGUF karantinada, 15,8 GB yer açıldı. 7 gün sonra kendiliğinden silinir.

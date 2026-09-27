@@ -126,4 +126,24 @@ public sealed class GameExtractorTests
 
         Assert.Empty(units);
     }
+
+    [Fact]
+    public void UninstalledGameWithStaleManifestIsSkipped()
+    {
+        var root = Tree.Dir(@"C:\", Tree.Dir("Games"));
+        var usage = new FakeUsageIndex();
+        usage.GamesList.Add(new GameInstall
+        {
+            Launcher = "Epic",
+            Id = "e1",
+            Name = "Titan Quest II",
+            InstallDir = @"C:\Program Files\Epic Games\DustyBytesYokOyun",
+            SizeOnDisk = 30_000_000_000,
+            Manifest = @"C:\ProgramData\Epic\EpicGamesLauncher\Data\Manifests\x.item",
+        });
+
+        var units = new GameExtractor().Extract(Ctx.Build(root, usage)).ToList();
+
+        Assert.Empty(units);
+    }
 }

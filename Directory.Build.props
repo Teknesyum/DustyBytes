@@ -10,6 +10,6 @@
     <IsAotCompatible Condition="'$(IsTestProject)' != 'true'">true</IsAotCompatible>
     <Authors>Teknesyum</Authors>
     <Product>DustyBytes</Product>
-    <Version>0.2.1</Version>
+    <Version>0.3.0</Version>
   </PropertyGroup>
 </Project>

@@ -11,6 +11,8 @@ public static class Labels
     public static string BrandTitle => Get("sig.brandTitle");
     public static string Support => Get("sig.support");
     public static string SupportTitle => Get("sig.supportTitle");
+    public static string Site => Get("sig.site");
+    public static string SiteTitle => Get("sig.siteTitle");
     public static string Update => Get("update.label");
     public static string UpdateDownload => Get("update.download");
     public static string UpdateInstall => Get("update.install");

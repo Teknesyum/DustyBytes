@@ -1,0 +1,9 @@
+7,41 GB	pip · Paket önbelleği	pip paket önbelleği	Python paketleri gerektiğinde yeniden indirilir. Kurulu paketleriniz etkilenmez.
+98,8 GB	Game	DOOM: The Dark Ages	Oyun Steam kütüphanesinden kalkar. Kayıtlarınız yerinde kalır. Geri alırsanız oyun olduğu gibi döner; 7 gün sonra kalıcı silinir, sonra isterseniz başlatıcıdan yeniden indirirsiniz.
+15,8 GB	LM Studio · Dil modeli	Muse-Glimmer-30B-Abliterated-GGUF	LM Studio bu modeli listeden düşürür. Tekrar kullanmak isterseniz LM Studio'dan yeniden indirirsiniz; program ve diğer modeller etkilenmez.
+1,55 GB	Game	Sun Haven	Oyun Steam kütüphanesinden kalkar. Kayıtlarınız yerinde kalır. Geri alırsanız oyun olduğu gibi döner; 7 gün sonra kalıcı silinir, sonra isterseniz başlatıcıdan yeniden indirirsiniz.
+1,52 GB	Game	Quasimorph	Oyun Steam kütüphanesinden kalkar. Kayıtlarınız yerinde kalır. Geri alırsanız oyun olduğu gibi döner; 7 gün sonra kalıcı silinir, sonra isterseniz başlatıcıdan yeniden indirirsiniz.
+788 MB	Game	Wallpaper Engine	Oyun Steam kütüphanesinden kalkar. Kayıtlarınız yerinde kalır. Geri alırsanız oyun olduğu gibi döner; 7 gün sonra kalıcı silinir, sonra isterseniz başlatıcıdan yeniden indirirsiniz.
+2,57 GB	npm · Paket önbelleği	npm paket önbelleği	JavaScript projeleri gerektiğinde paketleri yeniden indirir. Kodunuz etkilenmez.
+4,04 GB	Android Studio · Sanal telefon	a8 test	Bu sanal telefon ve içine kurduğunuz uygulamalar gider; telefonu fabrika ayarlarına döndürmek gibi. Android Studio'dan birkaç tıkla yeniden oluşturursunuz.
+6,75 GB	NuGet · Paket önbelleği	NuGet paket önbelleği	.NET projeleri bir sonraki derlemede gerekenleri yeniden indirir. Kodunuz etkilenmez.

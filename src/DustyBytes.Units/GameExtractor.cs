@@ -17,6 +17,8 @@ public sealed class GameExtractor : IUnitExtractor
                 continue;
 
             var node = ctx.Root.Find(game.InstallDir);
+            if (node is null && !Directory.Exists(game.InstallDir))
+                continue;
             var size = game.SizeOnDisk ?? node?.Size ?? 0;
             if (size <= 0)
                 continue;

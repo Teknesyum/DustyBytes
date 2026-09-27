@@ -1,0 +1,14 @@
+Sun Haven	1,55 GB	Quarantine
+  DryRun	C:\Games\Steam\steamapps\common\Sun Haven	Prova: karantinaya taşınacaktı
+  DryRun	C:\Games\Steam\steamapps\appmanifest_1432860.acf	Prova: karantinaya taşınacaktı
+Quasimorph	1,52 GB	Quarantine
+  DryRun	C:\Games\Steam\steamapps\common\Quasimorph	Prova: karantinaya taşınacaktı
+  DryRun	C:\Games\Steam\steamapps\appmanifest_2059170.acf	Prova: karantinaya taşınacaktı
+Steamworks Common Redistributables	ÖNERİLMEDİ	C:\Games\Steam\steamapps\common\Steamworks Shared
+DOOM: The Dark Ages	98,8 GB	Quarantine
+  DryRun	C:\Games\Steam\steamapps\common\DOOMTheDarkAges	Prova: karantinaya taşınacaktı
+  DryRun	C:\Games\Steam\steamapps\appmanifest_3017860.acf	Prova: karantinaya taşınacaktı
+Wallpaper Engine	788 MB	Quarantine
+  DryRun	C:\Games\Steam\steamapps\common\wallpaper_engine	Prova: karantinaya taşınacaktı
+  DryRun	C:\Games\Steam\steamapps\appmanifest_431960.acf	Prova: karantinaya taşınacaktı
+Titan Quest II	ÖNERİLMEDİ	C:\Program Files\Epic Games\TitanQuestIIaDYJV
