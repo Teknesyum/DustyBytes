@@ -62,6 +62,8 @@ public sealed partial class UnitCard : ObservableObject
     public bool IsBatch => Unit.Removal is RemovalMethod.Quarantine or RemovalMethod.DirectDelete;
     public bool IsExternal => !IsBatch;
     public bool IsDirect => Unit.Removal == RemovalMethod.DirectDelete;
+    public bool CanPurge => IsBatch && !IsDirect;
+    public string PurgeHint => "Karantinaya almadan siler; geri alınamaz";
 
     public string ExternalText => Unit.Removal switch
     {
@@ -224,6 +226,7 @@ public sealed partial class OffersViewModel : ViewModelBase
         SelectionText = chosen.Count == 0 ? "Hiçbir birim seçilmedi" : $"{Format.Count(chosen.Count)} birim seçildi · ";
         SelectionSize = chosen.Count == 0 ? "" : Format.Bytes(SelectedBytes);
         QuarantineSelectedCommand.NotifyCanExecuteChanged();
+        PurgeSelectedCommand.NotifyCanExecuteChanged();
     }
 
     bool CanQuarantine() => Chosen.Count > 0 && !Progress.IsRunning;
@@ -234,13 +237,30 @@ public sealed partial class OffersViewModel : ViewModelBase
     [RelayCommand]
     private Task RemoveOne(UnitCard card) => card.IsBatch && !Progress.IsRunning ? RemoveAsync([card]) : Task.CompletedTask;
 
-    async Task RemoveAsync(IReadOnlyList<UnitCard> chosen)
+    [RelayCommand(CanExecute = nameof(CanQuarantine))]
+    private Task PurgeSelected() => PurgeAsync(Chosen);
+
+    [RelayCommand]
+    private Task PurgeOne(UnitCard card) => card.IsBatch && !Progress.IsRunning ? PurgeAsync([card]) : Task.CompletedTask;
+
+    async Task PurgeAsync(IReadOnlyList<UnitCard> chosen)
+    {
+        if (chosen.Count == 0)
+            return;
+        var what = chosen.Count == 1 ? chosen[0].Name : $"{Format.Count(chosen.Count)} birim";
+        var size = Format.Bytes(chosen.Sum(c => c.Unit.SizeBytes));
+        if (!await _main.ConfirmAsync("Kalıcı silinsin mi?", $"{what} ({size}) karantinaya alınmadan silinecek. Bu işlem geri alınamaz.", "Kalıcı sil"))
+            return;
+        await RemoveAsync(chosen, purge: true);
+    }
+
+    async Task RemoveAsync(IReadOnlyList<UnitCard> chosen, bool purge = false)
     {
         if (chosen.Count == 0)
             return;
         var title = chosen.Count == 1
-            ? (chosen[0].IsDirect ? chosen[0].Name + " temizleniyor" : chosen[0].Name + " karantinaya alınıyor")
-            : "Seçilen birimler karantinaya alınıyor";
+            ? (purge ? chosen[0].Name + " kalıcı siliniyor" : chosen[0].IsDirect ? chosen[0].Name + " temizleniyor" : chosen[0].Name + " karantinaya alınıyor")
+            : purge ? "Seçilen birimler kalıcı siliniyor" : "Seçilen birimler karantinaya alınıyor";
 
         var ids = new List<string>();
         var moved = new List<Unit>();
@@ -257,7 +277,7 @@ public sealed partial class OffersViewModel : ViewModelBase
                     var unit = card.Unit;
                     var response = await _main.Backend.SendAsync(new WorkerRequest
                     {
-                        Op = card.IsDirect ? Ops.Delete : Ops.Quarantine,
+                        Op = purge || card.IsDirect ? Ops.Delete : Ops.Quarantine,
                         Paths = [.. unit.Paths],
                         UnitId = unit.Id,
                         UserApproved = true,
@@ -277,7 +297,7 @@ public sealed partial class OffersViewModel : ViewModelBase
         }
         catch (OperationCanceledException)
         {
-            _main.Notify("İşlem iptal edildi; tamamlanan birimler karantinada");
+            _main.Notify(purge ? "İşlem iptal edildi; tamamlanan birimler silindi" : "İşlem iptal edildi; tamamlanan birimler karantinada");
         }
         catch (Exception e) when (e is IOException or InvalidOperationException or TimeoutException or Worker.WorkerStartException)
         {
@@ -287,7 +307,7 @@ public sealed partial class OffersViewModel : ViewModelBase
 
         if (dryRun)
         {
-            _main.Notify($"Prova: {chosen.Count} birim, {Format.Bytes(chosen.Sum(c => c.Unit.SizeBytes))} karantinaya alınacaktı; dosyalar yerinde");
+            _main.Notify($"Prova: {chosen.Count} birim, {Format.Bytes(chosen.Sum(c => c.Unit.SizeBytes))} {(purge ? "kalıcı silinecekti" : "karantinaya alınacaktı")}; dosyalar yerinde");
             return;
         }
         if (freed > 0)
@@ -297,7 +317,9 @@ public sealed partial class OffersViewModel : ViewModelBase
             _main.Session.RemoveUnits(moved.Select(u => u.Id));
             var bytes = moved.Sum(u => u.SizeBytes);
             var what = moved.Count == 1 ? moved[0].Name : $"{moved.Count} birim";
-            if (ids.Count > 0)
+            if (purge)
+                _main.Notify($"{what} kalıcı silindi, {Format.Bytes(bytes)} yer açıldı");
+            else if (ids.Count > 0)
                 _main.Notify($"{what} karantinada, {Format.Bytes(bytes)} yer açıldı. {AppSettings.QuarantineDays.Days} gün sonra kendiliğinden silinir.", "Geri al", () => UndoAsync(ids, moved));
             else
                 _main.Notify($"{what} temizlendi, {Format.Bytes(bytes)} yer açıldı");
@@ -306,6 +328,7 @@ public sealed partial class OffersViewModel : ViewModelBase
             _main.Fail(failure);
         _ = _main.Session.RefreshQuarantineAsync(_main);
         QuarantineSelectedCommand.NotifyCanExecuteChanged();
+        PurgeSelectedCommand.NotifyCanExecuteChanged();
     }
 
     public static List<string> IdsOf(WorkerResponse response) =>

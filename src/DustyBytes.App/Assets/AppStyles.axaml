@@ -284,7 +284,7 @@
       <Setter Property="BorderThickness" Value="{StaticResource BorderWidth}"/>
       <Setter Property="CornerRadius" Value="{StaticResource Radius}"/>
       <Setter Property="FontFamily" Value="{StaticResource FontSans}"/>
-      <Setter Property="FontSize" Value="{StaticResource FontSize1}"/>
+      <Setter Property="FontSize" Value="{StaticResource FontSize2}"/>
       <Setter Property="Padding" Value="8,4"/>
       <Setter Property="MaxWidth" Value="{StaticResource ToastWidth}"/>
       <Setter Property="Template">
@@ -303,6 +303,20 @@
       </Setter>
     </ControlTheme>
 
+    <ControlTheme x:Key="Label" TargetType="TextBlock">
+      <Setter Property="FontFamily" Value="{StaticResource FontSans}"/>
+      <Setter Property="FontSize" Value="{StaticResource FontSize2}"/>
+      <Setter Property="FontWeight" Value="{StaticResource WeightSemi}"/>
+      <Setter Property="LineHeight" Value="20"/>
+      <Setter Property="Foreground" Value="{StaticResource TextLabel}"/>
+    </ControlTheme>
+    <ControlTheme x:Key="Hint" TargetType="TextBlock">
+      <Setter Property="FontFamily" Value="{StaticResource FontSans}"/>
+      <Setter Property="FontSize" Value="{StaticResource FontSize2}"/>
+      <Setter Property="LineHeight" Value="25.6"/>
+      <Setter Property="TextWrapping" Value="Wrap"/>
+      <Setter Property="Foreground" Value="{StaticResource TextBody}"/>
+    </ControlTheme>
   </Styles.Resources>
 
   <Style Selector="Path.navicon">

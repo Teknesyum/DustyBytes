@@ -116,8 +116,6 @@ public partial class MainWindow : Window
             Height = Math.Max(placement.Height, MinHeight);
             Position = new PixelPoint((int)placement.X, (int)placement.Y);
             WindowStartupLocation = WindowStartupLocation.Manual;
-            if (placement.Maximized)
-                WindowState = WindowState.Maximized;
         }
         else
         {
@@ -134,6 +132,7 @@ public partial class MainWindow : Window
             }
             WindowStartupLocation = WindowStartupLocation.CenterScreen;
         }
+        WindowState = WindowState.Maximized;
     }
 
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)

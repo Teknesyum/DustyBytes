@@ -222,6 +222,35 @@ public class ViewModelTests
     }
 
     [AvaloniaFact]
+    public async Task Offers_Purge_Deletes_Without_Quarantine_After_Confirm()
+    {
+        var backend = new FakeBackend();
+        var vm = Shell(backend, accept: true);
+        vm.GoTo(vm.Offers);
+        await vm.Offers.Ready;
+        var card = vm.Offers.Cards.First(c => c.Unit.Id == "u3");
+        Assert.True(card.CanPurge);
+        await vm.Offers.PurgeOneCommand.ExecuteAsync(card);
+        await Settle();
+        Assert.DoesNotContain(backend.Requests, r => r.Op == Ops.Quarantine);
+        var request = Assert.Single(backend.Requests, r => r.Op == Ops.Delete);
+        Assert.Equal("u3", request.UnitId);
+        Assert.Contains(vm.Toasts, t => t.Message.Contains("kalıcı silindi") && !t.HasAction);
+    }
+
+    [AvaloniaFact]
+    public async Task Offers_Purge_Declined_Sends_Nothing()
+    {
+        var backend = new FakeBackend();
+        var vm = Shell(backend, accept: false);
+        vm.GoTo(vm.Offers);
+        await vm.Offers.Ready;
+        await vm.Offers.PurgeOneCommand.ExecuteAsync(vm.Offers.Cards.First(c => c.Unit.Id == "u3"));
+        await Settle();
+        Assert.DoesNotContain(backend.Requests, r => r.Op is Ops.Delete or Ops.Quarantine);
+    }
+
+    [AvaloniaFact]
     public void IdsOf_Parses_Pipe_Suffix()
     {
         var response = new WorkerResponse

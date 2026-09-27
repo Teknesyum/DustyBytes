@@ -41,11 +41,14 @@
 
     <Border DockPanel.Dock="Bottom" Background="{StaticResource Surface}" BorderBrush="{StaticResource BorderDecorative}"
             BorderThickness="0,1,0,0" Padding="{StaticResource PanelPadding}">
-      <Grid ColumnDefinitions="*,Auto,Auto">
+      <Grid ColumnDefinitions="*,Auto,Auto,Auto">
         <TextBlock Theme="{StaticResource Body}" VerticalAlignment="Center"><Run Text="{Binding SelectionText}"/><Run Text="{Binding SelectionSize}" FontFamily="{StaticResource FontMono}"/></TextBlock>
         <Button Grid.Column="1" Classes="ghost" Content="Seçimi temizle" Margin="0,0,12,0"
                 Command="{Binding ClearSelectionCommand}"/>
-        <Button Name="QuarantineButton" Grid.Column="2" Classes="primary" Content="Seçilenleri karantinaya al"
+        <Button Name="PurgeButton" Grid.Column="2" Classes="ghost" Content="Seçilenleri kalıcı sil" Margin="0,0,12,0"
+                Command="{Binding PurgeSelectedCommand}"
+                ToolTip.Tip="Karantinaya almadan siler; geri alınamaz"/>
+        <Button Name="QuarantineButton" Grid.Column="3" Classes="primary" Content="Seçilenleri karantinaya al"
                 Command="{Binding QuarantineSelectedCommand}"
                 ToolTip.Tip="{Binding DisabledTip}" ToolTip.ShowOnDisabled="True"/>
       </Grid>
@@ -126,7 +129,7 @@
                       </Border>
                       <Border IsVisible="{Binding HasUserData}" BorderBrush="{StaticResource Warning50}" BorderThickness="{StaticResource BorderWidth}"
                               CornerRadius="{StaticResource Radius}" Padding="6,0" VerticalAlignment="Center">
-                        <TextBlock Theme="{StaticResource WarningBody}" FontSize="{StaticResource FontSize1}" Text="Kullanıcı verisi"/>
+                        <TextBlock Theme="{StaticResource WarningBody}" FontSize="{StaticResource FontSize2}" Text="Kullanıcı verisi"/>
                       </Border>
                     </StackPanel>
                     <TextBlock Theme="{StaticResource Body}" Text="{Binding Effect}" TextWrapping="Wrap"/>
@@ -138,6 +141,10 @@
                     <Button Classes="ghost" IsVisible="{Binding IsBatch}" Content="{Binding ActionText}"
                             ToolTip.Tip="{Binding ActionHint}" AutomationProperties.Name="{Binding ActionText}"
                             Command="{Binding $parent[ItemsControl].((vm:OffersViewModel)DataContext).RemoveOneCommand}"
+                            CommandParameter="{Binding}"/>
+                    <Button Classes="ghost" IsVisible="{Binding CanPurge}" Content="Kalıcı sil"
+                            ToolTip.Tip="{Binding PurgeHint}" AutomationProperties.Name="Kalıcı sil"
+                            Command="{Binding $parent[ItemsControl].((vm:OffersViewModel)DataContext).PurgeOneCommand}"
                             CommandParameter="{Binding}"/>
                     <Button Classes="ghost" IsVisible="{Binding IsExternal}" Content="{Binding ExternalText}"
                             ToolTip.Tip="{Binding ExternalHint}"
