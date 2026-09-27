@@ -365,4 +365,26 @@ tarama yaptıkça silinebilir özellikleri bastıralım görelim".
 ## A13 Kalıntısız Kaldırma — 2026-09-28
 
 Sahibin sözü: "artık regedit keyi falan bırakmadan temiz çalışarak sil". Araştırma: `danisma/kaldirma-arastirmasi.md`,
-fable görüşü 003. Değişecek yerler ve sıra fable cevabından sonra buraya yazılır.
+fable görüşü 003 (`danisma/003-fable-dustybytes-kalintisiz-kaldirma.md`).
+
+Hedef: Kaldır → tek onay → bitti (2 tık). Kalıntı üç kovada: Yüksek + yol kanıtı onaysız temizlenir
+(`.reg` yedeği ve 7 günlük karantinayla), Orta gösterilir işaretsiz, engel listesi hiç dokunulmaz.
+Seçenek "Ayarları koru" işaretsiz; varsayılan kalıntısız.
+
+**Dalga 1**
+1. Tek adımda temizlik: `UninstallHandlers` sonunda `LeftoverRemover.Remove` yalnız `AutoRemovable`
+   (Yüksek + yol kanıtı); `Messages.cs` `AutoClean` bayrağı; `UninstallViewModel` tek onay.
+2. Araca göre sessiz kaldırma: `QuietUninstallString` → MSI `/qn`, Inno `/VERYSILENT`, NSIS `/S`,
+   Burn `/uninstall /quiet`, Squirrel `-s`; başarısız ya da hâlâ kuruluysa görünür kaldırıcıya düş,
+   kullanıcıya "sihirbazı siz bitirin, biz bekliyoruz" kartı. Sihirbaz otomatik tıklanmaz.
+3. Kaldırma sonrası ikinci anlık görüntü: `LeftoverScanner.Diff`.
+
+**Dalga 2**
+4. Değer düzeyi kayıt temizliği (Run + `StartupApproved`, `App Paths`, `OpenWithProgids`).
+5. COM ve kabuk uzantıları (`LeftoverScanner.Com.cs`), yol kanıtıyla.
+6. Kurulum klasörü bilinmiyorsa başka kaynak.
+7. Doğru kullanıcı: worker boru istemcisinin SID'i, `HKU\<SID>`.
+
+**Sonra**: zorla kaldır, servis durdurma, MSI yetimleri, güvenlik duvarı kimlikle, SharedDLLs,
+geri yükleme doğrulaması, MSIX tüm kullanıcılar. Ölçü: sanal makinede A/B/C anlık görüntüsü,
+(B−A) ∩ C = 0; negatif test Java kalkar, VirtualBox dokunulmaz (`tools/uninstall-bench/`).
