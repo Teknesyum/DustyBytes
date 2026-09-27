@@ -1,0 +1,8 @@
+tur 1 yenileme / hemen ardından tam tarama: birim 4537 / 4537, toplam 198705980954 / 198705997338 bayt, yalnız solda 0, yalnız sağda 0, boyutu farklı 1
+  ~ BrowserCache BrowserCache-3A34AD1E5ACE1E22 C:\Users\Administrator\AppData\Local\Google\Chrome\User Data\Default\Cache 11579392 -> 11595776
+tur 1 aynı başlangıçtan ikinci yenileme / tam tarama: birim 4537 / 4537, toplam 198706001434 / 198705997338 bayt, yalnız solda 0, yalnız sağda 0, boyutu farklı 1
+  ~ BrowserCache BrowserCache-3A34AD1E5ACE1E22 C:\Users\Administrator\AppData\Local\Google\Chrome\User Data\Default\Cache 11599872 -> 11595776
+tur 2 yenileme / hemen ardından tam tarama: birim 4537 / 4537, toplam 198706001434 / 198706001434 bayt, yalnız solda 0, yalnız sağda 0, boyutu farklı 0
+tur 2 aynı başlangıçtan ikinci yenileme / tam tarama: birim 4537 / 4537, toplam 198706001434 / 198706001434 bayt, yalnız solda 0, yalnız sağda 0, boyutu farklı 0
+tur 3 yenileme / hemen ardından tam tarama: birim 4537 / 4537, toplam 198706001434 / 198706001434 bayt, yalnız solda 0, yalnız sağda 0, boyutu farklı 0
+tur 3 aynı başlangıçtan ikinci yenileme / tam tarama: birim 4537 / 4537, toplam 198706001434 / 198706001434 bayt, yalnız solda 0, yalnız sağda 0, boyutu farklı 0

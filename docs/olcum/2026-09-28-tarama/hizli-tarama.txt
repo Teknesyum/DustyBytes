@@ -1,0 +1,4 @@
+tarih=2026-09-28T02:14:53.6397350+03:00 süreç yönetici=True
+tur 1: worker(mft+ikili yazma)_ms=6898 ikili_okuma_ms=1249 ikili_bayt=163630076 birim_ms=1519 birim=4079 sonra_toplam_ms=9675 | sqlite_kaydet_ms=10507 sqlite_yükle_ms=1785 önce_toplam_ms=20709
+tur 2: worker(mft+ikili yazma)_ms=6577 ikili_okuma_ms=1249 ikili_bayt=163631160 birim_ms=990 birim=4079 sonra_toplam_ms=8826 | sqlite_kaydet_ms=10499 sqlite_yükle_ms=1814 önce_toplam_ms=19880
+tur 3: worker(mft+ikili yazma)_ms=6446 ikili_okuma_ms=1429 ikili_bayt=163631604 birim_ms=1011 birim=4079 sonra_toplam_ms=8896 | sqlite_kaydet_ms=10644 sqlite_yükle_ms=1994 önce_toplam_ms=20095

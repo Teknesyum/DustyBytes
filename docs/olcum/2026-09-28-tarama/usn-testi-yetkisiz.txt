@@ -1,0 +1,14 @@
+C:\Users\Administrator\Desktop\Projeler\DustyBytes\tests\DustyBytes.Scan.Tests\bin\Release\net10.0-windows10.0.19041.0\DustyBytes.Scan.Tests.dll (.NETCoreApp,Version=v10.0) için test çalıştırması
+Toplam 1 test dosyası belirtilen desenle eşleşti.
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.4+50e68bbb8b (64-bit .NET 10.0.12)
+[xUnit.net 00:00:00.04]   Discovering: DustyBytes.Scan.Tests
+[xUnit.net 00:00:00.07]   Discovered:  DustyBytes.Scan.Tests
+[xUnit.net 00:00:00.08]   Starting:    DustyBytes.Scan.Tests
+[xUnit.net 00:00:00.22]   Finished:    DustyBytes.Scan.Tests
+  Başarılı DustyBytes.Scan.Tests.IndexAndMftTests.UsnRefreshMatchesFullScan [42 ms]
+  Başarılı DustyBytes.Scan.Tests.IndexAndMftTests.UsnIncrementalUpdate [8 ms]
+
+Test Çalıştırması Başarılı.
+Toplam test sayısı: 2
+     Geçti: 2
+ Toplam süre: 0,5526 Saniye

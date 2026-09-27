@@ -1,0 +1,17 @@
+tarih=2026-09-28T02:33:21.8667329+03:00 kök=C:\
+normal_ms=40070 dosya=3735911 klasör=1116772 birim=4537 usn=var
+yenileme_ms=1726 dosya=3735933 birim=4537
+normal_ms=40514 dosya=3735978 klasör=1116778 birim=4537
+tur 1 yenileme / hemen ardından tam tarama: birim 4537 / 4537, toplam 198705980954 / 198705997338 bayt, yalnız solda 0, yalnız sağda 0, boyutu farklı 1
+ikinci_yenileme_ms=1701
+tur 1 aynı başlangıçtan ikinci yenileme / tam tarama: birim 4537 / 4537, toplam 198706001434 / 198705997338 bayt, yalnız solda 0, yalnız sağda 0, boyutu farklı 1
+yenileme_ms=1860 dosya=3736320 birim=4537
+normal_ms=39769 dosya=3736328 klasör=1116794 birim=4537
+tur 2 yenileme / hemen ardından tam tarama: birim 4537 / 4537, toplam 198706001434 / 198706001434 bayt, yalnız solda 0, yalnız sağda 0, boyutu farklı 0
+ikinci_yenileme_ms=2942
+tur 2 aynı başlangıçtan ikinci yenileme / tam tarama: birim 4537 / 4537, toplam 198706001434 / 198706001434 bayt, yalnız solda 0, yalnız sağda 0, boyutu farklı 0
+yenileme_ms=1733 dosya=3736332 birim=4537
+normal_ms=39495 dosya=3736336 klasör=1116792 birim=4537
+tur 3 yenileme / hemen ardından tam tarama: birim 4537 / 4537, toplam 198706001434 / 198706001434 bayt, yalnız solda 0, yalnız sağda 0, boyutu farklı 0
+ikinci_yenileme_ms=2751
+tur 3 aynı başlangıçtan ikinci yenileme / tam tarama: birim 4537 / 4537, toplam 198706001434 / 198706001434 bayt, yalnız solda 0, yalnız sağda 0, boyutu farklı 0

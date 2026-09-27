@@ -1,0 +1,30 @@
+elevated=False
+open \\.\C: access=0x0 handle=ok
+ query FAIL 1
+open \\.\C: access=0x80 handle=ok
+ query FAIL 1
+open \\.\C: access=0x80000000 handle=FAIL 5
+open C:\ access=0x0 handle=ok
+ query ok jid=134115164201791310 next=27745778728
+ read 0x903AB ok bytes=65480 recs=1023 lastname=
+  openbyid parent acc=0 ok path=\\?\C:\Users\Administrator\AppData\Local\Programs\Python\Python312\Lib\site-packages\sklearn\utils
+  openbyid parent acc=80 ok path=\\?\C:\Users\Administrator\AppData\Local\Programs\Python\Python312\Lib\site-packages\sklearn\utils
+  openbyid public acc=0 ok path=\\?\C:\Users\Public
+  openbyid public acc=80 ok path=\\?\C:\Users\Public
+ read 0x900BB FAIL 5
+open C:\ access=0x80 handle=ok
+ query ok jid=134115164201791310 next=27745778728
+ read 0x903AB ok bytes=65480 recs=1023 lastname=
+  openbyid parent acc=0 ok path=\\?\C:\Users\Administrator\AppData\Local\Programs\Python\Python312\Lib\site-packages\sklearn\utils
+  openbyid parent acc=80 ok path=\\?\C:\Users\Administrator\AppData\Local\Programs\Python\Python312\Lib\site-packages\sklearn\utils
+  openbyid public acc=0 ok path=\\?\C:\Users\Public
+  openbyid public acc=80 ok path=\\?\C:\Users\Public
+ read 0x900BB FAIL 5
+open C:\ access=0x80000000 handle=ok
+ query ok jid=134115164201791310 next=27745778728
+ read 0x903AB ok bytes=65480 recs=1023 lastname=
+  openbyid parent acc=0 ok path=\\?\C:\Users\Administrator\AppData\Local\Programs\Python\Python312\Lib\site-packages\sklearn\utils
+  openbyid parent acc=80 ok path=\\?\C:\Users\Administrator\AppData\Local\Programs\Python\Python312\Lib\site-packages\sklearn\utils
+  openbyid public acc=0 ok path=\\?\C:\Users\Public
+  openbyid public acc=80 ok path=\\?\C:\Users\Public
+ read 0x900BB FAIL 5

@@ -1,0 +1,26 @@
+elevated=True
+open \\.\C: access=0x0 handle=ok
+ query FAIL 1
+open \\.\C: access=0x80 handle=ok
+ query FAIL 1
+open \\.\C: access=0x80000000 handle=ok
+ query ok jid=134115164201791310 next=27730936624
+ read 0x903AB ok bytes=65480 recs=1023 lastname=
+  openbyid ok path=\\?\C:\Users\Administrator\Desktop\Projeler\VidShrink\.claude\worktrees\agent-a5298ace4e32e9523\.calisma\worktree-agent-a5298ace4e32e9523
+ read 0x900BB ok bytes=65464 recs=719 lastname=settings.json
+  openbyid ok path=\\?\C:\Users\Administrator\Desktop\Projeler\VidShrink\.claude\worktrees\agent-a5298ace4e32e9523\.calisma\worktree-agent-a5298ace4e32e9523
+open C:\ access=0x0 handle=ok
+ query ok jid=134115164201791310 next=27730936624
+ read 0x903AB ok bytes=65480 recs=1023 lastname=
+  openbyid ok path=\\?\C:\Users\Administrator\Desktop\Projeler\VidShrink\.claude\worktrees\agent-a5298ace4e32e9523\.calisma\worktree-agent-a5298ace4e32e9523
+ read 0x900BB FAIL 5
+open C:\ access=0x80 handle=ok
+ query ok jid=134115164201791310 next=27730936624
+ read 0x903AB ok bytes=65480 recs=1023 lastname=
+  openbyid ok path=\\?\C:\Users\Administrator\Desktop\Projeler\VidShrink\.claude\worktrees\agent-a5298ace4e32e9523\.calisma\worktree-agent-a5298ace4e32e9523
+ read 0x900BB FAIL 5
+open C:\ access=0x80000000 handle=ok
+ query ok jid=134115164201791310 next=27730936624
+ read 0x903AB ok bytes=65480 recs=1023 lastname=
+  openbyid ok path=\\?\C:\Users\Administrator\Desktop\Projeler\VidShrink\.claude\worktrees\agent-a5298ace4e32e9523\.calisma\worktree-agent-a5298ace4e32e9523
+ read 0x900BB FAIL 5
