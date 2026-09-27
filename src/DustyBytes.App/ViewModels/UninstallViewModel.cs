@@ -44,7 +44,7 @@ public sealed partial class UninstallStep(string key, string label) : Observable
     };
 }
 
-public sealed partial class LeftoverRow(LeftoverCandidate candidate, Action changed) : ObservableObject
+public sealed partial class LeftoverRow(LeftoverCandidate candidate, Action changed, bool check = true) : ObservableObject
 {
     public LeftoverCandidate Candidate { get; } = candidate;
     public string Target => Candidate.Target;
@@ -74,7 +74,7 @@ public sealed partial class LeftoverRow(LeftoverCandidate candidate, Action chan
     };
 
     [ObservableProperty]
-    private bool _isChecked = candidate.Tier == ConfidenceTier.High;
+    private bool _isChecked = check && candidate.Tier == ConfidenceTier.High;
 
     partial void OnIsCheckedChanged(bool value) => changed();
 }
@@ -100,6 +100,7 @@ public sealed partial class UninstallViewModel : ViewModelBase
             new UninstallStep("snapshot", "Önceki durumu kaydetme"),
             new UninstallStep("vendor", "Programın kendi kaldırıcısı"),
             new UninstallStep("diff", "Kalan izleri karşılaştırma"),
+            new UninstallStep(UninstallHandlers.AutoClean, "Kesin kalıntıları temizleme"),
         ];
     }
 
@@ -109,6 +110,19 @@ public sealed partial class UninstallViewModel : ViewModelBase
     public string SizeText => _row.SizeText;
     public ObservableCollection<UninstallStep> Steps { get; }
     public ObservableCollection<LeftoverRow> Leftovers { get; } = [];
+    public ObservableCollection<RemovalItem> Cleaned { get; } = [];
+
+    [ObservableProperty]
+    private bool _autoClean = true;
+
+    [ObservableProperty]
+    private bool _keepSettings;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasCleaned))]
+    private string _cleanedText = "";
+
+    public bool HasCleaned => Cleaned.Count > 0;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsPreview))]
@@ -134,6 +148,10 @@ public sealed partial class UninstallViewModel : ViewModelBase
     public bool HasLeftovers => Leftovers.Count > 0;
     public bool HasError => Error is not null;
     public bool IsDryRun => _main.Backend.DryRun;
+
+    public string LeftoverHint => HasCleaned
+        ? "Kesin olanlar temizlendi. Bunlardan emin olunamadı; gerçekten bu programınsa işaretleyip silin."
+        : "Yüksek güvenliler işaretli gelir; ortalar elle seçilir.";
 
     public string MoreText => $"Daha fazla göster ({_hidden.Count} düşük güvenli)";
 
@@ -177,14 +195,14 @@ public sealed partial class UninstallViewModel : ViewModelBase
         Raise();
     }
 
-    void Show(LeftoverSnapshot snapshot)
+    void Show(LeftoverSnapshot snapshot, bool check = true)
     {
         _snapshot = snapshot;
         Leftovers.Clear();
         _hidden.Clear();
         foreach (var c in snapshot.Candidates.OrderByDescending(c => c.Tier).ThenByDescending(c => c.Score))
         {
-            var row = new LeftoverRow(c, Raise);
+            var row = new LeftoverRow(c, Raise, check);
             if (c.Tier == ConfidenceTier.Low)
                 _hidden.Add(row);
             else
@@ -200,6 +218,8 @@ public sealed partial class UninstallViewModel : ViewModelBase
     {
         OnPropertyChanged(nameof(IsBusy));
         OnPropertyChanged(nameof(HasLeftovers));
+        OnPropertyChanged(nameof(HasCleaned));
+        OnPropertyChanged(nameof(LeftoverHint));
         OnPropertyChanged(nameof(HasError));
         OnPropertyChanged(nameof(RemoveTip));
         UninstallCommand.NotifyCanExecuteChanged();
@@ -221,12 +241,24 @@ public sealed partial class UninstallViewModel : ViewModelBase
     [RelayCommand(CanExecute = nameof(CanUninstall))]
     private async Task Uninstall()
     {
-        if (!await _main.ConfirmAsync(
-                $"{Name} kaldırılsın mı?",
-                "Önce geri yükleme noktası oluşturulur, sonra programın kendi kaldırıcısı çalışır. Kaldırılan program yeniden kurulmadan geri gelmez.",
-                "Programı kaldır"))
+        var body = "Önce geri yükleme noktası oluşturulur, sonra programın kendi kaldırıcısı sessiz çalışır; sessiz olmazsa kendi penceresi açılır.";
+        if (AutoClean)
+            body += KeepSettings
+                ? " Ardından kesin kalıntılar kayıt yedeği alınıp 7 gün karantinada tutularak temizlenir; ayar klasörleri korunur."
+                : " Ardından kesin kalıntılar kayıt yedeği alınıp 7 gün karantinada tutularak temizlenir.";
+        if (!await _main.ConfirmAsync($"{Name} kaldırılsın mı?", body + " Kaldırılan program yeniden kurulmadan geri gelmez.", "Programı kaldır"))
             return;
-        await RunUninstallAsync([]);
+        await RunUninstallAsync(Flags());
+    }
+
+    public List<string> Flags()
+    {
+        var flags = new List<string>();
+        if (AutoClean)
+            flags.Add(UninstallHandlers.AutoClean);
+        if (AutoClean && KeepSettings)
+            flags.Add(UninstallHandlers.KeepSettings);
+        return flags;
     }
 
     public async Task RunUninstallAsync(List<string> flags)
@@ -271,7 +303,7 @@ public sealed partial class UninstallViewModel : ViewModelBase
                     "Geri yükleme noktası oluşturulamadı",
                     restore.Message + ". Geri yükleme noktası olmadan devam edilirse kaldırma geri alınamaz.",
                     "Noktasız devam et"))
-                await RunUninstallAsync([UninstallHandlers.ContinueWithoutRestorePoint]);
+                await RunUninstallAsync([.. flags, UninstallHandlers.ContinueWithoutRestorePoint]);
             return;
         }
 
@@ -279,11 +311,24 @@ public sealed partial class UninstallViewModel : ViewModelBase
         {
             Uninstalled = true;
             Steps[3].State = after.IsDiff ? StepState.Done : StepState.Skipped;
-            Steps[3].Detail = after.IsDiff ? $"{after.Candidates.Count} kalıntı bulundu" : "Karşılaştırma yapılmadı";
-            Show(after);
+            Steps[3].Detail = after.IsDiff ? $"{after.Candidates.Count + after.AutoRemoved.Count(i => i.Ok)} kalıntı bulundu" : "Karşılaştırma yapılmadı";
+            var auto = response.Items.FirstOrDefault(i => i.Path == UninstallHandlers.AutoClean);
+            if (auto is null)
+                Steps[4].State = StepState.Skipped;
+            Cleaned.Clear();
+            foreach (var item in after.AutoRemoved)
+                Cleaned.Add(item);
+            CleanedText = Cleaned.Count == 0 ? "" : auto?.Message ?? "";
+            OnPropertyChanged(nameof(HasCleaned));
+            Show(after, check: auto is null);
             Summary = response.DryRun
                 ? "Prova kipi: kaldırıcı çalışmadı, liste önizlemedir"
-                : after.ProgramStillInstalled ? "Program hâlâ kurulu görünüyor; kalıntılar silinmez" : response.Message;
+                : after.ProgramStillInstalled ? "Program hâlâ kurulu görünüyor; kalıntılar silinmez"
+                : auto is { Ok: true } && after.Candidates.Count == 0 ? response.Message + ". Geride iz kalmadı"
+                : auto is not null && after.Candidates.Count > 0 ? response.Message + ". Emin olunamayan izler aşağıda, işaretsiz"
+                : response.Message;
+            if (Cleaned.Count > 0)
+                _ = _main.Session.RefreshQuarantineAsync(_main);
             if (response.Ok)
                 _main.Notify($"{Name}: {response.Message}");
             else
@@ -305,11 +350,6 @@ public sealed partial class UninstallViewModel : ViewModelBase
     {
         var chosen = Checked;
         if (_snapshot is null || chosen.Count == 0)
-            return;
-        if (!await _main.ConfirmAsync(
-                $"{chosen.Count} kalıntı silinsin mi?",
-                "Dosyalar karantinaya alınır, kayıt girdileri önce dışa aktarılır. Hizmet ve görev silme geri alınamaz.",
-                "Kalıntıları sil"))
             return;
         try
         {

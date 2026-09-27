@@ -4,10 +4,11 @@ namespace DustyBytes.Clean.Uninstall;
 
 public sealed record ScanProgress(string Step, double Percent, string? Line = null);
 
-public sealed class LeftoverScanner
+public sealed partial class LeftoverScanner
 {
     public const string ServicesPath = @"SYSTEM\CurrentControlSet\Services";
     public const string FirewallRulesPath = @"SYSTEM\CurrentControlSet\Services\SharedAccess\Parameters\FirewallPolicy\FirewallRules";
+    public const string SharedDllsPath = @"SOFTWARE\Microsoft\Windows\CurrentVersion\SharedDLLs";
 
     static readonly string[] RunKeys =
     [
@@ -21,8 +22,11 @@ public sealed class LeftoverScanner
     };
 
     readonly ScanContext _ctx;
+    List<string>? _sharedDlls;
 
     public LeftoverScanner(ScanContext context) => _ctx = context;
+
+    public ScanContext Context => _ctx;
 
     sealed class Builder(InstalledProgram program, string? installDir)
     {
@@ -187,6 +191,7 @@ public sealed class LeftoverScanner
         var p = b.Program;
         foreach (var root in _ctx.DataBases)
         {
+            var settings = _ctx.SettingsBases.Contains(root, StringComparer.OrdinalIgnoreCase);
             foreach (var d1 in SafeDirs(root))
             {
                 var name1 = Path.GetFileName(d1);
@@ -200,7 +205,7 @@ public sealed class LeftoverScanner
                         ev.Add(Confidence.PublisherMatch(name1));
                     AddFolderIdentity(ev, d1, p);
                     AddInstallTime(ev, d1, p);
-                    AddFolder(b, d1, ev, isInstallDir: false, publisherLevel: isPublisher && match1 != NameMatch.Exact);
+                    AddFolder(b, d1, ev, isInstallDir: false, publisherLevel: isPublisher && match1 != NameMatch.Exact, settings: settings);
                 }
                 if (!isPublisher)
                     continue;
@@ -215,13 +220,13 @@ public sealed class LeftoverScanner
                     AddNameEvidence(ev, name2, p);
                     AddFolderIdentity(ev, d2, p);
                     AddInstallTime(ev, d2, p);
-                    AddFolder(b, d2, ev, isInstallDir: false);
+                    AddFolder(b, d2, ev, isInstallDir: false, settings: settings);
                 }
             }
         }
     }
 
-    void AddFolder(Builder b, string path, List<Evidence> ev, bool isInstallDir, bool publisherLevel = false)
+    void AddFolder(Builder b, string path, List<Evidence> ev, bool isInstallDir, bool publisherLevel = false, bool settings = false)
     {
         var norm = Paths.Normalize(path);
         if (publisherLevel || NameMatcher.IsSharedPublisher(Path.GetFileName(norm)))
@@ -239,6 +244,11 @@ public sealed class LeftoverScanner
             b.Block(LeftoverKind.Folder, norm, $"Başka kurulu programın klasörüyle çakışıyor: {other.DisplayName}");
             return;
         }
+        if (SharedDllInside(norm) is { } shared)
+        {
+            b.Block(LeftoverKind.Folder, norm, $"İçinde başka programların da kullandığı paylaşılan dosya var (SharedDLLs sayacı birden büyük): {shared}");
+            return;
+        }
         var underInstall = b.InstallDir is { } dir && Paths.IsUnder(norm, dir);
         if (!isInstallDir && !underInstall && IsPortableAppFolder(norm))
         {
@@ -248,7 +258,29 @@ public sealed class LeftoverScanner
         if (!isInstallDir && b.InstallDir is { } inst && Paths.IsUnder(norm, inst) && !ev.Any(e => e.Anchor == AnchorClass.InstallFolder))
             ev.Add(Confidence.InsideInstallDir(norm));
         AddOtherProgramPenalty(ev, Path.GetFileName(norm), b.Program);
-        Add(b, LeftoverKind.Folder, norm, ev, bytes: FolderSize.MeasureAny(norm));
+        var isSettings = settings && !underInstall && !isInstallDir;
+        if (isSettings)
+            ev.Add(Confidence.SettingsFolder());
+        Add(b, LeftoverKind.Folder, norm, ev, bytes: FolderSize.MeasureAny(norm), settings: isSettings);
+    }
+
+    public string? SharedDllInside(string folder)
+    {
+        _sharedDlls ??= LoadSharedDlls();
+        return _sharedDlls.FirstOrDefault(f => SafeIsUnder(f, folder));
+    }
+
+    List<string> LoadSharedDlls()
+    {
+        var list = new List<string>();
+        foreach (var view in new[] { RegView.Registry64, RegView.Registry32 })
+        {
+            var key = new RegKeyRef(RegHive.LocalMachine, view, SharedDllsPath);
+            foreach (var name in _ctx.Registry.GetValueNames(key))
+                if (name.Length > 3 && (_ctx.Registry.GetNumber(key, name) ?? 0) > 1)
+                    list.Add(name);
+        }
+        return list;
     }
 
     public string? GateFolder(string path)
@@ -272,8 +304,16 @@ public sealed class LeftoverScanner
         return null;
     }
 
-    public string? GateCandidate(LeftoverCandidate c, InstalledProgram program) =>
-        c.Kind == LeftoverKind.Shortcut && IsProgramShortcut(c.Target, c.Detail, program) ? null : GateFolder(c.Target);
+    public string? GateCandidate(LeftoverCandidate c, InstalledProgram program)
+    {
+        if (c.Kind == LeftoverKind.Shortcut && IsProgramShortcut(c.Target, c.Detail, program))
+            return null;
+        if (GateFolder(c.Target) is { } reason)
+            return reason;
+        return c.Kind is LeftoverKind.Folder or LeftoverKind.File && SharedDllInside(c.Target) is { } shared
+            ? $"Paylaşılan dosya içeriyor (SharedDLLs sayacı birden büyük): {shared}"
+            : null;
+    }
 
     public bool IsProgramShortcut(string lnk, string? target, InstalledProgram program)
     {
@@ -461,7 +501,7 @@ public sealed class LeftoverScanner
                     if (isPublisher)
                         ev.Add(Confidence.PublisherMatch(k1));
                     AddKeyReferences(ev, key1, b.InstallDir);
-                    AddKey(b, key1, ev, publisherLevel: NameMatcher.IsSharedPublisher(k1));
+                    AddKey(b, key1, ev, publisherLevel: NameMatcher.IsSharedPublisher(k1), settings: root.Hive != RegHive.LocalMachine);
                 }
                 if (!isPublisher)
                     continue;
@@ -475,15 +515,15 @@ public sealed class LeftoverScanner
                     var ev = new List<Evidence> { Confidence.PublisherMatch(k1) };
                     AddNameEvidence(ev, k2, p);
                     AddKeyReferences(ev, key2, b.InstallDir);
-                    AddKey(b, key2, ev, publisherLevel: false);
+                    AddKey(b, key2, ev, publisherLevel: false, settings: root.Hive != RegHive.LocalMachine);
                 }
             }
         }
     }
 
-    void AddKey(Builder b, RegKeyRef key, List<Evidence> ev, bool publisherLevel)
+    void AddKey(Builder b, RegKeyRef key, List<Evidence> ev, bool publisherLevel, bool settings = false)
     {
-        var depth = key.Path.Split('\\').Length;
+        var depth = RegistryGate.Logical(key).Split('\\').Length;
         if (publisherLevel || depth < 2)
         {
             b.Block(LeftoverKind.RegistryKey, key.Display, "Yayıncı düzeyinde anahtar; yalnız ürün alt anahtarına dokunulur");
@@ -495,12 +535,12 @@ public sealed class LeftoverScanner
             return;
         }
         AddOtherProgramPenalty(ev, key.Name, b.Program);
-        Add(b, LeftoverKind.RegistryKey, key.Display, ev, key: key);
+        Add(b, LeftoverKind.RegistryKey, key.Display, ev, key: key, settings: settings);
     }
 
     static bool IsProtectedKey(RegKeyRef key)
     {
-        var p = key.Path;
+        var p = RegistryGate.Logical(key);
         return p.StartsWith(@"SOFTWARE\Microsoft\Windows", StringComparison.OrdinalIgnoreCase) && !p.StartsWith(InstalledPrograms.UninstallPath + "\\", StringComparison.OrdinalIgnoreCase)
             || p.StartsWith(@"SOFTWARE\Classes\CLSID", StringComparison.OrdinalIgnoreCase)
             || p.StartsWith(@"SOFTWARE\Policies", StringComparison.OrdinalIgnoreCase)
@@ -745,7 +785,7 @@ public sealed class LeftoverScanner
         return d;
     }
 
-    static void Add(Builder b, LeftoverKind kind, string target, List<Evidence> ev, RegKeyRef? key = null, string? valueName = null, string? detail = null, long bytes = 0, bool forceHigh = false)
+    static void Add(Builder b, LeftoverKind kind, string target, List<Evidence> ev, RegKeyRef? key = null, string? valueName = null, string? detail = null, long bytes = 0, bool forceHigh = false, bool settings = false, string? expect = null)
     {
         var (score, anchors, tier) = Confidence.Evaluate(ev);
         if (forceHigh)
@@ -774,7 +814,14 @@ public sealed class LeftoverScanner
             Tier = tier,
             Reason = Confidence.Reason(ev, anchors, tier),
             Bytes = bytes,
+            IsSettings = settings,
+            ExpectValue = expect,
         };
+        if (RegistryGate.Check(candidate) is { } blocked)
+        {
+            b.Block(kind, target, blocked);
+            return;
+        }
         if (b.Candidates.TryGetValue(id, out var existing) && existing.Score >= score)
             return;
         b.Candidates[id] = candidate;

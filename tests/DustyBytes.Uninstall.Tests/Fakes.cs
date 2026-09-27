@@ -186,7 +186,7 @@ public static class Fixture
         KeyName = key?.Name,
     };
 
-    public static ScanContext Context(FakeRegistryView reg, IFileProbe probe, IReadOnlyList<InstalledProgram> programs, IReadOnlyList<string> bases, IReadOnlyList<string>? userData = null, DustyBytes.Core.Protection.ProtectedList? protection = null) => new()
+    public static ScanContext Context(FakeRegistryView reg, IFileProbe probe, IReadOnlyList<InstalledProgram> programs, IReadOnlyList<string> bases, IReadOnlyList<string>? userData = null, DustyBytes.Core.Protection.ProtectedList? protection = null, IReadOnlyList<string>? settings = null) => new()
     {
         Registry = reg,
         Probe = probe,
@@ -195,5 +195,6 @@ public static class Fixture
         UserDataRoots = userData ?? [],
         BroadRoots = bases,
         DataBases = bases,
+        SettingsBases = settings ?? [],
     };
 }

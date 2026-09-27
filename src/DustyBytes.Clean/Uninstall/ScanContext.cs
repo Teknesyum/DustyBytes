@@ -12,6 +12,7 @@ public sealed class ScanContext
     public IReadOnlyList<string> UserDataRoots { get; init; } = [];
     public IReadOnlyList<string> BroadRoots { get; init; } = [];
     public IReadOnlyList<string> DataBases { get; init; } = [];
+    public IReadOnlyList<string> SettingsBases { get; init; } = [];
     public IReadOnlyList<string> ShortcutDirs { get; init; } = [];
     public IReadOnlyList<string> DesktopDirs { get; init; } = [];
     public string? TasksDir { get; init; }
@@ -58,6 +59,7 @@ public sealed class ScanContext
             UserDataRoots = Clean(userData),
             BroadRoots = Clean(bases.Concat(shortcuts).Concat(desktops).Concat(userData).Append(F(Environment.SpecialFolder.Windows)).Append(F(Environment.SpecialFolder.UserProfile))),
             DataBases = Clean(bases),
+            SettingsBases = Clean([bases[0], bases[1], bases[2], bases[3]]),
             ShortcutDirs = Clean(shortcuts),
             DesktopDirs = Clean(desktops),
             TasksDir = ScheduledTasks.DefaultDirectory,

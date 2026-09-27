@@ -2,6 +2,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:DustyBytes.App.ViewModels"
              xmlns:v="using:DustyBytes.App.Views"
+             xmlns:u="using:DustyBytes.Clean.Uninstall"
              x:Class="DustyBytes.App.Views.UninstallView"
              x:DataType="vm:UninstallViewModel">
   <DockPanel>
@@ -40,6 +41,18 @@
           <TextBlock Theme="{StaticResource DangerBody}" Text="{Binding Error}" TextWrapping="Wrap"/>
         </Border>
 
+        <Border Theme="{StaticResource Panel}" IsVisible="{Binding IsPreview}">
+          <StackPanel Spacing="{StaticResource FieldGap}">
+            <TextBlock Theme="{StaticResource H3}" Text="Kaldırma biçimi"/>
+            <CheckBox Name="AutoCleanOption" IsChecked="{Binding AutoClean}">
+              <TextBlock Theme="{StaticResource Body}" Text="Kesin kalıntıları hemen temizle (kayıt yedeği alınır, dosyalar 7 gün karantinada kalır)" TextWrapping="Wrap"/>
+            </CheckBox>
+            <CheckBox Name="KeepSettingsOption" IsChecked="{Binding KeepSettings}" IsEnabled="{Binding AutoClean}">
+              <TextBlock Theme="{StaticResource Body}" Text="Ayarları koru (yeniden kurarsanız ayarlarınız yerinde olur)" TextWrapping="Wrap"/>
+            </CheckBox>
+          </StackPanel>
+        </Border>
+
         <Border Theme="{StaticResource Panel}">
           <StackPanel Spacing="{StaticResource FieldGap}">
             <TextBlock Theme="{StaticResource H3}" Text="Adımlar"/>
@@ -59,10 +72,27 @@
           </StackPanel>
         </Border>
 
+        <Border Theme="{StaticResource Panel}" IsVisible="{Binding HasCleaned}">
+          <StackPanel Spacing="{StaticResource FieldGap}">
+            <TextBlock Theme="{StaticResource H3}" Text="Temizlenenler"/>
+            <TextBlock Theme="{StaticResource Hint}" Text="{Binding CleanedText}" TextWrapping="Wrap"/>
+            <ItemsControl ItemsSource="{Binding Cleaned}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="u:RemovalItem">
+                  <StackPanel Margin="0,4">
+                    <TextBlock Theme="{StaticResource Body}" FontFamily="{StaticResource FontMono}" Text="{Binding Target}" TextTrimming="PathSegmentEllipsis"/>
+                    <TextBlock Theme="{StaticResource Hint}" Text="{Binding Message}"/>
+                  </StackPanel>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </StackPanel>
+        </Border>
+
         <Border Theme="{StaticResource Panel}">
           <StackPanel Spacing="{StaticResource FieldGap}">
             <TextBlock Theme="{StaticResource H3}" Text="Olası kalıntılar"/>
-            <TextBlock Theme="{StaticResource Hint}" Text="Yüksek güvenliler işaretli gelir; ortalar elle seçilir." />
+            <TextBlock Theme="{StaticResource Hint}" Text="{Binding LeftoverHint}" TextWrapping="Wrap"/>
             <TextBlock Theme="{StaticResource Hint}" Text="Kalıntı bulunmadı" IsVisible="{Binding !HasLeftovers}"/>
             <ItemsControl ItemsSource="{Binding Leftovers}">
               <ItemsControl.ItemsPanel>

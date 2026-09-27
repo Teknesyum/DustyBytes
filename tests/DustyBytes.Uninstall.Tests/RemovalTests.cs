@@ -140,7 +140,7 @@ public class RemovalTests : IDisposable
         Assert.False(Assert.Single(report.Items).Ok);
     }
 
-    static UninstallHandlers Handlers(Setup s, SnapshotStore store, Func<string, Task<bool>>? quarantine = null, Action? onEnumerate = null) =>
+    static UninstallHandlers Handlers(Setup s, SnapshotStore store, Func<string, Task<bool>>? quarantine = null, Action? onEnumerate = null, bool removes = true) =>
         new(Fixture.EmptyProtection(), quarantine, s.Reg, new FakeProbe(), store, s.Actions)
         {
             ProgramProvider = () =>
@@ -152,6 +152,8 @@ public class RemovalTests : IDisposable
             {
                 Runner = (cmd, cwd, onActive, ct) =>
                 {
+                    if (!removes)
+                        return Task.FromResult(new ProcessRunResult(true, true, 0, "sahte"));
                     s.Reg.DeleteKeyTree(s.Key);
                     File.Delete(s.Unins);
                     return Task.FromResult(new ProcessRunResult(true, true, 0, "sahte"));
@@ -224,5 +226,133 @@ public class RemovalTests : IDisposable
         Assert.True(r.Ok, r.Message);
         Assert.Equal([Paths.Normalize(s.Dir)], quarantined.Select(Paths.Normalize));
         Assert.True(s.Reg.ValueExists(s.Rules, "{R1}"));
+    }
+
+    [Fact]
+    public async Task AutoCleanQuarantinesOnlyHighPathEvidenceAndKeepsTheRest()
+    {
+        using var s = new Setup();
+        var store = new SnapshotStore(Path.Combine(s.Tree.Root, "store"));
+        var quarantined = new List<string>();
+        var h = Handlers(s, store, p =>
+        {
+            quarantined.Add(p);
+            return Task.FromResult(true);
+        });
+
+        var u = await h.HandleUninstall(new WorkerRequest { Op = Ops.Uninstall, Target = s.Program.Id, UserApproved = true, Items = [UninstallHandlers.SkipRestorePoint, UninstallHandlers.AutoClean] }, new Progress<WorkerProgress>(), default);
+
+        Assert.True(u.Ok, u.Message);
+        var item = Assert.Single(u.Items, i => i.Path == UninstallHandlers.AutoClean);
+        Assert.True(item.Ok, item.Message);
+        var diff = JsonSerializer.Deserialize(u.Payload!, UninstallJson.Default.LeftoverSnapshot)!;
+        Assert.Contains(Paths.Normalize(s.Dir), quarantined.Select(Paths.Normalize));
+        Assert.Contains(diff.AutoRemoved, r => r.Ok && r.Kind == LeftoverKind.Folder);
+        Assert.DoesNotContain(diff.Candidates, c => c.Kind == LeftoverKind.Folder);
+        Assert.All(diff.Candidates, c => Assert.False(c.AutoRemovable));
+        Assert.Equal(diff.Id, store.Load(diff.Id)!.Id);
+    }
+
+    [Fact]
+    public async Task AutoCleanDoesNothingWhileProgramIsStillInstalled()
+    {
+        using var s = new Setup();
+        var store = new SnapshotStore(Path.Combine(s.Tree.Root, "store"));
+        var quarantined = new List<string>();
+        var h = Handlers(s, store, p =>
+        {
+            quarantined.Add(p);
+            return Task.FromResult(true);
+        }, removes: false);
+
+        var u = await h.HandleUninstall(new WorkerRequest { Op = Ops.Uninstall, Target = s.Program.Id, UserApproved = true, Items = [UninstallHandlers.SkipRestorePoint, UninstallHandlers.AutoClean] }, new Progress<WorkerProgress>(), default);
+
+        Assert.False(Assert.Single(u.Items, i => i.Path == UninstallHandlers.AutoClean).Ok);
+        Assert.Empty(quarantined);
+        Assert.Empty(s.Actions.Calls);
+        Assert.Empty(s.Reg.Deleted.Where(d => !d.Contains("ZqxvWidget_is1")));
+    }
+
+    [Fact]
+    public void FoldersUnderSettingsBasesAreMarkedAsSettings()
+    {
+        using var s = new Setup();
+        var roaming = s.Tree.Dir("Roaming");
+        var folder = s.Tree.Dir(@"Roaming\Zqxv Widget");
+        s.Tree.File(@"Roaming\Zqxv Widget\settings.json", "{}");
+        var ctx = Fixture.Context(s.Reg, new FakeProbe(), [s.Program], [roaming], settings: [roaming]);
+
+        var snap = new LeftoverScanner(ctx).Snapshot(s.Program);
+
+        var c = Assert.Single(snap.Candidates, c => Paths.Normalize(c.Target) == Paths.Normalize(folder));
+        Assert.True(c.IsSettings);
+        Assert.DoesNotContain(snap.Candidates, c => c.IsSettings && Paths.Normalize(c.Target) == Paths.Normalize(s.Dir));
+    }
+
+    [Fact]
+    public async Task RemoverRefusesBlockedRegistryAndStaleValues()
+    {
+        using var s = new Setup();
+        var ext = s.Reg.Key(RegHive.LocalMachine, RegView.Registry64, @"SOFTWARE\Classes\.zqxv");
+        s.Reg.Set(ext, "", "Zqxv.Doc");
+        var office = s.Reg.Key(RegHive.LocalMachine, RegView.Registry64, @"SOFTWARE\Microsoft\Office");
+        var assoc = s.Reg.Key(RegHive.LocalMachine, RegView.Registry64, @"SOFTWARE\Classes\.zqxw");
+        s.Reg.Set(assoc, "", "Other.Doc");
+        var snap = s.Uninstalled() with
+        {
+            Candidates =
+            [
+                new LeftoverCandidate { Id = "ext", Kind = LeftoverKind.RegistryKey, Target = ext.Display, Key = ext, Tier = ConfidenceTier.High },
+                new LeftoverCandidate { Id = "office", Kind = LeftoverKind.RegistryKey, Target = office.Display, Key = office, Tier = ConfidenceTier.High },
+                new LeftoverCandidate { Id = "stale", Kind = LeftoverKind.RegistryValue, Target = assoc.Display, Key = assoc, ValueName = "", ExpectValue = "Zqxv.Doc", Tier = ConfidenceTier.Medium },
+            ],
+        };
+
+        var report = await s.Remover().Remove(snap, ["ext", "office", "stale"]);
+
+        Assert.All(report.Items, i => Assert.False(i.Ok));
+        Assert.True(s.Reg.KeyExists(ext));
+        Assert.True(s.Reg.KeyExists(office));
+        Assert.Equal("Other.Doc", s.Reg.GetString(assoc, ""));
+        Assert.Empty(s.Reg.Deleted);
+    }
+
+    [Fact]
+    public async Task EmptyPublisherKeyIsBackedUpAndRemovedAfterItsLastProduct()
+    {
+        using var s = new Setup();
+        var product = s.Reg.Key(RegHive.LocalMachine, RegView.Registry64, @"SOFTWARE\Zqxv Ltd\Widget");
+        s.Reg.Set(product, "Path", s.Dir);
+        var other = s.Reg.Key(RegHive.LocalMachine, RegView.Registry64, @"SOFTWARE\Qwv Corp\Widget");
+        s.Reg.Key(RegHive.LocalMachine, RegView.Registry64, @"SOFTWARE\Qwv Corp\Other");
+        var snap = s.Uninstalled() with
+        {
+            Candidates =
+            [
+                new LeftoverCandidate { Id = "p1", Kind = LeftoverKind.RegistryKey, Target = product.Display, Key = product, Tier = ConfidenceTier.High },
+                new LeftoverCandidate { Id = "p2", Kind = LeftoverKind.RegistryKey, Target = other.Display, Key = other, Tier = ConfidenceTier.High },
+            ],
+        };
+
+        var report = await s.Remover().Remove(snap, ["p1", "p2"]);
+
+        Assert.False(s.Reg.KeyExists(product.Parent()!));
+        Assert.True(s.Reg.KeyExists(other.Parent()!));
+        Assert.Contains(report.Items, i => i.Id.StartsWith("parent:") && i.Ok);
+        Assert.True(File.Exists(Path.ChangeExtension(report.RegBackupFile!, null) + "-parents.reg"));
+    }
+
+    [Fact]
+    public void FolderHoldingSharedDllWithCountAboveOneIsNeverACandidate()
+    {
+        using var s = new Setup();
+        var dll = s.Tree.File(@"Programs\ZqxvWidget\common.dll", "x");
+        var shared = s.Reg.Key(RegHive.LocalMachine, RegView.Registry64, LeftoverScanner.SharedDllsPath);
+        s.Reg.Set(shared, dll, 2);
+
+        var snap = s.Uninstalled();
+
+        Assert.DoesNotContain(snap.Candidates, c => c.Kind == LeftoverKind.Folder && Paths.Normalize(c.Target) == Paths.Normalize(s.Dir));
+        Assert.Contains(snap.Blocked, b => b.Reason.Contains("SharedDLLs"));
     }
 }

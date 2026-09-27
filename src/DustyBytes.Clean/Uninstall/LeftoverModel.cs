@@ -49,7 +49,11 @@ public sealed record LeftoverCandidate
     public ConfidenceTier Tier { get; init; }
     public string Reason { get; init; } = "";
     public long Bytes { get; init; }
+    public bool IsSettings { get; init; }
+    public string? ExpectValue { get; init; }
     public bool Checked => Tier == ConfidenceTier.High;
+    public bool PathEvidence => Confidence.HasPathEvidence(Evidence);
+    public bool AutoRemovable => Tier == ConfidenceTier.High && PathEvidence;
 }
 
 public sealed record BlockedCandidate(LeftoverKind Kind, string Target, string Reason);
@@ -64,4 +68,7 @@ public sealed record LeftoverSnapshot
     public List<string> Notes { get; init; } = [];
     public bool IsDiff { get; init; }
     public bool ProgramStillInstalled { get; init; }
+    public List<RemovalItem> AutoRemoved { get; init; } = [];
+    public string? RegBackupFile { get; init; }
+    public string? UserSid { get; init; }
 }

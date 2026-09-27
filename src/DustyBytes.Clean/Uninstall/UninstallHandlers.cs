@@ -9,6 +9,8 @@ public sealed class UninstallHandlers
 {
     public const string SkipRestorePoint = "skip-restore-point";
     public const string ContinueWithoutRestorePoint = "continue-without-restore-point";
+    public const string AutoClean = "auto-clean";
+    public const string KeepSettings = "keep-settings";
 
     readonly ProtectedList _protection;
     readonly IRegistryView _reg;
@@ -72,6 +74,14 @@ public sealed class UninstallHandlers
             _ = vendor.Ran ? RestorePoint.Complete(r.Sequence) : RestorePoint.Cancel(r.Sequence);
 
         var after = vendor.Ran && !DryRun.Enabled ? uninstaller.Diff(before, p) : before with { IsDiff = false };
+        long freed = 0;
+        if (request.Items.Contains(AutoClean))
+        {
+            var (cleaned, item) = await AutoCleanAsync(after, vendor, scanner, request.Items.Contains(KeepSettings), p, ct).ConfigureAwait(false);
+            after = cleaned;
+            items.Add(item);
+            freed = cleaned.AutoRemoved.Where(i => i.Ok).Sum(i => i.Bytes);
+        }
         _store.Save(after);
         return new WorkerResponse
         {
@@ -80,8 +90,32 @@ public sealed class UninstallHandlers
             Message = vendor.Message + (vendor.RebootRequired ? " (yeniden başlatma gerekiyor)" : ""),
             DryRun = DryRun.Enabled,
             Items = items,
+            PendingBytes = freed,
             Payload = JsonSerializer.Serialize(after, UninstallJson.Default.LeftoverSnapshot),
         };
+    }
+
+    async Task<(LeftoverSnapshot Snapshot, ItemResult Item)> AutoCleanAsync(LeftoverSnapshot after, VendorResult vendor, LeftoverScanner scanner, bool keepSettings, IProgress<ScanProgress> p, CancellationToken ct)
+    {
+        if (DryRun.Enabled || !vendor.Ran)
+            return (after, new ItemResult(AutoClean, true, "Kaldırıcı çalışmadı; kesin kalıntılar temizlenmedi"));
+        if (!vendor.Ok || !after.IsDiff || after.ProgramStillInstalled)
+            return (after, new ItemResult(AutoClean, false, "Program kaldırılmış görünmüyor; kalıntıya dokunulmadı"));
+        var ids = after.Candidates.Where(c => c.AutoRemovable && !(keepSettings && c.IsSettings)).Select(c => c.Id).ToList();
+        if (ids.Count == 0)
+            return (after, new ItemResult(AutoClean, true, "Kesin kalıntı kalmadı"));
+        var remover = new LeftoverRemover(_reg, scanner, _quarantine ?? (_ => Task.FromResult(false)), _actions);
+        var report = await remover.Remove(after, ids, p, ct).ConfigureAwait(false);
+        var done = report.Items.Where(i => i.Ok).Select(i => i.Id).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var cleaned = after with
+        {
+            Candidates = [.. after.Candidates.Where(c => !done.Contains(c.Id))],
+            AutoRemoved = report.Items,
+            RegBackupFile = report.RegBackupFile,
+        };
+        var message = $"{report.Removed} kesin kalıntı temizlendi" + (report.Failed > 0 ? $", {report.Failed} kalıntıya dokunulamadı" : "")
+            + (report.RegBackupFile is { } f ? $"; kayıt yedeği {f}" : "");
+        return (cleaned, new ItemResult(AutoClean, report.Failed == 0, message));
     }
 
     public async Task<WorkerResponse> HandleRemoveLeftovers(WorkerRequest request, IProgress<WorkerProgress> progress, CancellationToken ct)

@@ -53,6 +53,38 @@ public static class Confidence
     public static Evidence StoreApp() =>
         new("store-app", -10, AnchorClass.None, "Store paketi; PackageManager ile kaldırılır");
 
+    public static Evidence ComServerInDir(string path) =>
+        new("com-server", 12, AnchorClass.InstallFolder, $"COM sunucusu kurulum klasöründe: {path}");
+
+    public static Evidence LinkedTo(string what) =>
+        new("linked", 12, AnchorClass.InstallFolder, $"Kurulum klasörünü gösteren girdiye bağlı: {what}");
+
+    public static Evidence UserChoiceArea() =>
+        new("user-choice", 0, AnchorClass.None, "Dosya ilişkisi seçimi; kullanıcı başka programa atayabilir, işaretsiz gelir");
+
+    public static Evidence DriverService() =>
+        new("driver", 0, AnchorClass.None, "Sürücü hizmeti; işaretsiz gelir");
+
+    public static Evidence NoNameForClass() =>
+        new("class-no-name", 0, AnchorClass.None, "Sınıf adı programın adını taşımıyor; işaretsiz gelir");
+
+    public static Evidence SettingsFolder() =>
+        new("settings", 0, AnchorClass.None, "Programın ayar ve verileri");
+
+    static readonly HashSet<string> PathCodes = new(StringComparer.Ordinal)
+    {
+        "install-dir", "install-dir-inferred", "inside-install-dir", "refs-install-dir", "uninstall-key", "program-shortcut", "com-server", "linked",
+    };
+
+    static readonly HashSet<string> CapCodes = new(StringComparer.Ordinal) { "user-choice", "driver", "class-no-name" };
+
+    public static bool HasPathEvidence(IReadOnlyCollection<Evidence> evidence) =>
+        evidence.Any(e => PathCodes.Contains(e.Code))
+        || evidence.Any(e => e.Code == "signer") && evidence.Any(e => e.Code is "company" or "product");
+
+    public static bool IsCapped(IReadOnlyCollection<Evidence> evidence) =>
+        evidence.Any(e => CapCodes.Contains(e.Code));
+
     public static (int Score, int Anchors, ConfidenceTier Tier) Evaluate(IReadOnlyCollection<Evidence> evidence)
     {
         var score = evidence.Sum(e => e.Points);
@@ -64,6 +96,8 @@ public static class Confidence
             : score >= HighThreshold ? ConfidenceTier.High
             : score >= MediumThreshold ? ConfidenceTier.Medium
             : ConfidenceTier.Low;
+        if (tier == ConfidenceTier.High && IsCapped(evidence))
+            tier = ConfidenceTier.Medium;
         return (score, count, tier);
     }
 

@@ -73,6 +73,17 @@ public sealed class LeftoverRemover
                 items.Add(new RemovalItem(c.Id, c.Kind, c.Target, false, reason));
                 continue;
             }
+            if (RegistryGate.Check(c) is { } blocked)
+            {
+                items.Add(new RemovalItem(c.Id, c.Kind, c.Target, false, "Korumalı kayıt alanı: " + blocked));
+                continue;
+            }
+            if (c.ExpectValue is { } expect && c.Key is { } ek && c.ValueName is { } vn
+                && !string.Equals(_reg.GetString(ek, vn), expect, StringComparison.OrdinalIgnoreCase))
+            {
+                items.Add(new RemovalItem(c.Id, c.Kind, c.Target, false, "Değer artık programı göstermiyor; dokunulmadı"));
+                continue;
+            }
             if (dry)
             {
                 Log.Add($"Prova kipi: {c.Kind} {c.Target}");
@@ -86,8 +97,50 @@ public sealed class LeftoverRemover
             }
             items.Add(await RemoveOne(c).ConfigureAwait(false));
         }
+        if (!dry && backupFile is not null)
+        {
+            var removed = items.Where(i => i.Ok).Select(i => i.Id).ToHashSet(StringComparer.OrdinalIgnoreCase);
+            items.AddRange(RemoveEmptyPublisherKeys(targets.Where(t => removed.Contains(t.Id)), backupFile));
+        }
         progress?.Report(new ScanProgress("Kalıntı kaldırılıyor", 100));
         return new RemovalReport(items, backupFile, dry);
+    }
+
+    bool IsEmptyPublisherKey(RegKeyRef key)
+    {
+        var parts = RegistryGate.Logical(key).Split('\\', StringSplitOptions.RemoveEmptyEntries);
+        return parts.Length == 2 && parts[0].Equals("SOFTWARE", StringComparison.OrdinalIgnoreCase)
+            && RegistryGate.KeyBlock(key) is null && !NameMatcher.IsSharedPublisher(key.Name)
+            && _reg.KeyExists(key) && _reg.GetSubKeyNames(key).Count == 0 && _reg.GetValueNames(key).Count == 0;
+    }
+
+    List<RemovalItem> RemoveEmptyPublisherKeys(IEnumerable<LeftoverCandidate> removed, string backupFile)
+    {
+        var parents = removed.Where(c => c.Kind == LeftoverKind.RegistryKey && c.Key is not null)
+            .Select(c => c.Key!.Parent()).OfType<RegKeyRef>()
+            .DistinctBy(k => k.Identity)
+            .Where(IsEmptyPublisherKey)
+            .ToList();
+        var result = new List<RemovalItem>();
+        if (parents.Count == 0)
+            return result;
+        var file = Path.ChangeExtension(backupFile, null) + "-parents.reg";
+        try
+        {
+            RegistryExport.ToRegFile(_reg, parents, file);
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+            Log.Add($"Boş yayıncı anahtarı yedeklenemedi, dokunulmadı: {e.Message}");
+            return result;
+        }
+        foreach (var k in parents)
+        {
+            var ok = _reg.DeleteKeyTree(k);
+            result.Add(new RemovalItem("parent:" + k.Identity, LeftoverKind.RegistryKey, k.Display, ok,
+                ok ? "Boş kalan yayıncı anahtarı silindi (yedek .reg dosyasında)" : "Boş yayıncı anahtarı silinemedi"));
+        }
+        return result;
     }
 
     static bool NeedsRegistryBackup(LeftoverCandidate c) => c.Key is not null && c.Kind is LeftoverKind.RegistryKey or LeftoverKind.RegistryValue

@@ -410,10 +410,74 @@ public class ViewModelTests
 
         var sent = backend.Requests.Where(r => r.Op == Ops.Uninstall).ToList();
         Assert.Equal(2, sent.Count);
-        Assert.Empty(sent[0].Items);
+        Assert.Equal([UninstallHandlers.AutoClean], sent[0].Items);
         Assert.Contains(UninstallHandlers.ContinueWithoutRestorePoint, sent[1].Items);
+        Assert.Contains(UninstallHandlers.AutoClean, sent[1].Items);
         Assert.True(un.Uninstalled);
         Assert.True(un.RemoveLeftoversCommand.CanExecute(null));
+    }
+
+    [AvaloniaFact]
+    public async Task Uninstall_Auto_Clean_Lists_Cleaned_And_Leaves_Rest_Unchecked()
+    {
+        var backend = FakeBackend.Rich();
+        var snap = FakeBackend.Leftovers(true);
+        var cleaned = snap with
+        {
+            Candidates = [.. snap.Candidates.Skip(1)],
+            AutoRemoved = [new RemovalItem("c1", LeftoverKind.Folder, snap.Candidates[0].Target, true, "Karantinaya taşındı", 50_000_000)],
+        };
+        var after = JsonSerializer.Serialize(cleaned, UninstallJson.Default.LeftoverSnapshot);
+        backend.Respond = r => new WorkerResponse
+        {
+            Id = r.Id,
+            Ok = true,
+            Message = "Kaldırıldı",
+            Payload = after,
+            Items = [new ItemResult("vendor", true, ""), new ItemResult(UninstallHandlers.AutoClean, true, "1 kesin kalıntı temizlendi")],
+        };
+        var vm = Shell(backend);
+        var un = await OpenUninstall(vm);
+        un.KeepSettings = true;
+        await un.UninstallCommand.ExecuteAsync(null);
+        await Settle();
+
+        var sent = Assert.Single(backend.Requests, r => r.Op == Ops.Uninstall);
+        Assert.Contains(UninstallHandlers.AutoClean, sent.Items);
+        Assert.Contains(UninstallHandlers.KeepSettings, sent.Items);
+        Assert.True(un.HasCleaned);
+        Assert.Single(un.Cleaned);
+        Assert.Equal(StepState.Done, un.Steps.First(s => s.Key == UninstallHandlers.AutoClean).State);
+        Assert.All(un.Leftovers, l => Assert.False(l.IsChecked));
+        Assert.DoesNotContain(un.Leftovers, l => l.Candidate.Id == "c1");
+    }
+
+    [AvaloniaFact]
+    public async Task Uninstall_Without_Auto_Clean_Sends_No_Flags_And_Removes_Without_Confirm()
+    {
+        var backend = FakeBackend.Rich();
+        var after = JsonSerializer.Serialize(FakeBackend.Leftovers(true), UninstallJson.Default.LeftoverSnapshot);
+        backend.Respond = r => new WorkerResponse { Id = r.Id, Ok = true, Message = "Kaldırıldı", Payload = r.Op == Ops.Uninstall ? after : null, Items = [new ItemResult("vendor", true, "")] };
+        var vm = Shell(backend);
+        var un = await OpenUninstall(vm);
+        un.AutoClean = false;
+        un.KeepSettings = true;
+        await un.UninstallCommand.ExecuteAsync(null);
+        await Settle();
+        Assert.Empty(Assert.Single(backend.Requests, r => r.Op == Ops.Uninstall).Items);
+        Assert.Equal(StepState.Skipped, un.Steps.First(s => s.Key == UninstallHandlers.AutoClean).State);
+        Assert.True(un.Leftovers.First(l => l.Tier == ConfidenceTier.High).IsChecked);
+
+        var confirms = 0;
+        vm.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(MainViewModel.Confirm) && vm.Confirm is not null)
+                confirms++;
+        };
+        await un.RemoveLeftoversCommand.ExecuteAsync(null);
+        await Settle();
+        Assert.Equal(0, confirms);
+        Assert.Equal(["c1"], Assert.Single(backend.Requests, r => r.Op == Ops.RemoveLeftovers).Items);
     }
 
     [AvaloniaFact]
