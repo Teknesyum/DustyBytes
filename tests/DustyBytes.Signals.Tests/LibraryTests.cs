@@ -64,6 +64,7 @@ public class LibraryTests
             var games = lib.ReadInstalls();
             Assert.Equal(2, games.Count);
             Assert.Contains(games, g => g.Id == "1091500" && g.InstallDir.StartsWith(lib2, StringComparison.OrdinalIgnoreCase));
+            Assert.Equal(Path.Combine(lib2, "steamapps", "appmanifest_1091500.acf"), games.Single(g => g.Id == "1091500").Manifest);
             Assert.Equal(2, lib.LibraryRoots().Count);
         }
         finally
@@ -100,7 +101,7 @@ public class LibraryTests
         {
             File.Copy(Fixture.Path("epic_game.item"), Path.Combine(dir, "ABC.item"));
             File.WriteAllText(Path.Combine(dir, "bozuk.item"), "{ bozuk");
-            Assert.Single(new EpicLibrary(dir).ReadInstalls());
+            Assert.Equal(Path.Combine(dir, "ABC.item"), Assert.Single(new EpicLibrary(dir).ReadInstalls()).Manifest);
         }
         finally
         {

@@ -111,7 +111,11 @@ public sealed class ProtectedList
     public bool IsNeverLeftover(string path) =>
         _neverLeftover.Any(root => Paths.IsUnder(path, root) || Paths.IsUnder(root, path));
 
-    public Verdict CheckPath(string path)
+    public Verdict CheckPath(string path) => CheckPath(path, false);
+
+    public Verdict CheckGamePath(string path) => CheckPath(path, true);
+
+    Verdict CheckPath(string path, bool insideLibrary)
     {
         var normalized = Paths.Normalize(path);
         if (normalized.Length <= 3)
@@ -120,8 +124,12 @@ public sealed class ProtectedList
         lock (_gate)
         {
             foreach (var (root, reason, badge) in _roots)
-                if (Paths.IsUnder(normalized, root) || Paths.IsUnder(root, normalized))
+            {
+                if (Paths.IsUnder(root, normalized))
                     return Verdict.Deny(reason, badge);
+                if (Paths.IsUnder(normalized, root) && !(insideLibrary && badge == Badge.Launcher))
+                    return Verdict.Deny(reason, badge);
+            }
         }
 
         var parts = normalized.Split('\\', StringSplitOptions.RemoveEmptyEntries);

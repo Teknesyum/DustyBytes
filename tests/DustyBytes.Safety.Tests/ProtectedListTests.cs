@@ -90,6 +90,24 @@ public class ProtectedListTests
         Assert.True(list.Check(other).Allowed);
     }
 
+    [Fact]
+    public void Oyun_Yolu_Kutuphane_Icinde_Izinli_Koku_Degil()
+    {
+        using var tree = new TempTree();
+        var library = tree.Dir("SteamLibrary");
+        var game = tree.Dir(@"SteamLibrary\steamapps\common\Oyun");
+        var manifest = tree.File(@"SteamLibrary\steamapps\appmanifest_1.acf");
+        var list = Load();
+        list.AddLauncherLibrary(library, "Steam");
+
+        Assert.True(list.CheckGamePath(game).Allowed);
+        Assert.True(list.CheckGamePath(manifest).Allowed);
+        Assert.False(list.CheckGamePath(library).Allowed);
+        Assert.False(list.CheckGamePath(tree.Root).Allowed);
+        Assert.False(list.CheckPath(game).Allowed);
+        Assert.False(list.CheckGamePath(Environment.GetFolderPath(Environment.SpecialFolder.Windows) + @"\System32").Allowed);
+    }
+
     [Theory]
     [InlineData(@"C:\")]
     [InlineData(@"D:\")]

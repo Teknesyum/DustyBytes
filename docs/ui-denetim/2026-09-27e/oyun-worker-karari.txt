@@ -1,0 +1,10 @@
+DOOM: The Dark Ages	C:\Games\Steam\steamapps\common\DOOMTheDarkAges	izin
+DOOM: The Dark Ages	C:\Games\Steam\steamapps\appmanifest_3017860.acf	izin
+Titan Quest II	C:\Program Files\Epic Games\TitanQuestIIaDYJV	izin
+Titan Quest II	C:\ProgramData\Epic\EpicGamesLauncher\Data\Manifests\261846D955C0508F552C764601530846.item	izin
+Sun Haven	C:\Games\Steam\steamapps\common\Sun Haven	izin
+Sun Haven	C:\Games\Steam\steamapps\appmanifest_1432860.acf	izin
+Quasimorph	C:\Games\Steam\steamapps\common\Quasimorph	izin
+Quasimorph	C:\Games\Steam\steamapps\appmanifest_2059170.acf	izin
+Wallpaper Engine	C:\Games\Steam\steamapps\common\wallpaper_engine	izin
+Wallpaper Engine	C:\Games\Steam\steamapps\appmanifest_431960.acf	izin

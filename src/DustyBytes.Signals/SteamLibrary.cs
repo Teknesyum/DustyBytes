@@ -84,7 +84,7 @@ public sealed class SteamLibrary : IGameLibrary
                 {
                     var game = ParseAppManifest(File.ReadAllText(file), lib);
                     if (game is not null && seen.Add(game.Id))
-                        games.Add(game);
+                        games.Add(game with { Manifest = file });
                 }
                 catch
                 {

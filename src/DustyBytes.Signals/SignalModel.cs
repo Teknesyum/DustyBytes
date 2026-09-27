@@ -13,6 +13,7 @@ public sealed record GameInstall
     public string? UninstallUri { get; init; }
     public IReadOnlyList<string> Executables { get; init; } = [];
     public IReadOnlyList<string> SaveDirs { get; init; } = [];
+    public string? Manifest { get; init; }
 }
 
 public sealed record ExecutableRun(string ExePath, DateTimeOffset LastRun, int RunCount, string Source);

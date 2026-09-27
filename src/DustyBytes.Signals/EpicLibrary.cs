@@ -64,7 +64,7 @@ public sealed class EpicLibrary : IGameLibrary
             {
                 var game = ParseItem(File.ReadAllText(file));
                 if (game is not null)
-                    games.Add(game);
+                    games.Add(game with { Manifest = file });
             }
             catch
             {

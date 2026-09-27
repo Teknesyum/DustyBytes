@@ -29,12 +29,12 @@ public sealed class BuyukIcerikCekimi
         (@".cargo\registry", 706_888_626),
     ];
 
-    sealed class NoUsage : IUsageIndex
+    sealed class NoUsage(IReadOnlyList<GameInstall> games) : IUsageIndex
     {
         public UsageSignal ForExecutable(string exePath) => UsageSignal.Unknown;
         public UsageSignal ForFolder(string folder) => UsageSignal.Unknown;
         public UsageSignal ForMedia(string filePath) => UsageSignal.Unknown;
-        public IReadOnlyList<GameInstall> Games => [];
+        public IReadOnlyList<GameInstall> Games => games;
     }
 
     static ScanNode Tree()
@@ -90,16 +90,28 @@ public sealed class BuyukIcerikCekimi
         Directory.CreateDirectory(output);
 
         var root = Tree();
+        var real = UsageIndex.Collect();
+        var protection = ProtectedList.LoadDefault();
+        foreach (var library in real.LibraryRoots)
+            protection.AddLauncherLibrary(library, "Oyun");
         var ctx = new UnitContext
         {
             ScanResult = new ScanResult { Root = root, Files = 1000, Directories = 40 },
-            UsageIndex = new NoUsage(),
-            Protected = ProtectedList.LoadDefault(),
+            UsageIndex = new NoUsage([.. real.Games.Select(g => g with { LastPlayed = null })]),
+            Protected = protection,
             Now = DateTimeOffset.Now,
         };
         var units = UnitBuilder.Build(ctx);
         File.WriteAllLines(Path.Combine(output, "birimler.txt"),
             units.Select(u => $"{Format.Bytes(u.SizeBytes)}\t{u.Label ?? u.Kind.ToString()}\t{u.Name}\t{u.Effect}"));
+
+        var gate = DustyBytes.Clean.Safety.SafetyGate.LoadDefault();
+        File.WriteAllLines(Path.Combine(output, "oyun-worker-karari.txt"),
+            units.Where(u => u.Kind == UnitKind.Game).SelectMany(u => u.Paths.Select(p =>
+            {
+                var verdict = gate.Check(p, u.ContainsUserData);
+                return $"{u.Name}\t{p}\t{(verdict.Allowed ? "izin" : "RED: " + verdict.Reason)}";
+            })));
 
         var now = DateTime.UtcNow;
         var muse = units.First(u => u.Name.StartsWith("Muse", StringComparison.Ordinal));
@@ -130,13 +142,18 @@ public sealed class BuyukIcerikCekimi
             await Settle();
             window.CaptureRenderedFrame()?.Save(Path.Combine(output, "oneriler.png"));
             File.WriteAllLines(Path.Combine(output, "oneriler-kartlar.txt"),
-                vm.Offers.Cards.Select(c => $"{Format.Bytes(c.Unit.SizeBytes)}\t{c.KindLabel}\t{c.Unit.Name}\t{c.ActionText}\t{c.Effect}"));
+                vm.Offers.Cards.Select(c => $"{Format.Bytes(c.Unit.SizeBytes)}\t{c.KindLabel}\t{c.Unit.Name}\t{(c.IsBatch ? c.ActionText : "yalnız dış düğme")}\t{string.Join(" | ", c.Unit.Paths)}\t{c.Effect}"));
 
+            if (vm.Offers.Cards.FirstOrDefault(c => c.Unit.Kind == UnitKind.Game && c.IsBatch) is { } game)
+            {
+                await vm.Offers.RemoveOneCommand.ExecuteAsync(game);
+                await Settle();
+            }
             await vm.Offers.RemoveOneCommand.ExecuteAsync(vm.Offers.Cards.First(c => c.Unit.Id == muse.Id));
             await Settle();
             window.CaptureRenderedFrame()?.Save(Path.Combine(output, "tek-tik-bildirim.png"));
             File.WriteAllLines(Path.Combine(output, "tek-tik-istek.txt"),
-                backend.Requests.Select(r => $"{r.Op}\t{r.UnitId}\tIncludeUserData={r.IncludeUserData}\tUserApproved={r.UserApproved}")
+                backend.Requests.Select(r => $"{r.Op}\t{r.UnitId}\tIncludeUserData={r.IncludeUserData}\tUserApproved={r.UserApproved}\t{string.Join(" | ", r.Paths)}")
                     .Append($"Onay penceresi: {(vm.Confirm is null ? "yok" : "VAR")}")
                     .Concat(vm.Toasts.Select(t => "Bildirim: " + t.Message)));
 
