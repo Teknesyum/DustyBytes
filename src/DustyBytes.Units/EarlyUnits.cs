@@ -18,6 +18,21 @@ public sealed class EarlyUnits
         new SystemArtifactExtractor(),
     ];
 
+    static readonly IReadOnlyList<IUnitExtractor> Claimers = [.. Extractors, new KnownContentExtractor(), new DevArtifactExtractor()];
+
+    static readonly HashSet<UnitKind> Kinds =
+    [
+        UnitKind.Game,
+        UnitKind.Program,
+        UnitKind.BrowserCache,
+        UnitKind.Cache,
+        UnitKind.Installer,
+        UnitKind.SystemArtifact,
+    ];
+
+    public static IReadOnlyList<Unit> Build(UnitContext ctx) =>
+        [.. UnitBuilder.Build(ctx, Claimers).Where(u => Kinds.Contains(u.Kind))];
+
     readonly string _scanRoot;
     readonly Dictionary<string, List<EarlyRoot>> _groups = new(StringComparer.Ordinal);
     readonly HashSet<string> _done = new(StringComparer.OrdinalIgnoreCase);

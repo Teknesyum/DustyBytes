@@ -42,4 +42,23 @@ public class EarlyUnitsTests
         Assert.True(early.IsSettled(browser));
         Assert.False(early.IsSettled(uncovered));
     }
+
+    [Fact]
+    public void Draft_Drops_A_Cache_That_A_Dev_Artifact_Claims()
+    {
+        var proj = Tree.Dir("proj",
+            Tree.File("MyApp.csproj", 2_000, Ctx.Now.AddDays(-40)),
+            Tree.Dir("bin", Tree.File("MyApp.dll", 300_000_000, Ctx.Now.AddDays(-40))));
+        var temp = Tree.Dir("Temp", proj, Tree.File("x.tmp", 1_000, Ctx.Now.AddDays(-40)));
+        var root = Tree.Dir(@"C:", Tree.Dir("Users", Tree.Dir("a", Tree.Dir("AppData", Tree.Dir("Local", temp)))));
+        var ctx = Ctx.Build(root);
+
+        Assert.Contains(UnitBuilder.Build(ctx, EarlyUnits.Extractors), u => u.Kind == UnitKind.Cache);
+        var draft = EarlyUnits.Build(ctx);
+
+        Assert.DoesNotContain(draft, u => u.Kind is UnitKind.Cache or UnitKind.DevArtifact);
+        Assert.Equal(
+            UnitBuilder.Build(ctx).Where(u => u.Kind == UnitKind.Cache).Select(u => u.Id),
+            draft.Where(u => u.Kind == UnitKind.Cache).Select(u => u.Id));
+    }
 }

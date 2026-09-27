@@ -56,7 +56,9 @@ sealed class ScanDrafts
         {
             if (Interlocked.Exchange(ref _dirty, 0) == 0 || Volatile.Read(ref _root) is not { } root)
                 continue;
-            if (Build(root) is { } draft && !_stop.IsCancellationRequested)
+            if (Build(root) is not { } draft)
+                Volatile.Write(ref _dirty, 1);
+            else if (!_stop.IsCancellationRequested)
                 _sink.Report(draft);
         }
     }
@@ -66,7 +68,7 @@ sealed class ScanDrafts
         try
         {
             var partial = _context with { ScanResult = new ScanResult { Root = root } };
-            var units = UnitBuilder.Build(partial, EarlyUnits.Extractors);
+            var units = EarlyUnits.Build(partial);
             var pending = units.Where(u => !_early.IsSettled(u)).Select(u => u.Id).ToHashSet(StringComparer.Ordinal);
             return new ScanDraft(units, pending);
         }
