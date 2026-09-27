@@ -407,4 +407,22 @@ public class ViewModelTests
         Assert.Equal(new WindowPlacement(10, 20, 1000, 700, true), store.Load());
         Directory.Delete(Path.GetDirectoryName(path)!, true);
     }
+
+    [AvaloniaFact]
+    public void ProgramsShowLoadingWhileListIsRead()
+    {
+        var backend = new FakeBackend { ProgramsGate = new TaskCompletionSource() };
+        var vm = Shell(backend);
+        var changed = new List<string?>();
+        vm.Programs.PropertyChanged += (_, e) => changed.Add(e.PropertyName);
+        vm.GoTo(vm.Programs);
+        Dispatcher.UIThread.RunJobs();
+        Assert.True(vm.Programs.IsLoading);
+        Assert.Contains(nameof(ProgramsViewModel.IsLoading), changed);
+        Assert.False(vm.Programs.IsEmpty);
+        backend.ProgramsGate.SetResult();
+        Dispatcher.UIThread.RunJobs();
+        Assert.False(vm.Programs.IsLoading);
+        Assert.True(vm.Programs.HasRows || vm.Programs.IsEmpty);
+    }
 }

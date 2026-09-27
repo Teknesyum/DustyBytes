@@ -76,7 +76,7 @@ public sealed partial class UpdateViewModel : ObservableObject
 
     public string Text => State switch
     {
-        UpdateState.Available or UpdateState.Ready => "Güncelleme",
+        UpdateState.Available or UpdateState.Ready => Labels.Update,
         UpdateState.Downloading => $"İniyor %{Percent}",
         UpdateState.Installing => "Kuruluyor",
         _ => "",
@@ -84,9 +84,9 @@ public sealed partial class UpdateViewModel : ObservableObject
 
     public string Tip => State switch
     {
-        UpdateState.Available => $"Yeni sürüm var: DustyBytes {VersionText}. Seçenekler için tıkla.",
+        UpdateState.Available => $"{Labels.UpdateDownload} · DustyBytes {VersionText}",
         UpdateState.Downloading => "Arka planda düşük öncelikle iniyor; tarama ya da silme sürerken yavaşlar. İptal için tıkla.",
-        UpdateState.Ready => $"İndi: DustyBytes {VersionText} doğrulandı. Yüklemek için tıkla.",
+        UpdateState.Ready => $"{Labels.UpdateInstall} · DustyBytes {VersionText} doğrulandı",
         UpdateState.Installing => "Program kapanıp yeni sürümle açılacak.",
         _ => "",
     };

@@ -77,8 +77,14 @@
   ],
   "duzen": "75ea90cdce3cabe5",
   "denetim": {
-    "tarih": "2026-09-26T23:14:50.043Z",
-    "duzen": "b3a56d17ff70849c"
+    "tarih": "2026-09-27T03:28:21.644Z",
+    "duzen": "75ea90cdce3cabe5"
   },
-  "plugin": "0.13.0"
+  "plugin": "0.18.0",
+  "uc": {
+    "surum": "0.18.0",
+    "duzen": "75ea90cdce3cabe5",
+    "commit": "29d498940f6a5677f436247a1226696a052f18b8",
+    "tarih": "2026-09-27"
+  }
 }

@@ -90,42 +90,52 @@
 
     <ControlTheme x:Key="ChipItem" TargetType="ListBoxItem">
       <Setter Property="Background" Value="Transparent"/>
-      <Setter Property="Foreground" Value="{StaticResource TextBody}"/>
-      <Setter Property="BorderBrush" Value="{StaticResource BorderDefault}"/>
-      <Setter Property="BorderThickness" Value="{StaticResource BorderWidth}"/>
+      <Setter Property="Foreground" Value="{StaticResource Renk1}"/>
+      <Setter Property="BorderBrush" Value="{StaticResource Renk1}"/>
+      <Setter Property="BorderThickness" Value="0"/>
       <Setter Property="FontFamily" Value="{StaticResource FontSans}"/>
       <Setter Property="FontSize" Value="{StaticResource FontSize2}"/>
+      <Setter Property="FontWeight" Value="{StaticResource WeightSemi}"/>
       <Setter Property="MinHeight" Value="{StaticResource TargetMin}"/>
-      <Setter Property="Padding" Value="12,4"/>
-      <Setter Property="Margin" Value="0,0,8,0"/>
-      <Setter Property="CornerRadius" Value="{StaticResource Radius}"/>
       <Setter Property="Cursor" Value="Hand"/>
       <Setter Property="Template">
         <ControlTemplate TargetType="ListBoxItem">
-          <Border Name="bd"
-                  Background="{TemplateBinding Background}"
-                  BorderBrush="{TemplateBinding BorderBrush}"
-                  BorderThickness="{TemplateBinding BorderThickness}"
-                  CornerRadius="{TemplateBinding CornerRadius}"
-                  Padding="{TemplateBinding Padding}">
-            <ContentPresenter Name="PART_ContentPresenter"
-                              Content="{TemplateBinding Content}"
-                              ContentTemplate="{TemplateBinding ContentTemplate}"
-                              Foreground="{TemplateBinding Foreground}"
-                              VerticalContentAlignment="Center"/>
+          <Border Name="bd" Background="{TemplateBinding Background}">
+            <DockPanel>
+              <Border DockPanel.Dock="Left" Width="{StaticResource Space3}"/>
+              <Border DockPanel.Dock="Right" Width="{StaticResource Space3}"/>
+              <StackPanel VerticalAlignment="Center" Spacing="{StaticResource Space1}">
+                <Border Height="{StaticResource FocusWidth}"/>
+                <ContentPresenter Name="PART_ContentPresenter"
+                                  Content="{TemplateBinding Content}"
+                                  ContentTemplate="{TemplateBinding ContentTemplate}"
+                                  Foreground="{TemplateBinding Foreground}"
+                                  HorizontalContentAlignment="Center"
+                                  VerticalContentAlignment="Center"/>
+                <Border Name="cizgi" Height="{StaticResource FocusWidth}" Background="{TemplateBinding BorderBrush}"
+                        RenderTransformOrigin="50%,50%" RenderTransform="scaleX(0)">
+                  <Border.Transitions>
+                    <Transitions>
+                      <TransformOperationsTransition Property="RenderTransform" Duration="{StaticResource TBase}" Easing="{StaticResource EOut}"/>
+                    </Transitions>
+                  </Border.Transitions>
+                </Border>
+              </StackPanel>
+            </DockPanel>
           </Border>
         </ControlTemplate>
       </Setter>
-      <Style Selector="^:pointerover /template/ Border#bd">
-        <Setter Property="BorderBrush" Value="{StaticResource Renk1}"/>
-      </Style>
-      <Style Selector="^:selected /template/ Border#bd">
-        <Setter Property="Background" Value="{StaticResource Renk1}"/>
-        <Setter Property="BorderBrush" Value="{StaticResource Renk1}"/>
+      <Style Selector="^:pointerover">
+        <Setter Property="Foreground" Value="{StaticResource Renk2Text}"/>
       </Style>
       <Style Selector="^:selected">
-        <Setter Property="Foreground" Value="{StaticResource OnRenk1}"/>
-        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Foreground" Value="{StaticResource TextBody}"/>
+      </Style>
+      <Style Selector="^:selected /template/ Border#cizgi">
+        <Setter Property="RenderTransform" Value="scaleX(1)"/>
+      </Style>
+      <Style Selector="^:focus-visible /template/ Border#cizgi">
+        <Setter Property="RenderTransform" Value="scaleX(1)"/>
       </Style>
     </ControlTheme>
 
@@ -310,12 +320,10 @@
 
   <Style Selector="Button.primary">
     <Setter Property="Theme" Value="{StaticResource PrimaryButton}"/>
-    <Setter Property="MinHeight" Value="{StaticResource InputHeight}"/>
   </Style>
 
   <Style Selector="Button.danger">
     <Setter Property="Theme" Value="{StaticResource DangerButton}"/>
-    <Setter Property="MinHeight" Value="{StaticResource InputHeight}"/>
   </Style>
 
   <Style Selector="Button.ghost">

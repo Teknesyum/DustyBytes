@@ -11,7 +11,7 @@ Windows disk cleaner, by purpose.
 | What | Count | Source |
 |---|---|---|
 | Open source repositories reviewed | 61, in 7 reports | `docs/inceleme/` |
-| Tests passing | 337 (scan 18, signals 24, units 40, safety 46, uninstall 105, cleaning 27, UI 77) | `dotnet test` |
+| Tests passing | 339 (scan 18, signals 24, units 40, safety 46, uninstall 105, cleaning 27, UI 79) | `dotnet test` |
 | Full scan of `C:\` with the MFT reader | 8.6 s, 2.84 M files | one machine, n=1 |
 | Full scan of `C:\` with `FindFirstFileEx` | 33.2 s, 2.90 M files | same machine |
 | Installed programs detected | 199 (47 MSI, 53 MSIX) | same machine |

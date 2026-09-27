@@ -11,7 +11,7 @@ Amacına göre Windows disk temizleyici.
 | Ne | Sayı | Kaynak |
 |---|---|---|
 | İncelenen açık kaynak depo | 61, yedi raporda | `docs/inceleme/` |
-| Geçen test | 337 (tarama 18, sinyal 24, birim 40, güvenlik 46, kaldırma 105, temizlik 27, arayüz 77) | `dotnet test` |
+| Geçen test | 339 (tarama 18, sinyal 24, birim 40, güvenlik 46, kaldırma 105, temizlik 27, arayüz 79) | `dotnet test` |
 | `C:\` tam tarama, MFT okuyucu | 8,6 sn, 2,84 M dosya | tek makine, n=1 |
 | `C:\` tam tarama, `FindFirstFileEx` | 33,2 sn, 2,90 M dosya | aynı makine |
 | Bulunan kurulu program | 199 (47 MSI, 53 MSIX) | aynı makine |

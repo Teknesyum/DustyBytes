@@ -1,4 +1,7 @@
 - [ ] Kod imzası — 2026-09-25 13:45 — sertifika satın alma kararı sahibin
 - [ ] A8 İngilizce arayüz — 2026-09-25 14:05 — ertelendi: önce Türkçe tam yetkin olacak, sonra sahip başlatır
-- [x] ajan: Image-only UI usability review — 2026-09-27 02:09 — "Kullanılabilir: evet", docs/ui-denetim/2026-09-27/inceleme.md
 - [ ] Kur penceresi GitHub Releases + sha256 kaynağı — 2026-09-27 02:15 — şablon işi, Teknesyum-UI deposunda (proje dışı); görev çipi açıldı
+- [x] Düzen seçimleri temaya geçmiyor (setup.js notlar) — 2026-09-27 02:40 — Teknesyum-UI issue #1, 'Standart renkleri iyileştir' oturumuna gönderildi; dönünce DustyBytes'ta yeniden uygulanacak
+- [x] ajan: Image-only UI review — 2026-09-27 06:12 — sonucu aktarılacak
+- [x] uc çalıştır: UI hiç → 0.18.0 (`node "C:\Users\Administrator\.claude\plugins\cache\teknesyum\teknesyum-ui\0.18.0\scripts\uc.js"` çıktısını izle, bitince `--bitti`) — 2026-09-27 06:20 — teknesyum-ui
+- [x] ajan: Bağımsız görsel inceleme 2 — 2026-09-27 06:28 — sonucu aktarılacak

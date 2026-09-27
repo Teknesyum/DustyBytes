@@ -189,8 +189,14 @@ public sealed class FakeBackend : IAppBackend
 
     public Task<ScanSnapshot> FastScanAsync(IProgress<TaskStep> progress, CancellationToken ct) => ScanAsync(progress, ct);
 
-    public Task<IReadOnlyList<ProgramInfo>> ListProgramsAsync(IProgress<TaskStep> progress, CancellationToken ct) =>
-        Task.FromResult<IReadOnlyList<ProgramInfo>>(Programs);
+    public TaskCompletionSource? ProgramsGate { get; set; }
+
+    public async Task<IReadOnlyList<ProgramInfo>> ListProgramsAsync(IProgress<TaskStep> progress, CancellationToken ct)
+    {
+        if (ProgramsGate is { } gate)
+            await gate.Task;
+        return Programs;
+    }
 
     public Task<LeftoverSnapshot> PreviewLeftoversAsync(InstalledProgram program, IProgress<TaskStep> progress, CancellationToken ct) =>
         Task.FromResult(Preview ?? Leftovers(false));

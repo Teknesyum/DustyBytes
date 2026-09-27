@@ -1,0 +1,51 @@
+  Geri yüklenecek projeler belirleniyor...
+  Geri yükleme için tüm projeler güncel.
+  DustyBytes.Core -> C:\Users\Administrator\Desktop\Projeler\DustyBytes\src\DustyBytes.Core\bin\Debug\net10.0-windows10.0.19041.0\DustyBytes.Core.dll
+  DustyBytes.Scan -> C:\Users\Administrator\Desktop\Projeler\DustyBytes\src\DustyBytes.Scan\bin\Debug\net10.0-windows10.0.19041.0\DustyBytes.Scan.dll
+  DustyBytes.Signals -> C:\Users\Administrator\Desktop\Projeler\DustyBytes\src\DustyBytes.Signals\bin\Debug\net10.0-windows10.0.19041.0\DustyBytes.Signals.dll
+  DustyBytes.Clean -> C:\Users\Administrator\Desktop\Projeler\DustyBytes\src\DustyBytes.Clean\bin\Debug\net10.0-windows10.0.19041.0\DustyBytes.Clean.dll
+  DustyBytes.Units -> C:\Users\Administrator\Desktop\Projeler\DustyBytes\src\DustyBytes.Units\bin\Debug\net10.0-windows10.0.19041.0\DustyBytes.Units.dll
+  DustyBytes.Scan.Tests -> C:\Users\Administrator\Desktop\Projeler\DustyBytes\tests\DustyBytes.Scan.Tests\bin\Debug\net10.0-windows10.0.19041.0\DustyBytes.Scan.Tests.dll
+  DustyBytes.Signals.Tests -> C:\Users\Administrator\Desktop\Projeler\DustyBytes\tests\DustyBytes.Signals.Tests\bin\Debug\net10.0-windows10.0.19041.0\DustyBytes.Signals.Tests.dll
+C:\Users\Administrator\Desktop\Projeler\DustyBytes\tests\DustyBytes.Scan.Tests\bin\Debug\net10.0-windows10.0.19041.0\DustyBytes.Scan.Tests.dll (.NETCoreApp,Version=v10.0) için test çalıştırması
+C:\Users\Administrator\Desktop\Projeler\DustyBytes\tests\DustyBytes.Signals.Tests\bin\Debug\net10.0-windows10.0.19041.0\DustyBytes.Signals.Tests.dll (.NETCoreApp,Version=v10.0) için test çalıştırması
+  DustyBytes.Uninstall.Tests -> C:\Users\Administrator\Desktop\Projeler\DustyBytes\tests\DustyBytes.Uninstall.Tests\bin\Debug\net10.0-windows10.0.19041.0\DustyBytes.Uninstall.Tests.dll
+  DustyBytes.Rules.Tests -> C:\Users\Administrator\Desktop\Projeler\DustyBytes\tests\DustyBytes.Rules.Tests\bin\Debug\net10.0-windows10.0.19041.0\DustyBytes.Rules.Tests.dll
+C:\Users\Administrator\Desktop\Projeler\DustyBytes\tests\DustyBytes.Uninstall.Tests\bin\Debug\net10.0-windows10.0.19041.0\DustyBytes.Uninstall.Tests.dll (.NETCoreApp,Version=v10.0) için test çalıştırması
+C:\Users\Administrator\Desktop\Projeler\DustyBytes\tests\DustyBytes.Rules.Tests\bin\Debug\net10.0-windows10.0.19041.0\DustyBytes.Rules.Tests.dll (.NETCoreApp,Version=v10.0) için test çalıştırması
+  DustyBytes.Worker -> C:\Users\Administrator\Desktop\Projeler\DustyBytes\src\DustyBytes.Worker\bin\Debug\net10.0-windows10.0.19041.0\DustyBytes.Worker.dll
+Toplam 1 test dosyası belirtilen desenle eşleşti.
+Toplam 1 test dosyası belirtilen desenle eşleşti.
+  DustyBytes.Units.Tests -> C:\Users\Administrator\Desktop\Projeler\DustyBytes\tests\DustyBytes.Units.Tests\bin\Debug\net10.0-windows10.0.19041.0\DustyBytes.Units.Tests.dll
+C:\Users\Administrator\Desktop\Projeler\DustyBytes\tests\DustyBytes.Units.Tests\bin\Debug\net10.0-windows10.0.19041.0\DustyBytes.Units.Tests.dll (.NETCoreApp,Version=v10.0) için test çalıştırması
+Toplam 1 test dosyası belirtilen desenle eşleşti.
+Toplam 1 test dosyası belirtilen desenle eşleşti.
+Toplam 1 test dosyası belirtilen desenle eşleşti.
+  DustyBytes.Safety.Tests -> C:\Users\Administrator\Desktop\Projeler\DustyBytes\tests\DustyBytes.Safety.Tests\bin\Debug\net10.0-windows10.0.19041.0\DustyBytes.Safety.Tests.dll
+C:\Users\Administrator\Desktop\Projeler\DustyBytes\tests\DustyBytes.Safety.Tests\bin\Debug\net10.0-windows10.0.19041.0\DustyBytes.Safety.Tests.dll (.NETCoreApp,Version=v10.0) için test çalıştırması
+Toplam 1 test dosyası belirtilen desenle eşleşti.
+'Blame' veri toplayıcısı iletisi: Tüm testlerin çalışması tamamlandı. Dizi dosyası oluşturulmayacak..
+
+Başarılı!  - Başarısız:     0, Başarılı:    40, Atlanan:     0, Toplam:    40, Süre: 121 ms - DustyBytes.Units.Tests.dll (net10.0)
+'Blame' veri toplayıcısı iletisi: Tüm testlerin çalışması tamamlandı. Dizi dosyası oluşturulmayacak..
+
+Başarılı!  - Başarısız:     0, Başarılı:   105, Atlanan:     0, Toplam:   105, Süre: 659 ms - DustyBytes.Uninstall.Tests.dll (net10.0)
+'Blame' veri toplayıcısı iletisi: Tüm testlerin çalışması tamamlandı. Dizi dosyası oluşturulmayacak..
+
+Başarılı!  - Başarısız:     0, Başarılı:    24, Atlanan:     0, Toplam:    24, Süre: 917 ms - DustyBytes.Signals.Tests.dll (net10.0)
+'Blame' veri toplayıcısı iletisi: Tüm testlerin çalışması tamamlandı. Dizi dosyası oluşturulmayacak..
+
+Başarılı!  - Başarısız:     0, Başarılı:    17, Atlanan:     0, Toplam:    17, Süre: 887 ms - DustyBytes.Scan.Tests.dll (net10.0)
+  DustyBytes.App -> C:\Users\Administrator\Desktop\Projeler\DustyBytes\src\DustyBytes.App\bin\Debug\net10.0-windows10.0.19041.0\DustyBytes.dll
+  DustyBytes.Tests -> C:\Users\Administrator\Desktop\Projeler\DustyBytes\tests\DustyBytes.Tests\bin\Debug\net10.0-windows10.0.19041.0\DustyBytes.Tests.dll
+C:\Users\Administrator\Desktop\Projeler\DustyBytes\tests\DustyBytes.Tests\bin\Debug\net10.0-windows10.0.19041.0\DustyBytes.Tests.dll (.NETCoreApp,Version=v10.0) için test çalıştırması
+Toplam 1 test dosyası belirtilen desenle eşleşti.
+'Blame' veri toplayıcısı iletisi: Tüm testlerin çalışması tamamlandı. Dizi dosyası oluşturulmayacak..
+
+Başarılı!  - Başarısız:     0, Başarılı:    45, Atlanan:     0, Toplam:    45, Süre: 2 s - DustyBytes.Safety.Tests.dll (net10.0)
+'Blame' veri toplayıcısı iletisi: Tüm testlerin çalışması tamamlandı. Dizi dosyası oluşturulmayacak..
+
+Başarılı!  - Başarısız:     0, Başarılı:    27, Atlanan:     0, Toplam:    27, Süre: 27 s - DustyBytes.Rules.Tests.dll (net10.0)
+'Blame' veri toplayıcısı iletisi: Tüm testlerin çalışması tamamlandı. Dizi dosyası oluşturulmayacak..
+
+Başarılı!  - Başarısız:     0, Başarılı:    79, Atlanan:     0, Toplam:    79, Süre: 2 m 56 s - DustyBytes.Tests.dll (net10.0)

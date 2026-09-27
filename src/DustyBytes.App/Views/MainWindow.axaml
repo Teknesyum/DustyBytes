@@ -3,6 +3,7 @@
         xmlns:vm="using:DustyBytes.App.ViewModels"
         xmlns:v="using:DustyBytes.App.Views"
         xmlns:k="using:DustyBytes.App.Kabuk"
+        xmlns:s="using:DustyBytes.App.Services"
         x:Class="DustyBytes.App.MainWindow"
         x:DataType="vm:MainViewModel"
         Title="DustyBytes" Icon="avares://DustyBytes/Assets/DustyBytes.ico"
@@ -25,11 +26,12 @@
   </Window.DataTemplates>
 
   <Panel>
-    <Panel Classes="appbg" Background="{StaticResource AppBgGradient}" IsHitTestVisible="False"/>
+    <Panel Classes="appbg"/>
 
     <DockPanel>
       <k:TitleBar Name="TitleBar" DockPanel.Dock="Top" Ad1="Dusty" Ad2="Bytes"
-                  Logo="avares://DustyBytes/Assets/DustyBytes.png"
+                  ImzaMetni="{x:Static s:Labels.Brand}" ImzaIpucu="{x:Static s:Labels.BrandTitle}"
+                  DestekMetni="{x:Static s:Labels.Support}" DestekIpucu="{x:Static s:Labels.SupportTitle}"
                   RozetDurumu="{Binding Update.Badge}" RozetMetni="{Binding Update.Text}"
                   RozetIpucu="{Binding Update.Tip}" RozetKomutu="{Binding Update.TogglePanelCommand}"/>
 

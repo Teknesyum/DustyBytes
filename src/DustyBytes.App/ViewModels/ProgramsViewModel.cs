@@ -11,6 +11,7 @@ public sealed class ProgramRow(ProgramInfo info, DateTimeOffset now)
     public ProgramInfo Info { get; } = info;
     public string Name => Info.Program.DisplayName;
     public string Publisher => Info.Program.Publisher ?? "Yayıncı bilinmiyor";
+    public long ShownBytes => Info.Program.SizeBytes > 0 ? Info.Program.SizeBytes : Info.Program.EstimatedSizeBytes;
     public string SizeText => Info.Program.SizeBytes > 0 ? Format.Bytes(Info.Program.SizeBytes) : Info.Program.EstimatedSizeBytes > 0 ? Format.Bytes(Info.Program.EstimatedSizeBytes) : "Boyut bilinmiyor";
     public string UsageText { get; } = KindText.Usage(info.Usage, now);
     public string VersionText => Info.Program.DisplayVersion is { Length: > 0 } v ? "Sürüm " + v : "";
@@ -27,6 +28,11 @@ public sealed partial class ProgramsViewModel : ViewModelBase
     {
         _main = main;
         Progress = main.NewProgress();
+        Progress.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(TaskProgressViewModel.IsRunning))
+                Raise();
+        };
     }
 
     public TaskProgressViewModel Progress { get; }
@@ -75,7 +81,7 @@ public sealed partial class ProgramsViewModel : ViewModelBase
         {
             var list = await Progress.RunAsync("Kurulu programlar okunuyor", (p, ct) => _main.Backend.ListProgramsAsync(p, ct));
             var now = DateTimeOffset.Now;
-            _all = [.. list.Select(i => new ProgramRow(i, now))];
+            _all = [.. list.Select(i => new ProgramRow(i, now)).OrderByDescending(r => r.ShownBytes)];
             _loaded = true;
             Apply();
         }

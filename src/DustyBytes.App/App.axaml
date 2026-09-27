@@ -4,7 +4,7 @@
              RequestedThemeVariant="Dark">
   <Application.Styles>
     <FluentTheme />
-    <StyleInclude Source="avares://DustyBytes/Assets/Theme.axaml" />
+    <StyleInclude Source="avares://DustyBytes/Tema/Theme.axaml" />
     <StyleInclude Source="avares://DustyBytes/Kabuk/KabukStilleri.axaml" />
     <StyleInclude Source="avares://DustyBytes/Assets/AppStyles.axaml" />
   </Application.Styles>
