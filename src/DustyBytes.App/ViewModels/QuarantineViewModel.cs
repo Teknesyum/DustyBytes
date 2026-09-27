@@ -17,7 +17,7 @@ public sealed partial class QuarantineRow(QuarantineEntry entry, DateTime nowUtc
     public string OriginalPath => Entry.OriginalPath;
     public string SizeText => Format.Bytes(Entry.Size);
     public int DaysLeft { get; } = Math.Max(0, (int)Math.Ceiling((Due(entry) - nowUtc).TotalDays));
-    public string DaysText => !autoPurge ? "Sen silene dek durur" : DaysLeft == 0 ? "Süresi doldu; bir sonraki yönetici işleminde silinir" : $"{DaysLeft} gün sonra kalıcı silinir";
+    public string DaysText => !autoPurge ? "Sen silene dek durur" : DaysLeft == 0 ? "Süresi doldu; birazdan kalıcı silinir" : $"{DaysLeft} gün sonra kalıcı silinir";
 
     static DateTime Due(QuarantineEntry e)
     {
@@ -68,6 +68,8 @@ public sealed partial class QuarantineViewModel : ViewModelBase
     private bool _autoPurge = AppSettings.Load().AutoPurge;
 
     public string AutoPurgeText => $"Karantinada {AppSettings.QuarantineDays.Days} günü geçenleri kalıcı sil";
+    public string AutoPurgeTip => $"Açıkken, karantinada {AppSettings.QuarantineDays.Days} günü dolduran öğeler DustyBytes açıkken kendiliğinden kalıcı silinir";
+    public string EmptyHint => $"Karantinaya alınanlar burada bekler; istediğin an geri alırsın. Üstteki seçenek açıksa {AppSettings.QuarantineDays.Days} günü geçenler kalıcı silinir.";
 
     partial void OnAutoPurgeChanged(bool value)
     {
@@ -109,7 +111,7 @@ public sealed partial class QuarantineViewModel : ViewModelBase
             Items.Add(new QuarantineRow(entry, now, AutoPurge, Changed) { IsSelected = keep.Contains(entry.Id) });
         foreach (var usage in snapshot?.Usage ?? [])
             if (usage.Warning)
-                Warnings.Add(new VolumeWarning($"{usage.Root} sürücüsünde karantina {Format.Bytes(usage.PendingBytes)} yer tutuyor; birimin yüzde yirmisini aştı. Süresi dolmadan kalıcı silmeyi düşünün."));
+                Warnings.Add(new VolumeWarning($"{usage.Root} sürücüsünde karantina {Format.Bytes(usage.PendingBytes)} yer tutuyor; diskin beşte birini geçti. Yer lazımsa Karantinayı boşalt ile hemen açabilirsiniz."));
         PendingText = _main.Session.PendingText;
         FreedText = Format.Bytes(_main.Session.Ledger.FreedBytes);
         Note = snapshot?.Note ?? "";
@@ -127,6 +129,7 @@ public sealed partial class QuarantineViewModel : ViewModelBase
         SelectionSize = selected.Count == 0 ? "" : Format.Bytes(selected.Sum(s => s.Entry.Size));
         RestoreCommand.NotifyCanExecuteChanged();
         PurgeCommand.NotifyCanExecuteChanged();
+        EmptyAllCommand.NotifyCanExecuteChanged();
     }
 
     bool CanAct() => !Progress.IsRunning && Items.Any(i => i.IsSelected);
@@ -148,13 +151,7 @@ public sealed partial class QuarantineViewModel : ViewModelBase
     private async Task Purge()
     {
         var chosen = Selected;
-        var bytes = chosen.Sum(c => c.Entry.Size);
-        if (!await _main.ConfirmAsync(
-                $"{chosen.Count} öğe kalıcı silinsin mi?",
-                $"{Format.Bytes(bytes)} karantinadan tamamen silinir. Bu işlem geri alınamaz.",
-                "Kalıcı sil"))
-            return;
-        var response = await SendAsync("Karantina boşaltılıyor", Ops.Purge, chosen);
+        var response = await SendAsync("Seçilenler siliniyor", Ops.Purge, chosen);
         if (response is null)
             return;
         if (response.DryRun)
@@ -170,7 +167,29 @@ public sealed partial class QuarantineViewModel : ViewModelBase
             _main.Fail("Silme tamamlanamadı: " + response.Message);
     }
 
-    async Task<WorkerResponse?> SendAsync(string title, string op, List<QuarantineRow> rows)
+    bool CanEmpty() => !Progress.IsRunning && Items.Count > 0;
+
+    [RelayCommand(CanExecute = nameof(CanEmpty))]
+    private async Task EmptyAll()
+    {
+        var count = Items.Count;
+        var response = await SendAsync("Karantina boşaltılıyor", Ops.Purge, [.. Items], Targets.All);
+        if (response is null)
+            return;
+        if (response.DryRun)
+        {
+            _main.Notify("Prova: hiçbir öğe silinmedi");
+            return;
+        }
+        if (response.FreedBytes > 0)
+            _main.Session.AddFreed(response.FreedBytes);
+        if (response.Ok)
+            _main.Notify($"Karantina boşaltıldı, {Format.Bytes(response.FreedBytes)} açıldı");
+        else
+            _main.Fail("Karantinanın bir kısmı silinemedi: " + response.Message);
+    }
+
+    async Task<WorkerResponse?> SendAsync(string title, string op, List<QuarantineRow> rows, string? target = null)
     {
         if (rows.Count == 0)
             return null;
@@ -180,7 +199,8 @@ public sealed partial class QuarantineViewModel : ViewModelBase
             {
                 Op = op,
                 UserApproved = true,
-                Items = [.. rows.Select(r => r.Id)],
+                Target = target,
+                Items = target is null ? [.. rows.Select(r => r.Id)] : [],
             }, p, ct), cancellable: false);
             await _main.Session.RefreshQuarantineAsync(_main);
             return response;

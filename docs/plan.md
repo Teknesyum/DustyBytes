@@ -309,3 +309,23 @@ Kaynak: raf `ui-denetim`, `ui-duzeni`; eklenti teknesyum-ui 0.11.0. Rapor `docs/
 8. Raf kitapları: depo, guncelleme-paneli, kabuk-standardi, kurulum-paneli, lisans, README-kabuk-standardi, readme-protokolu, ui, ui-duzeni; her biri `raf.js --uydu` ile kaydedilir.
 
 Durum 2026-09-27: 1–5, 7 ve 8 tamam. 6 gerçek pencerede yalnız %100 (ölçek sistem ayarı), %125/%150 başsız. Kur penceresinin kaynağı şablon işine bağlı (Teknesyum-UI). Rapor: `docs/ui-denetim/2026-09-27.md`.
+
+## A9 Fark: Büyük İçerik Ve Tek Tık — 2026-09-27
+
+Sahibin isteği: kullanıcıyı yormadan en net veriyi getir. 600 MB önbellek değil, "LM Studio · 40 GB dil modeli".
+Tek tık karantina, onay yok; 7 gün sonra kendiliğinden silinir; karantina anında, onaysız boşaltılır.
+Araştırma: `docs/danisma/buyuk-icerik-arastirmasi.md`.
+
+1. `Unit.Effect`: her birime sade dille "silinirse ne olur". Tanıyıcı kendi cümlesini yazar; yoksa türün cümlesi (`KindText.Effect`).
+2. `UnitKind.AppContent` + `rules/known-content.json` + `KnownContentExtractor`: bilinen ağır içerik yerleri
+   (dil modelleri, görüntü modelleri, emülatör ve sanal diskler, paket önbellekleri, telefon yedekleri, kayıtlar).
+   Birim adı içeriğin kendi adı, etiketi sahibinin adıyla türü ("LM Studio · Dil modeli"). Öğe başına en az 1 GB.
+3. Öneriler 1 GB altını gizler; alt satırda "Küçükleri de göster (n birim, x GB)".
+4. Kartta tek düğme: "Karantinaya al" (önbellek için "Temizle"). Onay kutusu yok; bildirimde "Geri al".
+   Kullanıcının tıkladığı karantina `IncludeUserData` taşır: İndirilenler ve Videolar'daki birimler artık reddedilmez.
+5. Karantina süresi 7 gün. Worker açılışta ve açık kaldıkça saatte bir süresi dolanı siler.
+6. Karantina ekranı: "Karantinayı boşalt" onaysız (`purge` + `Target=all`); seçili kalıcı silme de onaysız.
+7. Testler: çıkarıcı, boşaltma, onaysız akış; gerçek pencere görüntüsü; README.
+
+Güvenlik sınırı değişmez: yetkisiz arayüz dosyaya dokunmaz, her istek worker'da korumalı listeden geçer,
+yönetici yetkisiyle zamanlanmış görev kurulmaz (kullanıcı yazabilen exe'yi yükseltmek açık olurdu).

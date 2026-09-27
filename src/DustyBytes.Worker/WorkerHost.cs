@@ -5,6 +5,7 @@ namespace DustyBytes.Worker;
 
 public static class WorkerHost
 {
+    public static readonly TimeSpan PurgeEvery = TimeSpan.FromHours(1);
     public const int ExitOk = 0;
     public const int ExitUsage = 64;
     public const int ExitNoParent = 65;
@@ -51,16 +52,21 @@ public static class WorkerHost
         {
             var services = WorkerServices.CreateDefault();
             WorkerBindings.Register(services);
-            _ = Task.Run(() =>
+            _ = Task.Run(async () =>
             {
-                try
+                using var timer = new PeriodicTimer(PurgeEvery);
+                do
                 {
-                    if (AppSettings.Load().AutoPurge)
-                        services.Quarantine.PurgeExpired(maxAge: AppSettings.QuarantineDays);
+                    try
+                    {
+                        if (AppSettings.Load().AutoPurge)
+                            services.Quarantine.PurgeExpired(maxAge: AppSettings.QuarantineDays);
+                    }
+                    catch (Exception)
+                    {
+                    }
                 }
-                catch (Exception)
-                {
-                }
+                while (await timer.WaitForNextTickAsync());
             });
             var server = new WorkerServer(pipe, parent.Value, services);
             server.RunAsync().GetAwaiter().GetResult();

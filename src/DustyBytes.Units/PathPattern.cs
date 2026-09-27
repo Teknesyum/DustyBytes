@@ -7,12 +7,24 @@ internal static class PathPattern
     public static IEnumerable<ScanNode> Match(ScanNode root, string pattern)
     {
         IEnumerable<ScanNode> current = [root];
-        foreach (var segment in pattern.Split('\\', StringSplitOptions.RemoveEmptyEntries))
+        foreach (var segment in pattern.Split(['\\', '/'], StringSplitOptions.RemoveEmptyEntries))
         {
             current = current.SelectMany(n => n.Children ?? [])
-                .Where(c => c.IsDirectory && (segment == "*" || c.Name.Equals(segment, StringComparison.OrdinalIgnoreCase)));
+                .Where(c => c.IsDirectory && Fits(c.Name, segment));
         }
         return current;
+    }
+
+    public static bool Fits(string name, string segment)
+    {
+        var star = segment.IndexOf('*');
+        if (star < 0)
+            return name.Equals(segment, StringComparison.OrdinalIgnoreCase);
+        var head = segment[..star];
+        var tail = segment[(star + 1)..];
+        return name.Length >= head.Length + tail.Length &&
+               name.StartsWith(head, StringComparison.OrdinalIgnoreCase) &&
+               name.EndsWith(tail, StringComparison.OrdinalIgnoreCase);
     }
 }
 

@@ -135,6 +135,9 @@ public class ViewModelTests
         vm.GoTo(vm.Offers);
         await vm.Offers.Ready;
         var offers = vm.Offers;
+        Assert.Equal(4, offers.Cards.Count);
+        Assert.True(offers.HasSmall);
+        offers.ShowSmall = true;
         Assert.Equal(5, offers.Cards.Count);
 
         offers.SelectedFilter = offers.Filters.First(f => f.Label == "Oyun");
@@ -187,16 +190,35 @@ public class ViewModelTests
     }
 
     [AvaloniaFact]
-    public async Task Offers_Declined_User_Data_Confirm_Sends_Nothing()
+    public async Task Offers_One_Click_Quarantines_User_Data_Without_Confirm()
     {
         var backend = new FakeBackend();
-        var vm = Shell(backend, accept: false);
+        var vm = Shell(backend, accept: null);
         vm.GoTo(vm.Offers);
         await vm.Offers.Ready;
-        vm.Offers.Cards.First(c => c.Unit.Id == "u3").IsSelected = true;
-        await vm.Offers.QuarantineSelectedCommand.ExecuteAsync(null);
+        await vm.Offers.RemoveOneCommand.ExecuteAsync(vm.Offers.Cards.First(c => c.Unit.Id == "u3"));
         await Settle();
-        Assert.Empty(backend.Requests);
+        Assert.Null(vm.Confirm);
+        var request = Assert.Single(backend.Requests, r => r.Op == Ops.Quarantine);
+        Assert.Equal("u3", request.UnitId);
+        Assert.True(request.IncludeUserData);
+        var toast = Assert.Single(vm.Toasts, t => t.HasAction);
+        Assert.Contains("7 gün", toast.Message);
+    }
+
+    [AvaloniaFact]
+    public async Task Offers_One_Click_Direct_Delete_Needs_No_Confirm()
+    {
+        var backend = new FakeBackend();
+        var vm = Shell(backend, accept: null);
+        vm.GoTo(vm.Offers);
+        await vm.Offers.Ready;
+        var card = vm.Offers.Cards.First(c => c.Unit.Id == "u4");
+        Assert.Equal("Temizle", card.ActionText);
+        await vm.Offers.RemoveOneCommand.ExecuteAsync(card);
+        await Settle();
+        Assert.Null(vm.Confirm);
+        Assert.Single(backend.Requests, r => r.Op == Ops.Delete);
     }
 
     [AvaloniaFact]
@@ -237,19 +259,38 @@ public class ViewModelTests
     public void Counts_Use_Turkish_Thousands_Separator() => Assert.Equal("6.254", Format.Count(6254));
 
     [AvaloniaFact]
-    public async Task Quarantine_Purge_Asks_And_Decline_Sends_Nothing()
+    public async Task Quarantine_Purge_Needs_No_Confirm()
     {
         var backend = FakeBackend.Rich();
-        var vm = Shell(backend, accept: false);
+        var vm = Shell(backend, accept: null);
         await vm.Session.RefreshQuarantineAsync(vm);
         vm.GoTo(vm.Quarantine);
         await Settle();
         Assert.Equal(2, vm.Quarantine.Items.Count);
+        Assert.True(vm.Quarantine.HasWarnings);
+        var id = vm.Quarantine.Items[0].Id;
         vm.Quarantine.Items[0].IsSelected = true;
         await vm.Quarantine.PurgeCommand.ExecuteAsync(null);
         await Settle();
-        Assert.DoesNotContain(backend.Requests, r => r.Op == Ops.Purge);
-        Assert.True(vm.Quarantine.HasWarnings);
+        Assert.Null(vm.Confirm);
+        var purge = Assert.Single(backend.Requests, r => r.Op == Ops.Purge);
+        Assert.Equal([id], purge.Items);
+    }
+
+    [AvaloniaFact]
+    public async Task Quarantine_Empty_All_Sends_Target_All_Without_Confirm()
+    {
+        var backend = FakeBackend.Rich();
+        var vm = Shell(backend, accept: null);
+        await vm.Session.RefreshQuarantineAsync(vm);
+        vm.GoTo(vm.Quarantine);
+        await Settle();
+        await vm.Quarantine.EmptyAllCommand.ExecuteAsync(null);
+        await Settle();
+        Assert.Null(vm.Confirm);
+        var purge = Assert.Single(backend.Requests, r => r.Op == Ops.Purge);
+        Assert.Equal(Targets.All, purge.Target);
+        Assert.Empty(purge.Items);
     }
 
     [AvaloniaFact]

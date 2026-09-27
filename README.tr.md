@@ -30,14 +30,17 @@ Depolama Algısı ve Disk Temizleme geçici dosyaları, geri dönüşüm kutusun
 - **Klasör değil, amaç.** Bir Steam oyunu `steamapps` altındaki 40 000 dosya değil, launcher'ıyla birlikte tek satırdır.
 - **En son ne zaman kullandın.** Launcher kayıtları, Prefetch, UserAssist ve medya geçmişi son kullanım tarihini verir; liste boyut ve boşta kalma süresine birlikte göre sıralanır.
 - **Kalıntısız kaldırma.** Üreticinin kaldırıcısı çalıştıktan sonra programa ait kayıt defteri anahtarları, AppData klasörleri, hizmetler ve kısayollar bulunur, puanlanır ve karantinaya alınır.
+- **Büyüğü adıyla söyler.** Klasör yolu yerine "LM Studio · Dil modeli, 40 GB"; yanında silinirse ne olacağını anlatan tek sade cümle. 1 GB altı, istemedikçe öne çıkmaz.
+- **Tek tık, onay yok.** Her kartın kendi düğmesi var; hemen karantinaya alır, bildirimde Geri al çıkar.
 - **Arayüzün aşamadığı korumalı liste.** Her silme isteği yönetici worker'dan geçer; worker onu sistem, bulut ve paylaşılan çalışma zamanı kurallarına karşı denetler.
 
 ## Özellikler
 
 - **İki tarayıcı.** `FindFirstFileEx` her yerde çalışır; MFT okuyucu NTFS'te yönetici yetkisiyle çalışır ve hızlı yeniden tarama için USN imlecini saklar.
-- **Birimler.** Dokuz çıkarıcı taramayı oyun, program, film, dizi, geliştirici artığı, önbellek, tarayıcı önbelleği, kurulum dosyası ve sistem artığına çevirir.
+- **Birimler.** On çıkarıcı taramayı oyun, program, uygulama içeriği, film, dizi, geliştirici artığı, önbellek, tarayıcı önbelleği, kurulum dosyası ve sistem artığına çevirir.
+- **Bilinen içerik.** `rules/known-content.json` 24 ağır yeri adıyla tanır: yerel yapay zekâ modelleri (LM Studio, Ollama, Hugging Face, Jan, GPT4All, InvokeAI), Android emülatörleri, Steam gölgelendirici önbelleği, Adobe önbellekleri ve paket önbellekleri (npm, pnpm, Yarn, NuGet, Gradle, Maven, pip, uv, Cargo, Go). Docker, WSL ve iPhone yedekleri bilerek dışarıda: bunları dosya taşıyarak kaldırmak yanlış yol.
 - **Kullanım sinyalleri.** Steam, Epic, GOG ve diğer launcher'lar, Prefetch, UserAssist ve son medya; her tarihin kaynağı ve güvenilirliği gösterilir.
-- **Karantina.** Kaldırılan aynı sürücüde bir karantina klasörüne manifestiyle taşınır; kalıcı silinene kadar geri yüklenebilir. 3 günü geçenler (varsayılan, ölçülmemiş) yönetici yardımcısının bir sonraki çalışmasında kalıcı silinir; seçenek Karantina ekranından kapatılır.
+- **Karantina.** Kaldırılan aynı sürücüde bir karantina klasörüne manifestiyle taşınır; kalıcı silinene kadar geri yüklenebilir. 7 günü geçenler yönetici yardımcısı çalışırken kalıcı silinir: açıldığında ve sonra saatte bir. Karantina ekranı her şeyi tek tıkla boşaltır; otomatik silme de oradan kapatılır.
 - **Kaldırıcı.** Win32, MSI ve MSIX programlar; kaldırmadan önce kayıt defteri dışa aktarımı; kalıntılar Yüksek, Orta ya da Düşük güvenle puanlanır.
 - **Temizlik kuralları.** 23 JSON kural dosyası (tarayıcı önbellekleri, Windows geçici dosyaları, çökme dökümleri, uygulama önbellekleri) ve isteğe bağlı `winapp2.ini`; ayrıca DISM bileşen temizliği, Windows Update önbelleği ve Teslim İyileştirme.
 

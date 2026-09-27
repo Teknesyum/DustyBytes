@@ -13,4 +13,5 @@ Sahibin söylediği ve bitmemiş işler. Biten silinmez, işaretlenir. Ayrıntı
 - [x] A5 Temizlik
 - [x] A6 Hızlı Tarama
 - [x] A7 Yayın — v0.1.1 yayında; kod imzası açık, sertifika sahibin kararı
+- [x] A9 Fark: büyük içerik tanıyıcıları, tek tık karantina, 7 gün, onaysız boşaltma — 2026-09-27, denetim docs/ui-denetim/2026-09-27d.md
 - [ ] A8 İngilizce Arayüz — ertelendi: önce Türkçe arayüz tam yetkin olacak; sonra metinler locale/tr.json ve en.json'a taşınır, dil seçimi eklenir

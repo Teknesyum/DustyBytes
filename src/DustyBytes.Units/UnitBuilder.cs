@@ -11,6 +11,7 @@ public static class UnitBuilder
     [
         new GameExtractor(),
         new ProgramExtractor(),
+        new KnownContentExtractor(),
         new DevArtifactExtractor(),
         new BrowserCacheExtractor(),
         new CacheExtractor(),
@@ -25,14 +26,15 @@ public static class UnitBuilder
     {
         [UnitKind.Game] = 0,
         [UnitKind.Program] = 1,
-        [UnitKind.DevArtifact] = 2,
-        [UnitKind.BrowserCache] = 3,
-        [UnitKind.Cache] = 4,
-        [UnitKind.Installer] = 5,
-        [UnitKind.Series] = 6,
-        [UnitKind.Film] = 7,
-        [UnitKind.SystemArtifact] = 8,
-        [UnitKind.Folder] = 9,
+        [UnitKind.AppContent] = 2,
+        [UnitKind.DevArtifact] = 3,
+        [UnitKind.BrowserCache] = 4,
+        [UnitKind.Cache] = 5,
+        [UnitKind.Installer] = 6,
+        [UnitKind.Series] = 7,
+        [UnitKind.Film] = 8,
+        [UnitKind.SystemArtifact] = 9,
+        [UnitKind.Folder] = 10,
     };
 
     public static IReadOnlyList<Unit> Build(UnitContext ctx, Action<int, int>? stage = null) => Build(ctx, DefaultExtractors, stage);

@@ -30,14 +30,17 @@ Storage Sense and Disk Cleanup clear temp files, the recycle bin and old Windows
 - **Purpose, not folders.** A Steam game is one line with its launcher, not 40 000 files under `steamapps`.
 - **When you last used it.** Launcher records, Prefetch, UserAssist and media history give a last-used date; the list is sorted by size and idle time together.
 - **Leftover-free uninstall.** After the vendor uninstaller runs, registry keys, AppData folders, services and shortcuts that belonged to the program are found, scored and quarantined.
+- **It names what is big.** "LM Studio · Language model, 40 GB" instead of a folder path, with one plain sentence on what happens if it goes. Items under 1 GB stay out of the way unless you ask for them.
+- **One click, no dialog.** Each card has its own button. It quarantines at once and the toast offers Undo.
 - **A protected list the UI cannot bypass.** Every delete request goes through the elevated worker, which checks it against system, cloud and shared-runtime rules.
 
 ## Features
 
 - **Two scanners.** `FindFirstFileEx` works everywhere; the MFT reader works on NTFS with admin rights and keeps a USN cursor for quick rescans.
-- **Units.** Nine extractors turn the scan into games, programs, films, series, developer artifacts, caches, browser caches, installers and system artifacts.
+- **Units.** Ten extractors turn the scan into games, programs, app content, films, series, developer artifacts, caches, browser caches, installers and system artifacts.
+- **Known content.** `rules/known-content.json` names 24 heavy locations: local AI models (LM Studio, Ollama, Hugging Face, Jan, GPT4All, InvokeAI), Android emulators, Steam shader cache, Adobe caches and package caches (npm, pnpm, Yarn, NuGet, Gradle, Maven, pip, uv, Cargo, Go). Docker, WSL and iPhone backups are left out on purpose: moving their files is the wrong way to remove them.
 - **Usage signals.** Steam, Epic, GOG and other launchers, Prefetch, UserAssist and recent media; the source and reliability of each date is shown.
-- **Quarantine.** Removed items move to a quarantine folder on the same drive with a manifest; they can be restored until they are purged. Items older than 3 days (default, unmeasured) are purged the next time the elevated worker runs; the option can be turned off on the Quarantine screen.
+- **Quarantine.** Removed items move to a quarantine folder on the same drive with a manifest; they can be restored until they are purged. Items older than 7 days are purged while the elevated worker runs: when it starts and every hour after that. The Quarantine screen can empty everything at once, and automatic purge can be turned off there.
 - **Uninstaller.** Win32, MSI and MSIX programs; registry export before removal; leftovers scored High, Medium or Low confidence.
 - **Cleaning rules.** 23 JSON rule files (browser caches, Windows temp, crash dumps, app caches) and optional `winapp2.ini`, plus DISM component cleanup, Windows Update cache and Delivery Optimization.
 

@@ -174,7 +174,7 @@ public class QuarantineTests
     }
 
     [Fact]
-    public void Uc_Gunu_Gecen_Oge_Suresi_Uzun_Olsa_Da_Silinir()
+    public void Yedi_Gunu_Gecen_Oge_Suresi_Uzun_Olsa_Da_Silinir()
     {
         using var tree = new TempTree();
         var file = tree.File(@"kaynak\eski.bin", "123");
@@ -182,20 +182,39 @@ public class QuarantineTests
         var moved = store.Quarantine(file);
         Assert.True(moved.Ok);
 
-        Assert.Empty(store.PurgeExpired(DateTime.UtcNow.AddDays(2), DustyBytes.Core.AppSettings.QuarantineDays));
-        var purged = Assert.Single(store.PurgeExpired(DateTime.UtcNow.AddDays(3).AddMinutes(1), DustyBytes.Core.AppSettings.QuarantineDays));
+        Assert.Empty(store.PurgeExpired(DateTime.UtcNow.AddDays(6), DustyBytes.Core.AppSettings.QuarantineDays));
+        var purged = Assert.Single(store.PurgeExpired(DateTime.UtcNow.AddDays(7).AddMinutes(1), DustyBytes.Core.AppSettings.QuarantineDays));
         Assert.Equal(moved.Id, purged.Id);
         Assert.Empty(store.List());
     }
 
     [Fact]
-    public void Varsayilan_Karantina_Suresi_Uc_Gun_Ve_Otomatik_Silme_Acik()
+    public void Varsayilan_Karantina_Suresi_Yedi_Gun_Ve_Otomatik_Silme_Acik()
     {
-        Assert.Equal(TimeSpan.FromDays(3), new QuarantineOptions().Retention);
+        Assert.Equal(TimeSpan.FromDays(7), new QuarantineOptions().Retention);
         var file = Path.Combine(Path.GetTempPath(), "dustybytes-ayar-" + Guid.NewGuid().ToString("N") + ".json");
         Assert.True(DustyBytes.Core.AppSettings.Load(file).AutoPurge);
         new DustyBytes.Core.AppSettings { AutoPurge = false }.Save(file);
         Assert.False(DustyBytes.Core.AppSettings.Load(file).AutoPurge);
         File.Delete(file);
+    }
+
+    [Fact]
+    public void Karantinayi_Bosalt_Suresi_Dolmayanlari_Da_Hemen_Siler()
+    {
+        using var tree = new TempTree();
+        var a = tree.File(@"kaynak\a.bin", "123");
+        var b = tree.File(@"kaynak\b.bin", "4567");
+        var store = Store(tree);
+        Assert.True(store.Quarantine(a).Ok);
+        Assert.True(store.Quarantine(b).Ok);
+
+        var purged = store.PurgeAll();
+
+        Assert.Equal(2, purged.Count);
+        Assert.All(purged, r => Assert.True(r.Ok));
+        Assert.Empty(store.List());
+        Assert.False(File.Exists(a));
+        Assert.Empty(store.PurgeAll());
     }
 }

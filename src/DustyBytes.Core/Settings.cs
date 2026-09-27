@@ -5,7 +5,7 @@ namespace DustyBytes.Core;
 
 public sealed record AppSettings
 {
-    public static readonly TimeSpan QuarantineDays = TimeSpan.FromDays(3);
+    public static readonly TimeSpan QuarantineDays = TimeSpan.FromDays(7);
 
     public bool AutoPurge { get; init; } = true;
 

@@ -13,6 +13,7 @@ public static class KindText
     {
         UnitKind.Game => "Oyun",
         UnitKind.Program => "Program",
+        UnitKind.AppContent => "Uygulama içeriği",
         UnitKind.Film => "Film",
         UnitKind.Series => "Dizi",
         UnitKind.DevArtifact => "Geliştirici",
@@ -21,6 +22,21 @@ public static class KindText
         UnitKind.Installer => "Kurulum dosyası",
         UnitKind.SystemArtifact => "Sistem artığı",
         _ => "Klasör",
+    };
+
+    public static string Label(Unit unit) => unit.Label ?? Label(unit.Kind);
+
+    public static string Effect(Unit unit) => unit.Effect.Length > 0 ? unit.Effect : unit.Kind switch
+    {
+        UnitKind.Game => "Oyun kaldırılır. Kayıtlı oyunlarınız çoğunlukla bulutta durur; istediğinizde mağazadan yeniden indirirsiniz.",
+        UnitKind.Program => "Program kaldırılır. Gerekirse sitesinden yeniden kurarsınız.",
+        UnitKind.AppContent => "Uygulama bu içeriği kaybeder; gerekirse yeniden indirirsiniz. Uygulamanın kendisi çalışmaya devam eder.",
+        UnitKind.Film or UnitKind.Series => "Dosya bilgisayardan gider. Başka yerde kopyası yoksa bir daha izleyemezsiniz.",
+        UnitKind.DevArtifact => "Proje bir sonraki derlemede bunu kendiliğinden yeniden üretir. Kodunuza dokunulmaz.",
+        UnitKind.Cache or UnitKind.BrowserCache => "Hiçbir şey kaybolmaz; uygulamalar ihtiyaç duydukça yeniden oluşturur.",
+        UnitKind.Installer => "Program zaten kuruluysa etkisi yok. Yeniden kurmak isterseniz dosyayı tekrar indirirsiniz.",
+        UnitKind.SystemArtifact => "Windows'un eski güncelleme ve kurulum artıkları temizlenir. Bilgisayar olduğu gibi çalışır.",
+        _ => "Uzun süredir açılmamış bir klasör. İçinde lazım olan bir şey varsa 7 gün içinde karantinadan geri alırsınız.",
     };
 
     public static string Usage(UsageSignal usage, DateTimeOffset now) =>

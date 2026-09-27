@@ -124,6 +124,7 @@ public sealed partial class MapViewModel : ViewModelBase
     {
         UnitKind.Series => UnitKind.Film,
         UnitKind.BrowserCache => UnitKind.Cache,
+        UnitKind.AppContent => UnitKind.Program,
         _ => kind,
     };
 

@@ -3,6 +3,7 @@ using System.Collections.Specialized;
 using System.ComponentModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using DustyBytes.Core;
 using DustyBytes.Core.Ipc;
 using DustyBytes.Core.Model;
 
@@ -37,7 +38,8 @@ public sealed partial class UnitCard : ObservableObject
         Unit = unit;
         _changed = changed;
         _isSelected = selected;
-        KindLabel = KindText.Label(unit.Kind);
+        KindLabel = KindText.Label(unit);
+        Effect = KindText.Effect(unit);
         SizeText = Format.Bytes(unit.SizeBytes);
         UsageText = KindText.Usage(unit.Usage, now);
         PathText = unit.Paths.Count == 1 ? unit.Paths[0] : $"{unit.Paths[0]} ve {unit.Paths.Count - 1} yol daha";
@@ -46,6 +48,11 @@ public sealed partial class UnitCard : ObservableObject
     public Unit Unit { get; }
     public string Name => Unit.Name;
     public string KindLabel { get; }
+    public string Effect { get; }
+    public string ActionText => IsDirect ? "Temizle" : "Karantinaya al";
+    public string ActionHint => IsDirect
+        ? "Kendiliğinden yeniden oluşan dosyalar; hemen silinir"
+        : $"Hemen yer açılır; {AppSettings.QuarantineDays.Days} gün içinde istediğin an geri alırsın";
     public string SizeText { get; }
     public string UsageText { get; }
     public string PathText { get; }
@@ -93,6 +100,7 @@ public sealed partial class OffersViewModel : ViewModelBase
             new OfferFilter("Oyun", UnitKind.Game),
             new OfferFilter("Film", UnitKind.Film, UnitKind.Series),
             new OfferFilter("Program", UnitKind.Program),
+            new OfferFilter("Uygulama içeriği", UnitKind.AppContent),
             new OfferFilter("Geliştirici", UnitKind.DevArtifact),
             new OfferFilter("Önbellek", UnitKind.Cache, UnitKind.BrowserCache),
         ];
@@ -123,10 +131,22 @@ public sealed partial class OffersViewModel : ViewModelBase
     [ObservableProperty]
     private long _selectedBytes;
 
+    [ObservableProperty]
+    private bool _showSmall;
+
+    public const long SmallBytes = 1L << 30;
+    public bool HasSmall => SmallCount > 0;
+    int SmallCount => _all.Count(c => IsSmall(c) && SelectedFilter.Matches(c.Unit.Kind));
+    public string SmallText => $"1 GB altındakileri de göster · {Format.Count(SmallCount)} birim, {Format.Bytes(_all.Where(c => IsSmall(c) && SelectedFilter.Matches(c.Unit.Kind)).Sum(c => c.Unit.SizeBytes))}";
+
+    static bool IsSmall(UnitCard card) => card.Unit.SizeBytes < SmallBytes;
+
+    partial void OnShowSmallChanged(bool value) => Apply();
+
     public bool HasCards => Cards.Count > 0 && !IsLoading;
     public bool IsEmpty => Cards.Count == 0 && !IsLoading && _main.Session.HasSnapshot;
     public bool NoScan => !_main.Session.HasSnapshot;
-    public string EmptyText => _all.Count == 0 ? "Önerilecek birim bulunmadı" : "Bu süzgeçte birim yok";
+    public string EmptyText => _all.Count == 0 ? "Önerilecek birim bulunmadı" : HasSmall && !ShowSmall ? "1 GB üstünde birim yok" : "Bu süzgeçte birim yok";
     public string DisabledTip => "Önce en az bir birim seçin";
 
     partial void OnSelectedFilterChanged(OfferFilter value) => Apply();
@@ -180,7 +200,7 @@ public sealed partial class OffersViewModel : ViewModelBase
 
     void Apply()
     {
-        Cards.ReplaceAll(_all.Where(c => SelectedFilter.Matches(c.Unit.Kind)));
+        Cards.ReplaceAll(_all.Where(c => SelectedFilter.Matches(c.Unit.Kind) && (ShowSmall || !IsSmall(c))));
         RaiseState();
         Selected();
     }
@@ -191,6 +211,8 @@ public sealed partial class OffersViewModel : ViewModelBase
         OnPropertyChanged(nameof(IsEmpty));
         OnPropertyChanged(nameof(NoScan));
         OnPropertyChanged(nameof(EmptyText));
+        OnPropertyChanged(nameof(HasSmall));
+        OnPropertyChanged(nameof(SmallText));
     }
 
     public IReadOnlyList<UnitCard> Chosen => [.. _all.Where(c => c.IsSelected && c.IsBatch)];
@@ -207,23 +229,18 @@ public sealed partial class OffersViewModel : ViewModelBase
     bool CanQuarantine() => Chosen.Count > 0 && !Progress.IsRunning;
 
     [RelayCommand(CanExecute = nameof(CanQuarantine))]
-    private async Task QuarantineSelected()
+    private Task QuarantineSelected() => RemoveAsync(Chosen);
+
+    [RelayCommand]
+    private Task RemoveOne(UnitCard card) => card.IsBatch && !Progress.IsRunning ? RemoveAsync([card]) : Task.CompletedTask;
+
+    async Task RemoveAsync(IReadOnlyList<UnitCard> chosen)
     {
-        var chosen = Chosen;
         if (chosen.Count == 0)
             return;
-        var userData = chosen.Where(c => c.HasUserData).ToList();
-        if (userData.Count > 0 && !await _main.ConfirmAsync(
-                "Kullanıcı verisi var",
-                $"{string.Join(", ", userData.Select(c => c.Name))} kayıtlar ya da belgeler içeriyor. Karantinadan geri alınabilir, yine de gözden geçirin.",
-                "Kullanıcı verisiyle al", danger: false))
-            return;
-        var direct = chosen.Where(c => c.IsDirect).ToList();
-        if (direct.Count > 0 && !await _main.ConfirmAsync(
-                "Geri alınamaz silme",
-                $"{string.Join(", ", direct.Select(c => c.Name))} karantinaya sığmaz ve doğrudan silinir. Bu işlem geri alınamaz.",
-                "Kalıcı olarak sil"))
-            return;
+        var title = chosen.Count == 1
+            ? (chosen[0].IsDirect ? chosen[0].Name + " temizleniyor" : chosen[0].Name + " karantinaya alınıyor")
+            : "Seçilen birimler karantinaya alınıyor";
 
         var ids = new List<string>();
         var moved = new List<Unit>();
@@ -232,7 +249,7 @@ public sealed partial class OffersViewModel : ViewModelBase
         long freed = 0;
         try
         {
-            await Progress.RunAsync("Seçilen birimler karantinaya alınıyor", async (progress, ct) =>
+            await Progress.RunAsync(title, async (progress, ct) =>
             {
                 foreach (var card in chosen)
                 {
@@ -244,7 +261,7 @@ public sealed partial class OffersViewModel : ViewModelBase
                         Paths = [.. unit.Paths],
                         UnitId = unit.Id,
                         UserApproved = true,
-                        IncludeUserData = unit.ContainsUserData,
+                        IncludeUserData = !card.IsDirect || unit.ContainsUserData,
                     }, progress, ct);
                     dryRun |= response.DryRun;
                     freed += response.FreedBytes;
@@ -279,10 +296,11 @@ public sealed partial class OffersViewModel : ViewModelBase
         {
             _main.Session.RemoveUnits(moved.Select(u => u.Id));
             var bytes = moved.Sum(u => u.SizeBytes);
+            var what = moved.Count == 1 ? moved[0].Name : $"{moved.Count} birim";
             if (ids.Count > 0)
-                _main.Notify($"{moved.Count} birim karantinaya alındı, {Format.Bytes(bytes)}", "Geri al", () => UndoAsync(ids, moved));
+                _main.Notify($"{what} karantinada, {Format.Bytes(bytes)} yer açıldı. {AppSettings.QuarantineDays.Days} gün sonra kendiliğinden silinir.", "Geri al", () => UndoAsync(ids, moved));
             else
-                _main.Notify($"{moved.Count} birim işlendi, {Format.Bytes(bytes)}");
+                _main.Notify($"{what} temizlendi, {Format.Bytes(bytes)} yer açıldı");
         }
         foreach (var failure in failures)
             _main.Fail(failure);

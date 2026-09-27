@@ -34,6 +34,9 @@
           </DataTemplate>
         </ListBox.ItemTemplate>
       </ListBox>
+      <CheckBox Name="ShowSmallToggle" IsChecked="{Binding ShowSmall}" IsVisible="{Binding HasSmall}">
+        <TextBlock Theme="{StaticResource Hint}" Text="{Binding SmallText}"/>
+      </CheckBox>
     </StackPanel>
 
     <Border DockPanel.Dock="Bottom" Background="{StaticResource Surface}" BorderBrush="{StaticResource BorderDecorative}"
@@ -126,12 +129,16 @@
                         <TextBlock Theme="{StaticResource WarningBody}" FontSize="{StaticResource FontSize1}" Text="Kullanıcı verisi"/>
                       </Border>
                     </StackPanel>
-                    <TextBlock Theme="{StaticResource Body}" Text="{Binding UsageText}" TextWrapping="Wrap"/>
-                    <TextBlock Theme="{StaticResource Body}" Text="{Binding Reason}" IsVisible="{Binding HasReason}" TextWrapping="Wrap"/>
+                    <TextBlock Theme="{StaticResource Body}" Text="{Binding Effect}" TextWrapping="Wrap"/>
+                    <TextBlock Theme="{StaticResource Hint}" Text="{Binding UsageText}" TextWrapping="Wrap"/>
                     <TextBlock Theme="{StaticResource Hint}" FontFamily="{StaticResource FontMono}" Text="{Binding PathText}" TextWrapping="NoWrap" TextTrimming="PathSegmentEllipsis"/>
                   </StackPanel>
                   <StackPanel Grid.Column="2" Spacing="{StaticResource Space2}" HorizontalAlignment="Right" Margin="12,0,0,0">
                     <TextBlock Theme="{StaticResource MonoValue}" Classes="data" Text="{Binding SizeText}" HorizontalAlignment="Right"/>
+                    <Button Classes="ghost" IsVisible="{Binding IsBatch}" Content="{Binding ActionText}"
+                            ToolTip.Tip="{Binding ActionHint}" AutomationProperties.Name="{Binding ActionText}"
+                            Command="{Binding $parent[ItemsControl].((vm:OffersViewModel)DataContext).RemoveOneCommand}"
+                            CommandParameter="{Binding}"/>
                     <Button Classes="ghost" IsVisible="{Binding IsExternal}" Content="{Binding ExternalText}"
                             ToolTip.Tip="{Binding ExternalHint}"
                             Command="{Binding $parent[ItemsControl].((vm:OffersViewModel)DataContext).ExternalCommand}"

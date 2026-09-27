@@ -4,6 +4,7 @@ public enum UnitKind
 {
     Game,
     Program,
+    AppContent,
     Film,
     Series,
     DevArtifact,

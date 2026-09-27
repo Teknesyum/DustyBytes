@@ -6,7 +6,7 @@
              x:DataType="vm:QuarantineViewModel">
   <DockPanel>
     <StackPanel DockPanel.Dock="Top" Margin="24,24,24,12" Spacing="{StaticResource FieldGap}">
-      <Grid ColumnDefinitions="*,Auto,Auto">
+      <Grid ColumnDefinitions="*,Auto,Auto,Auto">
         <TextBlock Theme="{StaticResource H2}" Text="Karantina"/>
         <StackPanel Grid.Column="1" Margin="0,0,24,0" VerticalAlignment="Center">
           <TextBlock Theme="{StaticResource Label}" Text="Bekleyen"/>
@@ -16,10 +16,14 @@
           <TextBlock Theme="{StaticResource Label}" Text="Açılan"/>
           <TextBlock Theme="{StaticResource MonoValue}" Classes="data" Text="{Binding FreedText}"/>
         </StackPanel>
+        <Button Name="EmptyButton" Grid.Column="3" Classes="ghost" Content="Karantinayı boşalt" Margin="24,0,0,0"
+                VerticalAlignment="Center" IsVisible="{Binding HasItems}"
+                Command="{Binding EmptyAllCommand}"
+                ToolTip.Tip="Karantinadaki her şeyi şimdi kalıcı siler ve yeri hemen açar"/>
       </Grid>
       <TextBlock Theme="{StaticResource Hint}" Text="{Binding Note}" TextWrapping="Wrap"/>
       <CheckBox Name="AutoPurgeToggle" IsChecked="{Binding AutoPurge}"
-                ToolTip.Tip="Açıkken, karantinada 3 günü dolduran öğeler bir sonraki yönetici işleminde kalıcı silinir">
+                ToolTip.Tip="{Binding AutoPurgeTip}">
         <TextBlock Theme="{StaticResource Body}" Text="{Binding AutoPurgeText}" TextWrapping="Wrap"/>
       </CheckBox>
     </StackPanel>
@@ -65,7 +69,7 @@
         <Border Theme="{StaticResource Panel}" IsVisible="{Binding IsEmpty}">
           <StackPanel Spacing="{StaticResource FieldGap}">
             <TextBlock Theme="{StaticResource H3}" Text="Karantina boş"/>
-            <TextBlock Theme="{StaticResource Hint}" Text="Karantinaya alınanlar burada bekler; istediğin an geri alırsın. Üstteki seçenek açıksa 3 günü geçenler kalıcı silinir." TextWrapping="Wrap"/>
+            <TextBlock Theme="{StaticResource Hint}" Text="{Binding EmptyHint}" TextWrapping="Wrap"/>
             <Button Classes="primary" Content="Önerilere git" HorizontalAlignment="Left" Command="{Binding OpenOffersCommand}"/>
           </StackPanel>
         </Border>

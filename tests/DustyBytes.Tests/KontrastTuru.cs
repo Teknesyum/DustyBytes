@@ -40,7 +40,7 @@ static class KontrastTuru
         yield return "Bildirimler";
         vm.Toasts.Clear();
 
-        _ = vm.ConfirmAsync("Karantinaya taşınsın mı?", "Seçilen 3 birim karantinaya taşınır; 3 gün içinde geri alınabilir.", "Taşı");
+        _ = vm.ConfirmAsync("Karantinaya taşınsın mı?", "Seçilen 3 birim karantinaya taşınır; 7 gün içinde geri alınabilir.", "Taşı");
         Otur();
         yield return "Onay Tehlikeli";
         vm.Confirm = null;

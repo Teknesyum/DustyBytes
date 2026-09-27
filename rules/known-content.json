@@ -1,0 +1,125 @@
+{
+  "items": [
+    {
+      "owner": "LM Studio", "what": "Dil modeli", "each": true,
+      "patterns": ["Users/*/.lmstudio/models/*/*", "Users/*/.cache/lm-studio/models/*/*"],
+      "effect": "LM Studio bu modeli listeden düşürür. Tekrar kullanmak isterseniz LM Studio'dan yeniden indirirsiniz; program ve diğer modeller etkilenmez."
+    },
+    {
+      "owner": "Ollama", "what": "Dil modelleri",
+      "patterns": ["Users/*/.ollama/models"],
+      "effect": "Ollama'daki bütün modeller gider. Ollama çalışmaya devam eder; bir modeli kullanmak istediğinizde yeniden indirir."
+    },
+    {
+      "owner": "Hugging Face", "what": "Yapay zekâ modeli", "each": true,
+      "patterns": ["Users/*/.cache/huggingface/hub/models--*"],
+      "effect": "Bu modeli kullanan program bir dahaki açılışta modeli yeniden indirir. Başka hiçbir şey etkilenmez."
+    },
+    {
+      "owner": "Hugging Face", "what": "Veri kümesi", "each": true,
+      "patterns": ["Users/*/.cache/huggingface/hub/datasets--*"],
+      "effect": "Bu veri kümesi gerektiğinde yeniden indirilir. Başka hiçbir şey etkilenmez."
+    },
+    {
+      "owner": "Jan", "what": "Dil modeli", "each": true,
+      "patterns": ["Users/*/AppData/Roaming/Jan/data/llamacpp/models/*/*"],
+      "effect": "Jan bu modeli listeden düşürür; tekrar kullanmak isterseniz Jan'dan yeniden indirirsiniz."
+    },
+    {
+      "owner": "GPT4All", "what": "Dil modelleri",
+      "patterns": ["Users/*/AppData/Local/nomic.ai/GPT4All"],
+      "effect": "GPT4All'daki modeller gider; uygulamadan yeniden indirirsiniz. Sohbet geçmişi de bu klasörde durur.",
+      "userData": true
+    },
+    {
+      "owner": "InvokeAI", "what": "Görsel modelleri",
+      "patterns": ["Users/*/invokeai/models"],
+      "effect": "InvokeAI'daki görsel üretim modelleri gider; uygulamadan yeniden indirirsiniz. Ürettiğiniz resimler etkilenmez."
+    },
+    {
+      "owner": "Android Studio", "what": "Sanal telefon", "each": true,
+      "patterns": ["Users/*/.android/avd/*.avd"],
+      "effect": "Bu sanal telefon ve içine kurduğunuz uygulamalar gider; telefonu fabrika ayarlarına döndürmek gibi. Android Studio'dan birkaç tıkla yeniden oluşturursunuz."
+    },
+    {
+      "owner": "Android Studio", "what": "Emülatör görüntüleri",
+      "patterns": ["Users/*/AppData/Local/Android/Sdk/system-images"],
+      "effect": "Sanal telefonların sistem dosyaları gider. Sanal telefonlar, Android Studio gerekeni yeniden indirene kadar açılmaz."
+    },
+    {
+      "owner": "Steam", "what": "Gölgelendirici önbelleği",
+      "patterns": ["Program Files (x86)/Steam/steamapps/shadercache", "Program Files/Steam/steamapps/shadercache"],
+      "effect": "Oyunlar ilk açılışta görüntü dosyalarını yeniden hazırlar; ilk birkaç dakika hafif takılma olabilir. Oyunlarınız ve kayıtlarınız etkilenmez."
+    },
+    {
+      "owner": "NVIDIA", "what": "Eski sürücü indirmeleri",
+      "patterns": ["ProgramData/NVIDIA Corporation/Downloader"],
+      "effect": "Kurulu ekran kartı sürücünüz etkilenmez. Yalnız eski bir sürücüye indirmeden geri dönme imkânı kalkar."
+    },
+    {
+      "owner": "Adobe Premiere", "what": "Medya önbelleği",
+      "patterns": ["Users/*/AppData/Roaming/Adobe/Common/Media Cache Files", "Users/*/AppData/Roaming/Adobe/Common/Media Cache"],
+      "effect": "Premiere önizlemeleri yeniden hazırlar; projeleriniz ve videolarınız etkilenmez."
+    },
+    {
+      "owner": "After Effects", "what": "Disk önbelleği",
+      "patterns": ["Users/*/AppData/Roaming/Adobe/After Effects/Disk Cache"],
+      "effect": "After Effects önizleme karelerini yeniden oluşturur; projeleriniz ve kaynak dosyalarınız etkilenmez."
+    },
+    {
+      "owner": "Unity", "what": "Paket önbelleği",
+      "patterns": ["Users/*/AppData/Local/Unity/cache"],
+      "effect": "Unity projeleri açılırken gerekli paketleri yeniden indirir. Projeleriniz etkilenmez."
+    },
+    {
+      "owner": "Gradle", "what": "Paket önbelleği",
+      "patterns": ["Users/*/.gradle/caches"],
+      "effect": "Android ve Java projeleri bir sonraki derlemede gerekenleri yeniden indirir. Kodunuz etkilenmez."
+    },
+    {
+      "owner": "Maven", "what": "Paket önbelleği",
+      "patterns": ["Users/*/.m2/repository"],
+      "effect": "Java projeleri bir sonraki derlemede gerekenleri yeniden indirir. Kodunuz etkilenmez."
+    },
+    {
+      "owner": "NuGet", "what": "Paket önbelleği",
+      "patterns": ["Users/*/.nuget/packages", "Users/*/AppData/Local/NuGet/v3-cache"],
+      "effect": ".NET projeleri bir sonraki derlemede gerekenleri yeniden indirir. Kodunuz etkilenmez."
+    },
+    {
+      "owner": "npm", "what": "Paket önbelleği",
+      "patterns": ["Users/*/AppData/Local/npm-cache"],
+      "effect": "JavaScript projeleri gerektiğinde paketleri yeniden indirir. Kodunuz etkilenmez."
+    },
+    {
+      "owner": "pnpm", "what": "Paket deposu",
+      "patterns": ["Users/*/AppData/Local/pnpm/store"],
+      "effect": "JavaScript projeleri bir sonraki kurulumda paketleri yeniden indirir. Kodunuz etkilenmez."
+    },
+    {
+      "owner": "Yarn", "what": "Paket önbelleği",
+      "patterns": ["Users/*/AppData/Local/Yarn/Cache"],
+      "effect": "JavaScript projeleri gerektiğinde paketleri yeniden indirir. Kodunuz etkilenmez."
+    },
+    {
+      "owner": "pip", "what": "Paket önbelleği",
+      "patterns": ["Users/*/AppData/Local/pip/cache"],
+      "effect": "Python paketleri gerektiğinde yeniden indirilir. Kurulu paketleriniz etkilenmez."
+    },
+    {
+      "owner": "uv", "what": "Paket önbelleği",
+      "patterns": ["Users/*/AppData/Local/uv/cache"],
+      "effect": "Python projeleri gerektiğinde paketleri yeniden indirir. Kodunuz etkilenmez."
+    },
+    {
+      "owner": "Cargo", "what": "Paket önbelleği",
+      "patterns": ["Users/*/.cargo/registry"],
+      "effect": "Rust projeleri bir sonraki derlemede gerekenleri yeniden indirir. Kodunuz etkilenmez."
+    },
+    {
+      "owner": "Go", "what": "Modül önbelleği",
+      "patterns": ["Users/*/go/pkg/mod"],
+      "effect": "Go projeleri bir sonraki derlemede gerekenleri yeniden indirir. Kodunuz etkilenmez."
+    }
+  ]
+}

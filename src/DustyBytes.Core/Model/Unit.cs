@@ -13,5 +13,7 @@ public sealed record Unit
     public bool ContainsUserData { get; init; }
     public string? LauncherUri { get; init; }
     public string Reason { get; init; } = "";
+    public string Effect { get; init; } = "";
+    public string? Label { get; init; }
     public double Score { get; init; }
 }

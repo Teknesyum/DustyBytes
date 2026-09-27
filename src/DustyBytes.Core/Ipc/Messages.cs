@@ -19,6 +19,12 @@ public static class Ops
     public const string Shutdown = "shutdown";
 }
 
+public static class Targets
+{
+    public const string Expired = "expired";
+    public const string All = "all";
+}
+
 public sealed record WorkerRequest
 {
     public required string Op { get; init; }

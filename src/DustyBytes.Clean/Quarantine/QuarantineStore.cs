@@ -361,6 +361,19 @@ public sealed class QuarantineStore
         return results;
     }
 
+    public IReadOnlyList<OpResult> PurgeAll()
+    {
+        var results = new List<OpResult>();
+        foreach (var root in KnownRoots())
+        {
+            var manifest = new QuarantineManifest(root);
+            Recover(manifest);
+            foreach (var entry in manifest.All(includeClosed: false).Where(e => e.State == QuarantineState.Pending).ToList())
+                results.Add(PurgeEntry(manifest, entry));
+        }
+        return results;
+    }
+
     static void Recover(QuarantineManifest manifest)
     {
         foreach (var entry in manifest.All(includeClosed: false).Where(e => e.State == QuarantineState.Moving))

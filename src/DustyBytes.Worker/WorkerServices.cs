@@ -29,7 +29,8 @@ public sealed class WorkerServices
     }
 
     public const string TargetOnReboot = "on-reboot";
-    public const string TargetExpired = "expired";
+    public const string TargetExpired = Targets.Expired;
+    public const string TargetAll = Targets.All;
 
     internal Task<WorkerResponse> ExecuteAsync(WorkerRequest request, IProgress<WorkerProgress> progress, CancellationToken ct) =>
         request.Op switch
@@ -97,6 +98,12 @@ public sealed class WorkerServices
         {
             progress.Report(new WorkerProgress(request.Id, request.Op, 0, "Süresi dolanlar"));
             return Collect(request, [.. Quarantine.PurgeExpired()]) with { Ok = true };
+        }
+        if (request.Items.Count == 0 && request.Target == TargetAll)
+        {
+            progress.Report(new WorkerProgress(request.Id, request.Op, 0, "Karantinanın tamamı"));
+            var all = Quarantine.PurgeAll();
+            return Collect(request, [.. all]) with { Ok = all.All(r => r.Ok) };
         }
         return PerId(request, progress, ct, Quarantine.Purge);
     }
