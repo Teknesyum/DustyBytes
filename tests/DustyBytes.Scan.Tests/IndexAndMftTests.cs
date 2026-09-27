@@ -40,6 +40,50 @@ public sealed class IndexAndMftTests(ScanFixture fx, ITestOutputHelper output)
     }
 
     [Fact]
+    public async Task TreeCodecRoundTrip()
+    {
+        var r = await new FileScanner().ScanAsync(fx.Root, new ScanOptions(), null, default);
+        var source = new ScanResult
+        {
+            Root = r.Root,
+            Files = r.Files,
+            Directories = r.Directories,
+            Elapsed = r.Elapsed,
+            FinishedAt = r.FinishedAt,
+            Errors = [.. r.Errors, "ikinci hata"],
+            Cancelled = true,
+            Method = "MFT",
+            Usn = new UsnCursor(0xFEDCBA9876543210, 123456789),
+        };
+        var file = r.Root.Descendants().First(n => !n.IsDirectory);
+        file.CloudSize = 777;
+        file.NewestWriteTicks = file.LastWriteTicks + 5;
+        file.Flags |= NodeFlags.CloudPlaceholder;
+        using var stream = new MemoryStream();
+        ScanTreeCodec.Write(source, stream);
+        stream.Position = 0;
+        var back = ScanTreeCodec.Read(stream);
+        output.WriteLine($"{r.Files + r.Directories + 1} düğüm, {stream.Length} bayt");
+
+        Assert.Equal(source.Files, back.Files);
+        Assert.Equal(source.Directories, back.Directories);
+        Assert.Equal(source.Elapsed, back.Elapsed);
+        Assert.Equal(source.FinishedAt, back.FinishedAt);
+        Assert.Equal(source.Errors, back.Errors);
+        Assert.True(back.Cancelled);
+        Assert.Equal("MFT", back.Method);
+        Assert.Equal(source.Usn, back.Usn);
+        Assert.Null(back.Root.Parent);
+        Assert.Equal(Flatten(source.Root), Flatten(back.Root));
+        Assert.Equal(fx.LongFile, back.Root.Find(fx.LongFile)!.FullPath);
+        Assert.All(back.Root.Descendants(), n => Assert.Contains(n, n.Parent!.Children!));
+
+        static List<string> Flatten(ScanNode root) =>
+            [.. new[] { root }.Concat(root.Descendants()).Select(n =>
+                $"{n.FullPath}|{n.IsDirectory}|{n.Size}|{n.LogicalSize}|{n.CloudSize}|{n.LastWriteTicks}|{n.NewestWriteTicks}|{n.FileCount}|{n.Flags}|{n.ReparseTag}|{n.Children?.Count ?? 0}")];
+    }
+
+    [Fact]
     [Trait("Kind", "Machine")]
     public async Task FastScannerMatchesFileScanner()
     {

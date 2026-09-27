@@ -350,8 +350,8 @@ Kaynak: [danışma 002](danisma/002-fable-dustybytes-tarama-akisi.md). Sahibin s
 tarama yaptıkça silinebilir özellikleri bastıralım görelim".
 
 1. Kaydetme bekleme yolundan çıktı (ce331a2): normal taramada −7/8 sn.
-2. Hızlı taramada worker ağacı SQLite yerine ikili dosyayla (`ScanTreeCodec`) geçirir; SQLite kaydı yanıttan sonra
-   worker'da arka planda. Hedef: hızlı tarama başlat → kartlar ≤ 11 sn.
+2. Hızlı taramada worker ağacı SQLite yerine ikili dosyayla (`ScanTreeCodec`) geçirir; SQLite kaydını arayüz
+   arka planda yapar (tek yazıcı, iki süreç aynı dizine yazmaz). Hedef: hızlı tarama başlat → kartlar ≤ 11 sn.
 3. USN artımlı yenileme varsayılan: önbellek yükle → imleç geçerliyse `UsnUpdater` → birimler. Tam tarama yalnız
    indeks yoksa, günlük sıfırlandıysa ya da "Baştan tara" denirse. Yetkisiz okuma (`FSCTL_READ_UNPRIVILEGED_USN_JOURNAL`)
    önce denenir, olmazsa worker (`Ops.UsnRefresh`). Ölçüt: yenileme sonucu = tam tarama sonucu (birim kimlikleri ve toplam boyut).

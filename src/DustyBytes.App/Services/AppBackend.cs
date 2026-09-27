@@ -167,11 +167,35 @@ public sealed class AppBackend : IAppBackend, IAsyncDisposable
         var response = await SendAsync(new WorkerRequest { Op = Ops.FastScan, Target = ScanRoot }, Span(progress, 0, 75)!, ct).ConfigureAwait(false);
         if (!response.Ok)
             throw new InvalidOperationException(response.Message);
-        var path = response.Payload is { Length: > 0 } p && File.Exists(p) ? p : null;
-        var rows = Rows(progress, "Hızlı tarama sonucu okunuyor", 75, 90);
-        var result = await Task.Run(() => new ScanIndex(path).Load(ScanRoot, rows), ct).ConfigureAwait(false)
-            ?? throw new InvalidOperationException("Hızlı tarama sonucu dizinde bulunamadı");
-        return await Build(result, progress, ct).ConfigureAwait(false);
+        progress.Report(new TaskStep("Hızlı tarama sonucu okunuyor", 75, null));
+        var result = await Task.Run(() => ReadTree(response.Payload), ct).ConfigureAwait(false);
+        var snapshot = await Build(result, progress, ct).ConfigureAwait(false);
+        _ = SaveAsync(result);
+        return snapshot;
+    }
+
+    static ScanResult ReadTree(string? path)
+    {
+        if (path is not { Length: > 0 } || !SafeUnder(path, Paths.AppData) || !File.Exists(path))
+            throw new InvalidOperationException("Hızlı tarama sonucu bulunamadı");
+        try
+        {
+            return ScanTreeCodec.Read(path);
+        }
+        catch (Exception e) when (e is EndOfStreamException or InvalidDataException)
+        {
+            throw new InvalidOperationException("Hızlı tarama sonucu okunamadı: " + e.Message, e);
+        }
+        finally
+        {
+            try
+            {
+                File.Delete(path);
+            }
+            catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+            {
+            }
+        }
     }
 
     public async Task<IReadOnlyList<ProgramInfo>> ListProgramsAsync(IProgress<TaskStep> progress, CancellationToken ct)

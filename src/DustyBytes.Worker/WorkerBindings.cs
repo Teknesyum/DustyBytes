@@ -98,6 +98,14 @@ public static class WorkerBindings
         return new QuarantineStore(gate, null, new RecycleBin(gate));
     }
 
+    public const string FastScanFile = "fastscan.bin";
+
+    static string TreePath(string name)
+    {
+        Directory.CreateDirectory(Paths.AppData);
+        return Path.Combine(Paths.AppData, name);
+    }
+
     public static async Task<WorkerResponse> FastScan(WorkerRequest request, IProgress<WorkerProgress> progress, CancellationToken ct)
     {
         var root = string.IsNullOrWhiteSpace(request.Target) ? Path.GetPathRoot(Environment.SystemDirectory)! : request.Target;
@@ -108,13 +116,13 @@ public static class WorkerBindings
 
         var sink = new Relay(p => progress.Report(new WorkerProgress(request.Id, p.Step, p.Percent, p.CurrentPath)));
         var result = await new FastScanner().ScanAsync(root, new ScanOptions(), sink, ct).ConfigureAwait(false);
-        var index = new ScanIndex();
-        index.Save(result);
+        var path = TreePath(FastScanFile);
+        ScanTreeCodec.Write(result, path);
         return new WorkerResponse
         {
             Id = request.Id,
             Ok = true,
-            Payload = index.Path,
+            Payload = path,
             Message = $"Hızlı tarama bitti: {result.Files:N0} dosya, {result.Directories:N0} klasör",
         };
     }
