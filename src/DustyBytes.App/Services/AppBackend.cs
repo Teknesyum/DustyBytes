@@ -130,18 +130,27 @@ public sealed class AppBackend : IAppBackend, IAsyncDisposable
         var sink = new Relay<ScanProgress>(p => scan.Report(new TaskStep(p.Step, p.Percent, p.CurrentPath)));
         var result = await new FileScanner().ScanAsync(ScanRoot, new ScanOptions(), sink, ct).ConfigureAwait(false);
         ct.ThrowIfCancellationRequested();
-        progress.Report(new TaskStep("Sonuç kaydediliyor", 85, "Bir sonraki açılışta hemen gösterilsin diye"));
-        await Task.Run(() =>
+        var snapshot = await Build(result, progress, ct).ConfigureAwait(false);
+        _ = SaveAsync(result);
+        return snapshot;
+    }
+
+    readonly SemaphoreSlim _saveGate = new(1, 1);
+
+    async Task SaveAsync(ScanResult result)
+    {
+        await _saveGate.WaitAsync().ConfigureAwait(false);
+        try
         {
-            try
-            {
-                new ScanIndex().Save(result);
-            }
-            catch (Exception e) when (e is IOException or UnauthorizedAccessException or Microsoft.Data.Sqlite.SqliteException)
-            {
-            }
-        }, ct).ConfigureAwait(false);
-        return await Build(result, progress, ct).ConfigureAwait(false);
+            await Task.Run(() => new ScanIndex().Save(result)).ConfigureAwait(false);
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException or Microsoft.Data.Sqlite.SqliteException)
+        {
+        }
+        finally
+        {
+            _saveGate.Release();
+        }
     }
 
     public Availability FastScanAvailability()

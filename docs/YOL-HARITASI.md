@@ -15,4 +15,7 @@ Sahibin söylediği ve bitmemiş işler. Biten silinmez, işaretlenir. Ayrıntı
 - [x] A7 Yayın — v0.1.1 yayında; kod imzası açık, sertifika sahibin kararı
 - [x] A9 Fark: büyük içerik tanıyıcıları, tek tık karantina, 7 gün, onaysız boşaltma — 2026-09-27, denetim docs/ui-denetim/2026-09-27d.md
 - [x] A10 Oyunlarda tek tık karantina, hızlı açılış
+- [x] A11 Kalıcı silme (tehlike onayıyla), büyük metin, ekranı kaplayan pencere — v0.4.0
+- [ ] A12 Hızlı Tarama Akışı ([002](danisma/002-fable-dustybytes-tarama-akisi.md)): kaydetme arka planda; hızlı taramada SQLite yerine ikili aktarım; USN artımlı yenileme varsayılan; yardımcı ayaktaysa MFT; ağaçtan bağımsız türler tarama sürerken görünür
+- [ ] A13 Kalıntısız Kaldırma: kayıt defteri ve dosya kalıntısı bırakmadan kaldırma (araştırma + fable)
 - [ ] A8 İngilizce Arayüz — ertelendi: önce Türkçe arayüz tam yetkin olacak; sonra metinler locale/tr.json ve en.json'a taşınır, dil seçimi eklenir
