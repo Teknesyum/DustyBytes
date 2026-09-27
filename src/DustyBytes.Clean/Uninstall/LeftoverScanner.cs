@@ -71,6 +71,7 @@ public sealed partial class LeftoverScanner
             ("Başlangıç girdileri", () => { if (_ctx.ScanStartup) ScanRunKeys(b); }),
             ("Kısayollar", () => ScanShortcuts(b)),
             ("Dosya ilişkileri", () => { if (_ctx.ScanAssociations) ScanAssociations(b); }),
+            ("COM ve kabuk uzantıları", () => { if (_ctx.ScanAssociations) ScanCom(b); }),
             ("Güvenlik duvarı kuralları", () => { if (_ctx.ScanFirewall) ScanFirewall(b); }),
         };
 
