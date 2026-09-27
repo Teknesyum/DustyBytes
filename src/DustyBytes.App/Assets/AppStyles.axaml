@@ -305,6 +305,13 @@
 
   </Styles.Resources>
 
+  <Style Selector="Path.navicon">
+    <Setter Property="Stroke" Value="{StaticResource Renk1}"/>
+  </Style>
+  <Style Selector="ListBoxItem:selected Path.navicon">
+    <Setter Property="Stroke" Value="{StaticResource OnRenk1x20}"/>
+  </Style>
+
   <Style Selector="TextBlock">
     <Setter Property="FontFeatures" Value="+tnum"/>
     <Setter Property="ClipToBounds" Value="False"/>

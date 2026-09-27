@@ -66,16 +66,16 @@
       "reason": "Yanlış eşleşme: NeonBlue zeminli kutunun içindeki işaret OnBlue ile çizilir (satır 279); TextBody yalnız kutunun dışındaki etikete uygulanır. KontrastTests altı ekranda ve üç ölçekte geçiyor."
     }
   ],
-  "duzen": "52e0c6b7355cba20",
+  "duzen": "a0eaf97ec84216aa",
   "denetim": {
-    "tarih": "2026-09-27T04:29:56.156Z",
+    "tarih": "2026-09-27T07:56:06.800Z",
     "duzen": "52e0c6b7355cba20"
   },
-  "plugin": "0.20.0",
+  "plugin": "0.26.0",
   "uc": {
-    "surum": "0.20.0",
-    "duzen": "52e0c6b7355cba20",
-    "commit": "a3b495d0bf2b0237c0eb9a69456e1331b86df6ae",
+    "surum": "0.26.0",
+    "duzen": "a0eaf97ec84216aa",
+    "commit": "4e7363715a1b2277abee9d80df45b86eb19d2cbb",
     "tarih": "2026-09-27"
   }
 }

@@ -51,7 +51,7 @@
             <DataTemplate x:DataType="vm:NavItem">
               <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space3}">
                 <Viewbox Width="{StaticResource IconSize2}" MinHeight="{StaticResource IconSize2}" VerticalAlignment="Center">
-                  <Path Data="{Binding Glyph}" Stroke="{StaticResource Renk1}" StrokeThickness="1.5"
+                  <Path Classes="navicon" Data="{Binding Glyph}" StrokeThickness="1.5"
                         StrokeLineCap="Round" StrokeJoin="Round" Width="24" MinHeight="24"/>
                 </Viewbox>
                 <TextBlock Text="{Binding Label}" VerticalAlignment="Center"/>
