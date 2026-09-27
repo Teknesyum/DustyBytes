@@ -120,7 +120,29 @@ public sealed partial class LeftoverScanner
             }
             remaining.Add(c.Kind is LeftoverKind.Folder or LeftoverKind.File ? c with { Bytes = FolderSize.MeasureAny(c.Target) } : c);
         }
-        return before with { IsDiff = true, Candidates = remaining, Blocked = blocked };
+
+        var again = Snapshot(program);
+        var merged = remaining.ToDictionary(c => c.Id, StringComparer.OrdinalIgnoreCase);
+        var fresh = 0;
+        foreach (var c in again.Candidates)
+        {
+            if (merged.TryGetValue(c.Id, out var known))
+            {
+                if (c.Score > known.Score)
+                    merged[c.Id] = c with { Bytes = known.Bytes };
+                continue;
+            }
+            merged[c.Id] = c.Kind is LeftoverKind.Folder or LeftoverKind.File ? c with { Bytes = FolderSize.MeasureAny(c.Target) } : c;
+            fresh++;
+        }
+        foreach (var bc in again.Blocked)
+            if (!blocked.Any(x => x.Kind == bc.Kind && x.Target.Equals(bc.Target, StringComparison.OrdinalIgnoreCase)))
+                blocked.Add(bc);
+        var notes = before.Notes.ToList();
+        if (fresh > 0)
+            notes.Add($"Kaldırma sonrası ikinci tarama {fresh} yeni iz buldu");
+        var candidates = CollapseNested(merged.Values).OrderByDescending(c => c.Tier).ThenByDescending(c => c.Score).ToList();
+        return before with { IsDiff = true, Candidates = candidates, Blocked = blocked, Notes = notes };
     }
 
     public bool IsStillInstalled(InstalledProgram program)

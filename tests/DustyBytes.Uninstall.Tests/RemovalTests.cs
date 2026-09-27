@@ -355,4 +355,22 @@ public class RemovalTests : IDisposable
         Assert.DoesNotContain(snap.Candidates, c => c.Kind == LeftoverKind.Folder && Paths.Normalize(c.Target) == Paths.Normalize(s.Dir));
         Assert.Contains(snap.Blocked, b => b.Reason.Contains("SharedDLLs"));
     }
+
+    [Fact]
+    public void SecondSnapshotAfterUninstallAddsNewTraces()
+    {
+        using var s = new Setup();
+        var before = s.Scanner.Snapshot(s.Program);
+        s.Reg.DeleteKeyTree(s.Key);
+        File.Delete(s.Unins);
+        var fresh = s.Tree.Dir(@"Programs\Zqxv Widget");
+        s.Tree.File(@"Programs\Zqxv Widget\uninstall.log", "x");
+
+        var diff = s.Scanner.Diff(before);
+
+        Assert.DoesNotContain(before.Candidates, c => Paths.Normalize(c.Target) == Paths.Normalize(fresh));
+        Assert.Contains(diff.Candidates, c => Paths.Normalize(c.Target) == Paths.Normalize(fresh));
+        Assert.Contains(diff.Notes, n => n.Contains("ikinci tarama"));
+        Assert.Contains(diff.Candidates, c => Paths.Normalize(c.Target) == Paths.Normalize(s.Dir));
+    }
 }
