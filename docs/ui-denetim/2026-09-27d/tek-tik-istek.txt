@@ -1,0 +1,3 @@
+quarantine	AppContent-D41C7E63043538B1	IncludeUserData=True	UserApproved=True
+Onay penceresi: yok
+Bildirim: Muse-Glimmer-30B-Abliterated-GGUF karantinada, 15,8 GB yer açıldı. 7 gün sonra kendiliğinden silinir.

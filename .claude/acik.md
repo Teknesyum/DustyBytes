@@ -1,4 +1,21 @@
 - [ ] Kod imzası — 2026-09-25 13:45 — sertifika satın alma kararı sahibin
 - [ ] A8 İngilizce arayüz — 2026-09-25 14:05 — ertelendi: önce Türkçe tam yetkin olacak, sonra sahip başlatır
-- [x] Kur penceresi GitHub Releases + sha256 kaynağı — 2026-09-27 02:15 — yapıldı: docs/ui-denetim/2026-09-27c.md; kullanıcıda çalışması için depo açık olmalı (sahip kararı)
-- [ ] uc çalıştır: UI 0.18.0 → 0.20.0 (`node "C:\Users\Administrator\.claude\plugins\cache\teknesyum\teknesyum-ui\0.20.0\scripts\uc.js"` çıktısını izle, bitince `--bitti`) — 2026-09-27 06:47 — teknesyum-ui
+- [x] uc çalıştır: UI 0.18.0 → 0.20.0 (`node "C:\Users\Administrator\.claude\plugins\cache\teknesyum\teknesyum-ui\0.20.0\scripts\uc.js"` çıktısını izle, bitince `--bitti`) — 2026-09-27 06:47 — yapıldı: 0.20.0 kaydedildi, docs/ui-denetim/2026-09-27d.md
+- [ ] Kurucunun kullanıcıda çalışması — 2026-09-27 06:55 — depo özel, GitHub 404 döner; depoyu açmak sahibin kararı
+- [x] ajan: Map offers, delete and quarantine flow — 2026-09-27 06:56 — aktarıldı: docs/danisma/buyuk-icerik-arastirmasi.md
+- [x] ajan: Research heavy content locations — 2026-09-27 06:56 — aktarıldı: docs/danisma/buyuk-icerik-arastirmasi.md
+- [x] ajan: Research AI/LLM tool storage footprints — 2026-09-27 06:57 — aktarıldı: docs/danisma/buyuk-icerik-arastirmasi.md
+- [x] ajan: Research game launcher storage footprints — 2026-09-27 06:57 — aktarıldı: docs/danisma/buyuk-icerik-arastirmasi.md
+- [x] ajan: Research virtualization/emulation storage footprints — 2026-09-27 06:57 — aktarıldı: docs/danisma/buyuk-icerik-arastirmasi.md
+- [x] ajan: Research dev tool cache storage footprints — 2026-09-27 06:58 — aktarıldı: docs/danisma/buyuk-icerik-arastirmasi.md
+- [x] ajan: Research media/creative app storage footprints — 2026-09-27 06:58 — aktarıldı: docs/danisma/buyuk-icerik-arastirmasi.md
+- [x] ajan: Research Windows system junk storage footprints — 2026-09-27 06:58 — aktarıldı: docs/danisma/buyuk-icerik-arastirmasi.md
+- [x] ajan: Survey disk-cleanup market leaders — 2026-09-27 06:58 — aktarıldı: docs/danisma/buyuk-icerik-arastirmasi.md
+- [x] Piyasa ve büyük içerik araştırması (rakipler, bilinen ağır içerik yerleri) — 2026-09-27 07:01 — yapıldı: docs/ui-denetim/2026-09-27d.md
+- [x] Büyük içerik tanıyıcıları: "LM Studio · 40 GB dil modeli" gibi anlamlı, büyük bulgular; küçük önbellekler öne çıkmaz — 2026-09-27 07:01 — yapıldı: docs/ui-denetim/2026-09-27d.md
+- [x] Her bulguya sade dille "silinirse ne olur" — 2026-09-27 07:01 — yapıldı: docs/ui-denetim/2026-09-27d.md
+- [x] Tek tık karantina: onay yok — 2026-09-27 07:01 — yapıldı: docs/ui-denetim/2026-09-27d.md
+- [x] Karantina 7 gün sonra kendiliğinden silinir — 2026-09-27 07:01 — yapıldı: docs/ui-denetim/2026-09-27d.md
+- [x] Karantinayı anında boşalt: onay yok — 2026-09-27 07:01 — yapıldı: docs/ui-denetim/2026-09-27d.md
+- [x] uc çalıştır (UI 0.18.0 → 0.20.0) — 2026-09-27 07:01 — yapıldı: 0.20.0 kaydedildi, docs/ui-denetim/2026-09-27d.md
+- [x] ajan: Ekran çekimlerini bağımsız incele — 2026-09-27 07:29 — aktarıldı: docs/ui-denetim/2026-09-27d/inceleme.md

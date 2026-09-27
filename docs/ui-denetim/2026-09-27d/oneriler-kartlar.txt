@@ -1,0 +1,5 @@
+7,41 GB	pip · Paket önbelleği	pip paket önbelleği	Karantinaya al	Python paketleri gerektiğinde yeniden indirilir. Kurulu paketleriniz etkilenmez.
+15,8 GB	LM Studio · Dil modeli	Muse-Glimmer-30B-Abliterated-GGUF	Karantinaya al	LM Studio bu modeli listeden düşürür. Tekrar kullanmak isterseniz LM Studio'dan yeniden indirirsiniz; program ve diğer modeller etkilenmez.
+2,57 GB	npm · Paket önbelleği	npm paket önbelleği	Karantinaya al	JavaScript projeleri gerektiğinde paketleri yeniden indirir. Kodunuz etkilenmez.
+4,04 GB	Android Studio · Sanal telefon	a8 test	Karantinaya al	Bu sanal telefon ve içine kurduğunuz uygulamalar gider; telefonu fabrika ayarlarına döndürmek gibi. Android Studio'dan birkaç tıkla yeniden oluşturursunuz.
+6,75 GB	NuGet · Paket önbelleği	NuGet paket önbelleği	Karantinaya al	.NET projeleri bir sonraki derlemede gerekenleri yeniden indirir. Kodunuz etkilenmez.

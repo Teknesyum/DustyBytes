@@ -1,0 +1,12 @@
+Teknesyum UI is set up.
+
+  config     C:\Users\Administrator\Desktop\Projeler\DustyBytes\.claude\teknesyum-ui.json
+  template   benim  (layout 52e0c6b7355cba20)
+  tokens     C:\Users\Administrator\.claude\teknesyum-private\teknesyum-ui\benim.tokens.json
+  signature  on
+
+  avalonia C:\Users\Administrator\Desktop\Projeler\DustyBytes\teknesyum-ui\avalonia  (3 written, 1 kept)
+  font     C:\Users\Administrator\Desktop\Projeler\DustyBytes\src\DustyBytes.App\Assets\Fonts  (0 written, 4 kept, FontSans -> avares URI)
+
+3 file(s) written, 1 kept. Existing files are never overwritten without --force.
+düzen eşleşmesi 0 fark

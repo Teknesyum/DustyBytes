@@ -18,19 +18,10 @@
   },
   "signature": {
     "off": false,
-    "text": "by Teknesyum",
     "github": "https://github.com/Teknesyum",
-    "sponsor": "https://github.com/sponsors/Teknesyum",
-    "supportText": "Buy me a coffee"
+    "sponsor": "https://github.com/sponsors/Teknesyum"
   },
   "note": "",
-  "palette": {
-    "primary": "#6fb7ff",
-    "secondary": "#cba7d2",
-    "tertiary": "#c3a3ff",
-    "surface": "#000000",
-    "dark": true
-  },
   "installedAt": "2026-09-25T07:32:30.176Z",
   "ignore": [
     {
@@ -75,16 +66,16 @@
       "reason": "Yanlış eşleşme: NeonBlue zeminli kutunun içindeki işaret OnBlue ile çizilir (satır 279); TextBody yalnız kutunun dışındaki etikete uygulanır. KontrastTests altı ekranda ve üç ölçekte geçiyor."
     }
   ],
-  "duzen": "75ea90cdce3cabe5",
+  "duzen": "52e0c6b7355cba20",
   "denetim": {
-    "tarih": "2026-09-27T03:28:21.644Z",
-    "duzen": "75ea90cdce3cabe5"
+    "tarih": "2026-09-27T04:29:56.156Z",
+    "duzen": "52e0c6b7355cba20"
   },
-  "plugin": "0.18.0",
+  "plugin": "0.20.0",
   "uc": {
-    "surum": "0.18.0",
-    "duzen": "75ea90cdce3cabe5",
-    "commit": "95fa3e8e7dfe5561fab3b5832c5879a0c8807a03",
+    "surum": "0.20.0",
+    "duzen": "52e0c6b7355cba20",
+    "commit": "a3b495d0bf2b0237c0eb9a69456e1331b86df6ae",
     "tarih": "2026-09-27"
   }
 }

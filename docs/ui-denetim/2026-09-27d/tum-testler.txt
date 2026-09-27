@@ -1,0 +1,7 @@
+Başarılı!  - Başarısız:     0, Başarılı:   105, Atlanan:     0, Toplam:   105, Süre: 315 ms - DustyBytes.Uninstall.Tests.dll (net10.0)
+Başarılı!  - Başarısız:     0, Başarılı:    46, Atlanan:     0, Toplam:    46, Süre: 127 ms - DustyBytes.Units.Tests.dll (net10.0)
+Başarılı!  - Başarısız:     0, Başarılı:    24, Atlanan:     0, Toplam:    24, Süre: 903 ms - DustyBytes.Signals.Tests.dll (net10.0)
+Başarılı!  - Başarısız:     0, Başarılı:    47, Atlanan:     0, Toplam:    47, Süre: 2 s - DustyBytes.Safety.Tests.dll (net10.0)
+Başarılı!  - Başarısız:     0, Başarılı:    18, Atlanan:     0, Toplam:    18, Süre: 5 s - DustyBytes.Scan.Tests.dll (net10.0)
+Başarılı!  - Başarısız:     0, Başarılı:    27, Atlanan:     0, Toplam:    27, Süre: 11 s - DustyBytes.Rules.Tests.dll (net10.0)
+Başarılı!  - Başarısız:     0, Başarılı:    82, Atlanan:     0, Toplam:    82, Süre: 3 m 6 s - DustyBytes.Tests.dll (net10.0)
