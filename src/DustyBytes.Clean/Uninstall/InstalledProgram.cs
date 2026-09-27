@@ -8,6 +8,8 @@ public enum InstallerType
     Nsis,
     InstallShield,
     Msix,
+    Burn,
+    Squirrel,
 }
 
 public enum ProgramSource

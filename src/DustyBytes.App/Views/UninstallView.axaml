@@ -41,6 +41,14 @@
           <TextBlock Theme="{StaticResource DangerBody}" Text="{Binding Error}" TextWrapping="Wrap"/>
         </Border>
 
+        <Border Name="VendorCard" Theme="{StaticResource Panel}" IsVisible="{Binding VendorVisible}">
+          <StackPanel Spacing="{StaticResource FieldGap}">
+            <TextBlock Theme="{StaticResource H3}" Text="Sıra sizde"/>
+            <TextBlock Theme="{StaticResource Body}" Text="{Binding VendorCard}" TextWrapping="Wrap"/>
+            <TextBlock Theme="{StaticResource Hint}" Text="Sessiz kaldırma olmadı. Açılan pencere programın kendi kaldırıcısıdır; biz ona tıklamayız." TextWrapping="Wrap"/>
+          </StackPanel>
+        </Border>
+
         <Border Theme="{StaticResource Panel}" IsVisible="{Binding IsPreview}">
           <StackPanel Spacing="{StaticResource FieldGap}">
             <TextBlock Theme="{StaticResource H3}" Text="Kaldırma biçimi"/>

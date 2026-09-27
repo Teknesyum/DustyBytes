@@ -82,7 +82,8 @@ public class EnumerationTests
         Assert.Equal(InstallerType.Msi, p.Installer);
         Assert.NotNull(p.InstallLocation);
         Assert.StartsWith(@"C:\Office Test", p.InstallLocation);
-        Assert.Equal("msiexec.exe /x " + code + " /qb /norestart", Uninstaller.BuildCommand(p)!.CommandLine);
+        Assert.Equal("msiexec.exe /x " + code + " /qn /norestart REBOOT=ReallySuppress", Uninstaller.BuildCommand(p)!.CommandLine);
+        Assert.Equal("msiexec.exe /x " + code, Uninstaller.VisibleCommand(p)!.CommandLine);
     }
 
     [Fact]

@@ -150,7 +150,7 @@ public class RemovalTests : IDisposable
             },
             UninstallerFactory = scanner => new Uninstaller(scanner)
             {
-                Runner = (cmd, cwd, onActive, ct) =>
+                Runner = (req, ct) =>
                 {
                     if (!removes)
                         return Task.FromResult(new ProcessRunResult(true, true, 0, "sahte"));
@@ -270,7 +270,7 @@ public class RemovalTests : IDisposable
         Assert.False(Assert.Single(u.Items, i => i.Path == UninstallHandlers.AutoClean).Ok);
         Assert.Empty(quarantined);
         Assert.Empty(s.Actions.Calls);
-        Assert.Empty(s.Reg.Deleted.Where(d => !d.Contains("ZqxvWidget_is1")));
+        Assert.DoesNotContain(s.Reg.Deleted, d => !d.Contains("ZqxvWidget_is1"));
     }
 
     [Fact]

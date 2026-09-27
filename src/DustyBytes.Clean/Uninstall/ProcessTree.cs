@@ -3,7 +3,9 @@ using System.Runtime.InteropServices;
 
 namespace DustyBytes.Clean.Uninstall;
 
-public sealed record ProcessRunResult(bool Started, bool Completed, int ExitCode, string Message);
+public sealed record ProcessRunResult(bool Started, bool Completed, int ExitCode, string Message, bool TimedOut = false);
+
+public sealed record RunRequest(string CommandLine, string? WorkingDir, Action<int>? OnActive, TimeSpan? Timeout);
 
 public static partial class ProcessTree
 {
@@ -58,6 +60,14 @@ public static partial class ProcessTree
 
     [LibraryImport("kernel32.dll", SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
+    private static partial bool TerminateJobObject(nint job, uint exitCode);
+
+    [LibraryImport("kernel32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static partial bool TerminateProcess(nint process, uint exitCode);
+
+    [LibraryImport("kernel32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
     private static unsafe partial bool GetExitCodeProcess(nint process, uint* code);
 
     [LibraryImport("kernel32.dll")]
@@ -95,7 +105,10 @@ public static partial class ProcessTree
         return GetExitCodeProcess(process, &code) ? unchecked((int)code) : -1;
     }
 
-    public static async Task<ProcessRunResult> RunAndWaitTree(string commandLine, string? workingDir, Action<int>? onActive, CancellationToken ct)
+    public static Task<ProcessRunResult> Run(RunRequest request, CancellationToken ct) =>
+        RunAndWaitTree(request.CommandLine, request.WorkingDir, request.OnActive, request.Timeout, ct);
+
+    public static async Task<ProcessRunResult> RunAndWaitTree(string commandLine, string? workingDir, Action<int>? onActive, TimeSpan? timeout, CancellationToken ct)
     {
         var job = NewJob();
         if (job == 0)
@@ -108,11 +121,17 @@ public static partial class ProcessTree
 
             var inJob = AssignProcessToJobObject(job, pi.hProcess);
             ResumeThread(pi.hThread);
+            var deadline = timeout is { } t ? DateTime.UtcNow + t : DateTime.MaxValue;
 
             while (true)
             {
                 if (ct.IsCancellationRequested)
                     return new(true, false, -1, "Bekleme iptal edildi; kaldırıcı çalışmaya devam ediyor olabilir");
+                if (DateTime.UtcNow >= deadline)
+                {
+                    _ = inJob ? TerminateJobObject(job, 1) : TerminateProcess(pi.hProcess, 1);
+                    return new(true, false, -1, "Sessiz kaldırıcı süresinde bitmedi; durduruldu", TimedOut: true);
+                }
                 var active = inJob ? ActiveProcesses(job) : WaitForSingleObject(pi.hProcess, 0) == 0 ? 0 : 1;
                 onActive?.Invoke(active);
                 if (active == 0)

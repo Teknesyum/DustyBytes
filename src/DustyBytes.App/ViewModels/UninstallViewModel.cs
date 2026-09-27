@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.Text.Json;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using DustyBytes.App.Services;
 using DustyBytes.Clean.Uninstall;
 using DustyBytes.Core.Ipc;
 using DustyBytes.Core.Model;
@@ -111,6 +112,11 @@ public sealed partial class UninstallViewModel : ViewModelBase
     public ObservableCollection<UninstallStep> Steps { get; }
     public ObservableCollection<LeftoverRow> Leftovers { get; } = [];
     public ObservableCollection<RemovalItem> Cleaned { get; } = [];
+
+    [ObservableProperty]
+    private bool _vendorVisible;
+
+    public string VendorCard => Uninstaller.VisibleCard;
 
     [ObservableProperty]
     private bool _autoClean = true;
@@ -278,10 +284,17 @@ public sealed partial class UninstallViewModel : ViewModelBase
                 Target = _row.Info.Program.Id,
                 UserApproved = true,
                 Items = flags,
-            }, p, ct), cancellable: false);
+            }, new Progress<TaskStep>(s =>
+            {
+                p.Report(s);
+                if (s.Step == Uninstaller.VisibleStep)
+                    VendorVisible = s.Percent < 100;
+            }), ct), cancellable: false);
+            VendorVisible = false;
         }
         catch (Exception e) when (e is IOException or InvalidOperationException or TimeoutException or Worker.WorkerStartException)
         {
+            VendorVisible = false;
             Steps[0].State = StepState.Failed;
             _main.Fail("Kaldırma başlatılamadı: " + e.Message);
             Raise();

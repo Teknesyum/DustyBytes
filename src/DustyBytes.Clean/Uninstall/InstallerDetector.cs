@@ -24,6 +24,14 @@ public static partial class InstallerDetector
         if (windowsInstaller || command?.Contains("msiexec", StringComparison.OrdinalIgnoreCase) == true)
             return InstallerType.Msi;
 
+        if (reg is not null && key is not null && (reg.ValueExists(key, "BundleCachePath") || reg.ValueExists(key, "BundleUpgradeCode")))
+            return InstallerType.Burn;
+        if (command is not null && command.Contains(@"\Package Cache\", StringComparison.OrdinalIgnoreCase) && command.Contains("/uninstall", StringComparison.OrdinalIgnoreCase))
+            return InstallerType.Burn;
+        if (command is not null && command.Contains("--uninstall", StringComparison.OrdinalIgnoreCase)
+            && Path.GetFileName(CommandLine.Executable(command) ?? "").Equals("Update.exe", StringComparison.OrdinalIgnoreCase))
+            return InstallerType.Squirrel;
+
         if (keyName?.EndsWith("_is1", StringComparison.OrdinalIgnoreCase) == true)
             return InstallerType.Inno;
         if (reg is not null && key is not null && reg.ValueExists(key, "Inno Setup: App Path"))

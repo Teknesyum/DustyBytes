@@ -73,7 +73,7 @@ public class MiscTests
         Assert.True(Uninstaller.BuildCommand(P(quiet: "q.exe /S"))!.Silent);
         var visible = Uninstaller.BuildCommand(P(uninstall: "u.exe"))!;
         Assert.False(visible.Silent);
-        Assert.Equal("msiexec.exe /x {AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEEEEEE} /qb /norestart",
+        Assert.Equal("msiexec.exe /x {AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEEEEEE} /qn /norestart REBOOT=ReallySuppress",
             Uninstaller.BuildCommand(P(msi: true, uninstall: "MsiExec.exe /I{AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEEEEEE}", code: "{AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEEEEEE}"))!.CommandLine);
         Assert.Null(Uninstaller.BuildCommand(P()));
     }
@@ -107,7 +107,7 @@ public class MiscTests
         var ran = false;
         var u = new Uninstaller(new LeftoverScanner(Fixture.Context(new FakeRegistryView(), new FakeProbe(), [], [])))
         {
-            Runner = (_, _, _, _) =>
+            Runner = (_, _) =>
             {
                 ran = true;
                 return Task.FromResult(new ProcessRunResult(true, true, 0, ""));
