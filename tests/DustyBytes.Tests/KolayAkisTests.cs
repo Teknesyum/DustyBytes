@@ -255,4 +255,52 @@ public class KolayAkisTests
         Assert.False(vm.Tour.IsPurgeArmed);
         window.Close();
     }
+
+    static async Task<(MainWindow Window, MainViewModel Vm, TransitioningContentControl Card)> TourWindow()
+    {
+        var (window, vm) = await OffersWindow();
+        await vm.StartTourAsync();
+        for (var i = 0; i < 10; i++)
+        {
+            Pump();
+            await Task.Delay(5);
+        }
+        return (window, vm, window.GetVisualDescendants().OfType<TransitioningContentControl>().First(c => c.Name == "Card"));
+    }
+
+    [AvaloniaFact]
+    public async Task Tour_Card_Enters_With_Motion_Tokens_And_Stays_Visible()
+    {
+        var (window, vm, card) = await TourWindow();
+        var motion = Assert.IsType<DustyBytes.App.Views.EntryTransition>(card.PageTransition);
+        Assert.Equal((TimeSpan)window.FindResource("TBase")!, motion.Duration);
+        Assert.Equal((double)window.FindResource("EntryOffset")!, motion.Offset);
+
+        vm.Tour.KeepCommand.Execute(null);
+        for (var i = 0; i < 20; i++)
+        {
+            Pump();
+            await Task.Delay(20);
+        }
+        var name = card.GetVisualDescendants().OfType<TextBlock>().First(t => t.Text == "Film" && t.IsEffectivelyVisible);
+        Assert.All(name.GetSelfAndVisualAncestors().TakeWhile(v => v != card), v => Assert.Equal(1, v.Opacity));
+        window.Close();
+    }
+
+    [AvaloniaFact]
+    public async Task Tour_Card_Has_No_Motion_When_Reduced()
+    {
+        var before = Environment.GetEnvironmentVariable("DUSTYBYTES_REDUCED_MOTION");
+        try
+        {
+            Environment.SetEnvironmentVariable("DUSTYBYTES_REDUCED_MOTION", "1");
+            var (window, _, card) = await TourWindow();
+            Assert.Null(card.PageTransition);
+            window.Close();
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("DUSTYBYTES_REDUCED_MOTION", before);
+        }
+    }
 }

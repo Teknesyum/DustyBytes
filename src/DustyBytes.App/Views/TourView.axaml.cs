@@ -1,6 +1,4 @@
 using Avalonia;
-using Avalonia.Animation;
-using Avalonia.Animation.Easings;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
@@ -19,19 +17,7 @@ public partial class TourView : UserControl
     protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
     {
         base.OnAttachedToVisualTree(e);
-        Card.PageTransition = Motion(this);
-    }
-
-    public static IPageTransition? Motion(Control host)
-    {
-        if (TopLevel.GetTopLevel(host) is not { } top || !top.Classes.Contains("anim"))
-            return null;
-        if (!host.TryFindResource("TBase", out var duration) || duration is not TimeSpan span)
-            return null;
-        var fade = new CrossFade(span);
-        if (host.TryFindResource("EOut", out var easing) && easing is Easing curve)
-            fade.FadeInEasing = curve;
-        return fade;
+        Card.PageTransition = EntryTransition.For(this);
     }
 
     void OnAnyPress(object? sender, PointerPressedEventArgs e)
