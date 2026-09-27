@@ -222,16 +222,26 @@ public class ViewModelTests
     }
 
     [AvaloniaFact]
-    public async Task Offers_Purge_Deletes_Without_Quarantine_After_Confirm()
+    public async Task Offers_Purge_Needs_Second_Press_Without_Dialog()
     {
         var backend = new FakeBackend();
-        var vm = Shell(backend, accept: true);
+        var vm = Shell(backend, accept: null);
         vm.GoTo(vm.Offers);
         await vm.Offers.Ready;
         var card = vm.Offers.Cards.First(c => c.Unit.Id == "u3");
         Assert.True(card.CanPurge);
+        Assert.Equal("Kalıcı sil", card.PurgeText);
+
         await vm.Offers.PurgeOneCommand.ExecuteAsync(card);
         await Settle();
+        Assert.Null(vm.Confirm);
+        Assert.True(card.IsPurgeArmed);
+        Assert.Equal(TwoStep.ArmedText, card.PurgeText);
+        Assert.DoesNotContain(backend.Requests, r => r.Op is Ops.Delete or Ops.Quarantine);
+
+        await vm.Offers.PurgeOneCommand.ExecuteAsync(card);
+        await Settle();
+        Assert.Null(vm.Confirm);
         Assert.DoesNotContain(backend.Requests, r => r.Op == Ops.Quarantine);
         var request = Assert.Single(backend.Requests, r => r.Op == Ops.Delete);
         Assert.Equal("u3", request.UnitId);
@@ -239,15 +249,69 @@ public class ViewModelTests
     }
 
     [AvaloniaFact]
-    public async Task Offers_Purge_Declined_Sends_Nothing()
+    public async Task Offers_Purge_Arm_Expires_After_Four_Seconds()
     {
         var backend = new FakeBackend();
-        var vm = Shell(backend, accept: false);
+        var vm = Shell(backend, accept: null);
         vm.GoTo(vm.Offers);
         await vm.Offers.Ready;
-        await vm.Offers.PurgeOneCommand.ExecuteAsync(vm.Offers.Cards.First(c => c.Unit.Id == "u3"));
+        var card = vm.Offers.Cards.First(c => c.Unit.Id == "u3");
+
+        await vm.Offers.PurgeOneCommand.ExecuteAsync(card);
+        vm.Tick(TimeSpan.FromSeconds(3));
+        Assert.True(card.IsPurgeArmed);
+        vm.Tick(TimeSpan.FromSeconds(1.5));
+        Assert.False(card.IsPurgeArmed);
+        Assert.Equal("Kalıcı sil", card.PurgeText);
+
+        await vm.Offers.PurgeOneCommand.ExecuteAsync(card);
+        await Settle();
+        Assert.True(card.IsPurgeArmed);
+        Assert.DoesNotContain(backend.Requests, r => r.Op is Ops.Delete or Ops.Quarantine);
+    }
+
+    [AvaloniaFact]
+    public async Task Offers_Purge_Disarms_On_Other_Press_And_Card_Switch()
+    {
+        var backend = new FakeBackend();
+        var vm = Shell(backend, accept: null);
+        vm.GoTo(vm.Offers);
+        await vm.Offers.Ready;
+        var film = vm.Offers.Cards.First(c => c.Unit.Id == "u3");
+        var game = vm.Offers.Cards.First(c => c.Unit.Id == "u1");
+
+        await vm.Offers.PurgeOneCommand.ExecuteAsync(film);
+        vm.Offers.Disarm();
+        Assert.False(film.IsPurgeArmed);
+
+        await vm.Offers.PurgeOneCommand.ExecuteAsync(film);
+        await vm.Offers.PurgeOneCommand.ExecuteAsync(game);
+        Assert.False(film.IsPurgeArmed);
+        Assert.True(game.IsPurgeArmed);
         await Settle();
         Assert.DoesNotContain(backend.Requests, r => r.Op is Ops.Delete or Ops.Quarantine);
+    }
+
+    [AvaloniaFact]
+    public async Task Offers_Bar_Purge_Arms_Then_Deletes_Selection()
+    {
+        var backend = new FakeBackend();
+        var vm = Shell(backend, accept: null);
+        vm.GoTo(vm.Offers);
+        await vm.Offers.Ready;
+        vm.Offers.Cards.First(c => c.Unit.Id == "u1").IsSelected = true;
+
+        await vm.Offers.PurgeSelectedCommand.ExecuteAsync(null);
+        Assert.True(vm.Offers.IsBarArmed);
+        Assert.Equal(TwoStep.ArmedText, vm.Offers.PurgeBarText);
+        vm.Offers.Cards.First(c => c.Unit.Id == "u3").IsSelected = true;
+        Assert.False(vm.Offers.IsBarArmed);
+
+        await vm.Offers.PurgeSelectedCommand.ExecuteAsync(null);
+        await vm.Offers.PurgeSelectedCommand.ExecuteAsync(null);
+        await Settle();
+        Assert.Null(vm.Confirm);
+        Assert.Equal(["u1", "u3"], backend.Requests.Where(r => r.Op == Ops.Delete).Select(r => r.UnitId));
     }
 
     [AvaloniaFact]

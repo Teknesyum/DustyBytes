@@ -89,6 +89,12 @@ public sealed partial class UnitCard : ObservableObject
     public bool CanPurge => IsBatch && !IsDirect;
     public string PurgeHint => "Karantinaya almadan siler; geri alınamaz";
 
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(PurgeText))]
+    private bool _isPurgeArmed;
+
+    public string PurgeText => IsPurgeArmed ? TwoStep.ArmedText : "Kalıcı sil";
+
     public string ExternalText => Unit.Removal switch
     {
         RemovalMethod.Launcher => "Başlatıcıda aç",
@@ -141,7 +147,35 @@ public sealed partial class OffersViewModel : ViewModelBase
         _selectedFilter = Filters[0];
         main.Session.SnapshotChanged += (_, _) => Invalidate();
         main.Session.DraftChanged += (_, _) => Stream();
+        Purge.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(TwoStep.Target))
+                Armed();
+        };
+        main.Ticked += Purge.Elapse;
     }
+
+    static readonly object BarKey = new();
+    UnitCard? _armedCard;
+
+    public TwoStep Purge { get; } = new();
+    public bool IsBarArmed => Purge.IsArmedFor(BarKey);
+    public string PurgeBarText => IsBarArmed ? TwoStep.ArmedText : "Seçilenleri kalıcı sil";
+
+    void Armed()
+    {
+        if (_armedCard is not null)
+            _armedCard.IsPurgeArmed = false;
+        _armedCard = Purge.Target as UnitCard;
+        if (_armedCard is not null)
+            _armedCard.IsPurgeArmed = true;
+        OnPropertyChanged(nameof(IsBarArmed));
+        OnPropertyChanged(nameof(PurgeBarText));
+    }
+
+    public void Disarm() => Purge.Reset();
+
+    protected override void OnNavigatedFrom() => Purge.Reset();
 
     bool _streaming;
 
@@ -334,6 +368,8 @@ public sealed partial class OffersViewModel : ViewModelBase
         SelectedBytes = chosen.Sum(c => c.Unit.SizeBytes);
         SelectionText = chosen.Count == 0 ? "Hiçbir birim seçilmedi" : $"{Format.Count(chosen.Count)} birim seçildi · ";
         SelectionSize = chosen.Count == 0 ? "" : Format.Bytes(SelectedBytes);
+        if (IsBarArmed)
+            Purge.Reset();
         QuarantineSelectedCommand.NotifyCanExecuteChanged();
         PurgeSelectedCommand.NotifyCanExecuteChanged();
     }
@@ -347,20 +383,20 @@ public sealed partial class OffersViewModel : ViewModelBase
     private Task RemoveOne(UnitCard card) => card.IsBatch && !Progress.IsRunning ? RemoveAsync([card]) : Task.CompletedTask;
 
     [RelayCommand(CanExecute = nameof(CanQuarantine))]
-    private Task PurgeSelected() => PurgeAsync(Chosen);
+    private Task PurgeSelected()
+    {
+        var chosen = Chosen;
+        if (chosen.Count == 0 || !Purge.Press(BarKey))
+            return Task.CompletedTask;
+        return RemoveAsync(chosen, purge: true);
+    }
 
     [RelayCommand]
-    private Task PurgeOne(UnitCard card) => card.IsBatch && !Progress.IsRunning ? PurgeAsync([card]) : Task.CompletedTask;
-
-    async Task PurgeAsync(IReadOnlyList<UnitCard> chosen)
+    private Task PurgeOne(UnitCard card)
     {
-        if (chosen.Count == 0)
-            return;
-        var what = chosen.Count == 1 ? chosen[0].Name : $"{Format.Count(chosen.Count)} birim";
-        var size = Format.Bytes(chosen.Sum(c => c.Unit.SizeBytes));
-        if (!await _main.ConfirmAsync("Kalıcı silinsin mi?", $"{what} ({size}) karantinaya alınmadan silinecek. Bu işlem geri alınamaz.", "Kalıcı sil"))
-            return;
-        await RemoveAsync(chosen, purge: true);
+        if (!card.CanPurge || Progress.IsRunning || !Purge.Press(card))
+            return Task.CompletedTask;
+        return RemoveAsync([card], purge: true);
     }
 
     async Task RemoveAsync(IReadOnlyList<UnitCard> chosen, bool purge = false)

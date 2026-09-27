@@ -96,8 +96,11 @@ public sealed partial class MainViewModel : ObservableObject
         Volatile.Write(ref _busyCount, _running.Count);
     }
 
+    public event Action<TimeSpan>? Ticked;
+
     public void Tick(TimeSpan elapsed)
     {
+        Ticked?.Invoke(elapsed);
         foreach (var p in _running.ToList())
             p.Tick();
         foreach (var toast in Toasts.ToList())
