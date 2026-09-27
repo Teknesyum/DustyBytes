@@ -1,0 +1,35 @@
+--- ikinci kurulum (güncelleme) ---
+06:44:31  Kaynak: github.com/Teknesyum/DustyBytes · DustyBytes-win-x64.zip
+06:44:31  Hedef : C:\Users\Administrator\Desktop\Projeler\DustyBytes\tmp\kur-kok\Programlar\DustyBytes
+06:44:31  Yazma izni denetleniyor
+06:44:31  Yazma izni tamam: C:\Users\Administrator\Desktop\Projeler\DustyBytes\tmp\kur-kok\Programlar
+06:44:31  Son sürüm soruluyor
+06:44:31  Sınama adresi: http://127.0.0.1:8765
+06:44:31  Son sürüm: v0.1.1 · 54.1 MB
+06:44:31  Sürüm indiriliyor
+06:44:31  İndirildi: DustyBytes-win-x64.zip
+06:44:31  İndirilen dosya doğrulanıyor
+06:44:31  SHA-256 doğrulandı: 33a46aada72965dc89b87e7aed22aefce7c062578e6c174d7a6b32fad11d45ad
+06:44:31  Dosyalar yerleştiriliyor
+06:44:32  Paket geçici klasöre açıldı
+06:44:33  Eski sürüm kenara alındı
+06:44:33  Yerleştirildi: C:\Users\Administrator\Desktop\Projeler\DustyBytes\tmp\kur-kok\Programlar\DustyBytes
+06:44:33  Kısayollar oluşturuluyor
+06:44:33  Kısayol: C:\Users\Administrator\Desktop\Projeler\DustyBytes\tmp\kur-kok\Masaustu\DustyBytes.lnk
+06:44:33  Kısayol: C:\Users\Administrator\Desktop\Projeler\DustyBytes\tmp\kur-kok\BaslatMenusu\DustyBytes.lnk
+06:44:33  Kurulum tamamlandı · sürüm v0.1.1
+cikis: 0
+--- bozuk sha256 ---
+06:44:34  Kaynak: github.com/Teknesyum/DustyBytes · DustyBytes-win-x64.zip
+06:44:34  Hedef : C:\Users\Administrator\Desktop\Projeler\DustyBytes\tmp\kur-kok\Programlar\DustyBytes
+06:44:34  Yazma izni denetleniyor
+06:44:34  Yazma izni tamam: C:\Users\Administrator\Desktop\Projeler\DustyBytes\tmp\kur-kok\Programlar
+06:44:34  Son sürüm soruluyor
+06:44:34  Sınama adresi: http://127.0.0.1:8766
+06:44:34  Son sürüm: v0.1.1 · 54.1 MB
+06:44:34  Sürüm indiriliyor
+06:44:34  İndirildi: DustyBytes-win-x64.zip
+06:44:34  İndirilen dosya doğrulanıyor
+06:44:34  HATA: İndirilen dosya doğrulanamadı: SHA-256 tutmuyor. Dosya bozuk ya da değiştirilmiş; kurulum yapılmadı.
+cikis: 1
+exe hala yerinde: True · .eski kaldi mi: False

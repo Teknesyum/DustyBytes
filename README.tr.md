@@ -55,13 +55,15 @@ Depolama Algısı ve Disk Temizleme geçici dosyaları, geri dönüşüm kutusun
 
 Windows 10 sürüm 2004 (derleme 19041) ya da sonrası, x64.
 
-En kısa yol [Releases](https://github.com/Teknesyum/DustyBytes/releases) sayfası: `DustyBytes-win-x64.zip`'i indir, yanındaki `.sha256` dosyasıyla karşılaştır, aç ve `DustyBytes.exe`'yi çalıştır. Paket kendi başına çalışır, .NET kurmak gerekmez. Henüz kod imzası yok; SmartScreen ilk açılışta uyarabilir.
+**Kurucuyla.** Bu depodaki `Kur.bat` ile `kur-dustybytes.ps1`'i aynı klasöre koy, `Kur.bat`'a çift tıkla. GitHub'dan son sürümü sorar, `DustyBytes-win-x64.zip`'i `.sha256` dosyasıyla birlikte indirir; özet tutmazsa kurmaz.
 
-Kaynaktan derlemek için .NET 10 SDK gerekir.
+Program `%LOCALAPPDATA%\Programs\DustyBytes` klasörüne gider (Kur'a basmadan önce Değiştir ile başka yer seçilir), yönetici yetkisi gerekmez. Masaüstüne ve Başlat menüsüne kısayol yazar. Güncellemede açık kopyayı kapatır, yenisi yerine oturana dek eskisini saklar. Günlük: `%LOCALAPPDATA%\DustyBytes\kurulum.log`.
 
-Depoyu klonladıktan sonra `Kur.bat`'a çift tıkla. Kurulum penceresini açar, programı derler ve masaüstü kısayolu yazar. `KUR_PROVA=1` verirsen prova koşar: geçici klasöre kurar, kısayol yazmaz.
+`KUR_PROVA=1` verirsen prova koşar: geçici klasöre kurar, kısayol yazmaz. `KUR_OTOMATIK=1` pencere açmadan koşar, 0 ya da 1 ile çıkar.
 
-Elle derlemek için:
+**Elle.** [Releases](https://github.com/Teknesyum/DustyBytes/releases) sayfasından `DustyBytes-win-x64.zip`'i indir, yanındaki `.sha256` dosyasıyla karşılaştır, aç ve `DustyBytes.exe`'yi çalıştır. Paket kendi başına çalışır, .NET kurmak gerekmez. Henüz kod imzası yok; SmartScreen ilk açılışta uyarabilir.
+
+**Kaynaktan.** .NET 10 SDK gerekir:
 
 ```powershell
 dotnet publish src/DustyBytes.App -c Release -r win-x64 --self-contained -o bin

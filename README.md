@@ -55,13 +55,15 @@ Storage Sense and Disk Cleanup clear temp files, the recycle bin and old Windows
 
 Windows 10 version 2004 (build 19041) or later, x64.
 
-The quickest way is the [Releases](https://github.com/Teknesyum/DustyBytes/releases) page: download `DustyBytes-win-x64.zip`, check it against the `.sha256` file next to it, unzip and run `DustyBytes.exe`. The build is self-contained, so no .NET install is needed. It is not code-signed yet, so SmartScreen may warn on first launch.
+**With the installer.** Put `Kur.bat` and `kur-dustybytes.ps1` from this repository in one folder and double-click `Kur.bat`. It asks GitHub for the latest release, downloads `DustyBytes-win-x64.zip` with its `.sha256` file and refuses to install if the checksum does not match.
 
-To build from source you need the .NET 10 SDK.
+The program goes to `%LOCALAPPDATA%\Programs\DustyBytes` (change it with Değiştir before pressing Kur), so no admin rights are needed. It writes a desktop and a Start menu shortcut. On an update it closes a running copy and keeps the old version until the new one is in place. The log is `%LOCALAPPDATA%\DustyBytes\kurulum.log`.
 
-From a clone, double-click `Kur.bat`. It opens the install window, builds the program and writes a desktop shortcut. Set `KUR_PROVA=1` for a dry run that installs to a temporary folder and writes no shortcut.
+Set `KUR_PROVA=1` for a dry run that installs to a temporary folder and writes no shortcut. `KUR_OTOMATIK=1` runs without a window and exits with 0 or 1.
 
-To build by hand:
+**By hand.** From the [Releases](https://github.com/Teknesyum/DustyBytes/releases) page, download `DustyBytes-win-x64.zip`, check it against the `.sha256` file next to it, unzip and run `DustyBytes.exe`. The build is self-contained, so no .NET install is needed. It is not code-signed yet, so SmartScreen may warn on first launch.
+
+**From source.** You need the .NET 10 SDK:
 
 ```powershell
 dotnet publish src/DustyBytes.App -c Release -r win-x64 --self-contained -o bin

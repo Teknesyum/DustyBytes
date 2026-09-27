@@ -1,0 +1,529 @@
+cost
+  ok    there is at least one hook to check
+  ok    context is injected at most once per session
+  ok    no additionalContext in hooks/guard.js
+  ok    no systemMessage in hooks/guard.js
+  ok    no additionalContext in hooks/once.js
+  ok    no systemMessage in hooks/once.js
+  ok    no additionalContext in hooks/ortak.js
+  ok    no systemMessage in hooks/ortak.js
+  ok    guard exits 0 with no config
+  ok    guard writes zero bytes with no config
+  ok    guard exits 0 with off: true
+  ok    guard writes zero bytes with off: true
+  ok    guard stops on an open finding
+  ok    guard passes when every finding is ignored
+  ok    SKILL.md is at most 150 lines
+  ok    SKILL.md is at most 8 KB
+  ok    SKILL.md has frontmatter
+  ok    SKILL.md declares a description
+  ok    the description is at most 300 characters
+  ok    references/ holds only .md files
+  ok    platform.md is at most 130 lines
+  ok    primary-action-visibility.md is at most 130 lines
+  ok    the plugin ships no commands/ directory
+  ok    no command file anywhere in the plugin
+scanner
+  ok    hand-written signature texts are reported in locale and UI files
+  ok    an app title piece, a code path and the generated labels are left alone
+  ok    tokenizeColour binds a palette hex to its first token
+  ok    tokenizeColour expands short hex
+  ok    tokenizeColour leaves unknown colours
+  ok    tokenizeColour leaves alpha hex
+  ok    tokenizeColour leaves custom property definitions
+  ok    --list-rules exits 0
+  ok    --list-rules counts at least 80 rules
+  ok    every listed severity is error or warn
+  ok    colour.js can be required
+  ok    colour.js exports an id
+  ok    colour.js declares rule groups as arrays
+  ok    colour.js rules carry an id and a severity
+  ok    colour.js rule ids are unique
+  ok    core.js can be required
+  ok    core.js exports an id
+  ok    core.js declares rule groups as arrays
+  ok    core.js rules carry an id and a severity
+  ok    core.js rule ids are unique
+  ok    etiket.js can be required
+  ok    etiket.js exports an id
+  ok    etiket.js declares rule groups as arrays
+  ok    etiket.js rules carry an id and a severity
+  ok    etiket.js rule ids are unique
+  ok    forms.js can be required
+  ok    forms.js exports an id
+  ok    forms.js declares rule groups as arrays
+  ok    forms.js rules carry an id and a severity
+  ok    forms.js rule ids are unique
+  ok    guncelleme.js can be required
+  ok    guncelleme.js exports an id
+  ok    guncelleme.js declares rule groups as arrays
+  ok    guncelleme.js rules carry an id and a severity
+  ok    guncelleme.js rule ids are unique
+  ok    kabuk.js can be required
+  ok    kabuk.js exports an id
+  ok    kabuk.js declares rule groups as arrays
+  ok    kabuk.js rules carry an id and a severity
+  ok    kabuk.js rule ids are unique
+  ok    okunurluk.js can be required
+  ok    okunurluk.js exports an id
+  ok    okunurluk.js declares rule groups as arrays
+  ok    okunurluk.js rules carry an id and a severity
+  ok    okunurluk.js rule ids are unique
+  ok    process.js can be required
+  ok    process.js exports an id
+  ok    process.js declares rule groups as arrays
+  ok    process.js rules carry an id and a severity
+  ok    process.js rule ids are unique
+  ok    raf.js can be required
+  ok    raf.js exports an id
+  ok    raf.js declares rule groups as arrays
+  ok    raf.js rules carry an id and a severity
+  ok    raf.js rule ids are unique
+  ok    states.js can be required
+  ok    states.js exports an id
+  ok    states.js declares rule groups as arrays
+  ok    states.js rules carry an id and a severity
+  ok    states.js rule ids are unique
+  ok    rule ids are unique across modules
+  ok    colour covers every rule with a bad/good pair
+  ok    colour fixture pairs behave (23/23)
+  ok    core covers every rule with a bad/good pair
+  ok    core fixture pairs behave (20/20)
+  ok    etiket covers every rule with a bad/good pair
+  ok    etiket fixture pairs behave (1/1)
+  ok    forms covers every rule with a bad/good pair
+  ok    forms fixture pairs behave (20/20)
+  ok    guncelleme covers every rule with a bad/good pair
+  ok    guncelleme fixture pairs behave (5/5)
+  ok    kabuk covers every rule with a bad/good pair
+  ok    kabuk fixture pairs behave (3/3)
+  ok    okunurluk covers every rule with a bad/good pair
+  ok    okunurluk fixture pairs behave (1/1)
+  ok    process covers every rule with a bad/good pair
+  ok    process fixture pairs behave (2/2)
+  ok    raf covers every rule with a bad/good pair
+  ok    raf fixture pairs behave (1/1)
+  ok    states covers every rule with a bad/good pair
+  ok    states fixture pairs behave (27/27)
+  ok    --fix leaves infinite loop durations alone
+  ok    infinite loops are still reported by duration-ceiling
+  ok    --fix never writes .var(
+  ok    --fix reads .8s as 800 ms and tokenises both durations
+  ok    an unconfigured root exits 2
+  ok    off: true exits 2
+  ok    a clean project exits 0
+  ok    a project with violations exits 1
+  ok    a root that does not exist exits 3
+  ok    --json output parses
+  ok    every finding carries file, line, rule, severity, message
+  ok    every finding severity is error or warn
+  ok    a broken rule module does not sink the scan
+  ok    the broken module is named on stderr
+  ok    the planted module is gone
+  ok    a raw colour is open with no ignore entry
+  ok    an ignore entry drops the finding
+  ok    the summary counts what was ignored
+  ok    --json keeps the ignored finding with its reason
+  ok    an ignore entry without a reason is refused on stderr
+  ok    the refused entry leaves the finding open
+  ok    --files narrows the scan to the named file
+  ok    without --files both files are seen
+  ok    --files with an untouched file exits 0
+  ok    the full scan sees the focus styles in other files
+  ok    --files still sees project-wide focus styles
+  ok    --files reports only findings on the named files
+  ok    an Avalonia project with no focus adorner is reported
+  ok    the generated Avalonia theme counts as the focus adorner
+  ok    the config carries no denetim entry before the first scan
+  ok    a --fix pass on the clean css exits 0 or fixes what it can
+  ok    the second pass is clean
+  ok    a 0-open scan records a denetim entry in the project config
+  ok    the recorded tarih is a real ISO date
+  ok    denetim.duzen is null when the project has no benim layout
+  ok    a clean pass with a configured duzen exits 0
+  ok    denetim.duzen is copied from the project config
+  ok    a project with open findings is not denetim-recorded
+  ok    the dirty project config carries no denetim entry
+  ok    a scan narrowed with --files never writes denetim
+  ok    a --files scan does not record denetim even when clean
+  ok    the scan is clean even though the own output dir carries a raw colour
+  ok    the own output dir is never named in the findings
+  ok    the standard passes its own scanner
+  ok    the scanner skips gitignored files
+  ok    the scanner skips its own source
+install
+  ok    --apply with the neon template exits 0
+  ok    the config file is written
+  ok    the config records every target
+  ok    every target directory receives files
+  ok    the Avalonia signature ships as an example, outside the compiled axaml glob
+  ok    theme.tokens.json is written
+  ok    no Turkish key in the written config
+  ok    every config key is a plain English identifier
+  ok    a second --apply exits 0
+  ok    a second --apply overwrites nothing
+  ok    --apply with a custom palette exits 0
+  ok    the custom palette reaches the tokens
+  ok    the custom palette is recorded
+  ok    the css target receives theme.css
+  ok    --apply with an Avalonia app exits 0
+  ok    the sans face and its licence land in the app Assets/Fonts
+  ok    FontSans points at the embedded avares URI
+  ok    the app project compiles the fonts as AvaloniaResource
+  ok    typography.scale comes from the token file
+  ok    a second --apply leaves the font and csproj alone
+  ok    --off exits 0
+  ok    --status reports off
+  ok    --on exits 0
+  ok    --status reports on again
+  ok    --check exits 0
+  ok    --check prints valid JSON
+  ok    --check reports the project it inspected
+  ok    --check reports that the project is configured
+  ok    benim() is null before anything is saved to the shelf
+  ok    the private token file lands where tokenYollari says
+  ok    benim() reports the token file once it exists
+  ok    benim() derives a 16 hex char duzen from the file
+  ok    benim() carries no notes
+  ok    --apply --template benim exits 0 when the shelf has a token file
+  ok    the config records the benim template and its duzen
+  ok    the config records the plugin version and no notes
+  ok    --apply --template benim ends with the layout match line
+  ok    the private tokens are copied into the project as theme.tokens.json
+  ok    --apply --template benim without a token file fails
+generate
+  ok    generate.js exits 0
+  ok    generate.js writes the theme files and both label files
+  ok    generate.js writes the expected four names
+  ok    the token file carries a palette
+  ok    theme.css has no colour outside the token file
+  ok    Theme.xaml has no colour outside the token file
+  ok    Theme.axaml has no colour outside the token file
+  ok    Palette.cs has no colour outside the token file
+  ok    theme.css carries a reduced-motion block
+  ok    reduced motion never clears transform
+  ok    reduced motion stops animation by duration and repeat
+  ok    Theme.xaml has no double hyphen inside an XML comment
+  ok    Theme.axaml has no double hyphen inside an XML comment
+  ok    Forms.xaml has no double hyphen inside an XML comment
+  ok    Signature.axaml has no double hyphen inside an XML comment
+  ok    Signature.xaml has no double hyphen inside an XML comment
+  ok    States.xaml has no double hyphen inside an XML comment
+  ok    Theme.axaml has no double hyphen inside an XML comment
+  ok    Theme.xaml has no double hyphen inside an XML comment
+  ok    Avalonia PrimaryButton sets FontSize2
+  ok    Avalonia DangerButton builds on PrimaryButton
+  ok    Avalonia windows get FontSans and FontSize2 at the root
+  ok    WPF PrimaryButton sets FontSize2
+  ok    WPF DangerButton builds on PrimaryButton
+  ok    WPF TkWindow carries FontSans and FontSize2
+  ok    the shipped theme.css matches the generator
+scaffold
+  ok    Avalonia template defaults equal labels.tr.json
+  ok    Avalonia template addresses equal links.json and the site
+  ok    Avalonia title bar order is sync, badge, brand, support, site, window
+  ok    React title bar order is sync, brand, support, site, window
+  ok    scaffold kur exits 0
+  ok    kur writes Kur.bat and an ASCII-named kur-<name>.ps1
+  ok    the installer script is saved with a UTF-8 BOM
+  ok    no placeholder survives
+  ok    Kur.bat launches the generated script
+  ok    the name, key and icon reach the script
+  ok    the project steps replace the steps block
+  ok    rebuild sits behind -Onar
+  ok    the generated script parses in Windows PowerShell
+  ok    the ssh source stays the default and takes its colours from the tokens
+  ok    a second kur overwrites nothing
+  ok    kur --kaynak releases exits 0
+  ok    releases: no placeholder survives
+  ok    releases: asks the latest release and verifies sha256
+  ok    releases: extracts to temp, then moves into place
+  ok    releases: tests write permission first and never asks for admin
+  ok    releases: repo, asset and exe reach the script
+  ok    releases: colours come from the project tokens
+  ok    releases: keeps the step contract, ceiling and 16 ms timer
+  ok    releases: rehearsal, silent and test roots are wired
+  ok    releases: five steps, location row, Kur, Yeniden dene
+  ok    releases: the generated script parses in Windows PowerShell
+  ok    releases without --varlik exits 2
+  ok    an unknown --kaynak exits 2
+  ok    scaffold ustcubuk exits 0
+  ok    ustcubuk writes TitleBar.tsx and titlebar.css
+  ok    scaffold durum exits 0
+  ok    durum writes the main, preload and badge files
+  ok    ustcubuk on an Avalonia project without a namespace exits 2
+  ok    scaffold ustcubuk picks Avalonia from the .axaml in the project
+  ok    ustcubuk writes TitleBar and KabukStilleri
+  ok    ustcubuk says how to link the files
+  ok    scaffold durum --avalonia exits 0
+  ok    durum writes GuncellemePaneli
+  ok    kur --avalonia exits 0
+  ok    kur --avalonia adds the install screen
+  ok    kur --avalonia refuses an app name that is no namespace
+  ok    every Avalonia shell file carries its template signature
+  ok    no placeholder survives in the Avalonia shell
+  ok    denetim writes the shell tests beside the contrast test
+  ok    an unknown target exits 2
+  ok    kur without a name exits 2
+  ok    a name that would break the script exits 2
+  ok    a refused run writes nothing
+  ok    kur says the shelf is missing
+  ok    kur says the update book is missing
+  ok    kur points at the update book on the shelf
+  ok    ustcubuk points at the layout book
+raf
+  ok    raf with no name lists the books
+  ok    raf prints the named book
+  ok    a missing book exits 2 and names the shelf
+  ok    a path outside the shelf is refused
+  ok    no shelf exits 1
+  ok    --help exits 0 and shows the shelf path
+  ok    without TEKNESYUM_PRIVATE the shelf is found under the config dir
+  ok    the shelf list is the union of kurallar and tercihler
+  ok    AGENTS.md and CLAUDE.md are never listed, in either casing
+  ok    a book present in both shelves is listed once
+  ok    oku prefers kurallar over tercihler for the same book
+  ok    a book that only exists on tercihler still reads
+  ok    a shelf with only teknesyum-ui/kurallar still lists its books
+  ok    a shelf with only kurallar reads its book
+  ok    SKILL.md points at raf.js for the rules
+  ok    SKILL.md names the update book
+  ok    SKILL.md names the readme book
+  ok    SKILL.md says a book is read once per session
+okunurluk
+  ok    the neon tokens pass the contrast gate
+  ok    theme.css carries --tk-on-<fill> for every on pair
+  ok    a fill without an on pair gets no --tk-on var
+  ok    Theme.xaml carries On<Fill> brushes
+  ok    a pair below 7:1 stops generation
+  ok    the gate names the pair and its ratio
+  ok    a rationale that misstates the ratio stops generation
+  ok    contrast flags the renk-2 fill cut used as text
+  ok    contrast exempts the approved renk-2-text cut
+  ok    contrast leaves a fill+text line to pair-contrast
+  ok    pair-contrast resolves a brush defined in another file
+  ok    the message names both colours and the ratio
+  ok    pair-contrast reads Tailwind bg-/text- pairs
+  ok    pair-contrast findings are errors
+  ok    pair-contrast follows a C# paint method through locals, branches and symbols
+  ok    a var scoped to another selector yields to the fallback
+  ok    a template state style takes the text of its sibling state style
+  ok    denetim --help exits 0
+  ok    denetim refuses a url without a scheme
+  ok    denetim prints a snippet
+  ok    the snippet parses as a standalone script
+  ok    the snippet carries its options
+  ok    the snippet uses no external library
+  ok    --snippet writes the file
+  ok    scaffold denetim exits 0
+  ok    a WPF project gets the STA/VisualTreeHelper test
+  ok    the namespace and window reach the test
+  ok    no placeholder survives in the test
+  ok    an Avalonia project gets the headless test
+  ok    the Avalonia test drives hover, pressed, focus and disabled
+  ok    the Avalonia test measures runs, icons and the worst gradient stop
+  ok    an Avalonia scaffold names xunit v3
+  ok    the WPF test drives hover, pressed, focus and disabled
+  ok    the WPF test measures runs, icons and the worst gradient stop
+  ok    a bad namespace exits 2
+onizleme
+  ok    the preview server returns the token file
+  ok    the served tokens equal neon.tokens.json
+  ok    the token path is ui/templates/neon.tokens.json
+  ok    the contrast module is served verbatim from ui/scripts/kontrast.js
+  ok    the browser build exposes the shared contrast API
+  ok    browser and node share one formula
+  ok    the served module measures black on renk-1 as the node module does
+  ok    the page carries no copy of the luminance formula
+  ok    the page loads the shared module and the tokens from the server
+  ok    the page writes no file
+  ok    an unknown path is 404
+  ok    the page, style and script are served
+  ok    the live server returns the tokens over http
+kaydet
+  ok    dogrula accepts a colour, a weight and a stop count
+  ok    dogrula rejects a bad hex
+  ok    dogrula rejects an out-of-range size
+  ok    dogrula rejects an unknown field
+  ok    dogrula rejects a font name with markup
+  ok    dogrula ignores the notes key
+  ok    tokenMetni writes the new values
+  ok    tokenMetni keeps the line count
+  ok    tokenMetni reports the old and new colour
+  ok    tokenMetni is a no-op for unchanged values
+  ok    paletDegistir swaps hex, ARGB and rgba
+  ok    surumArtir bumps the minor
+  ok    surumYaz edits a package file
+  ok    changelogYaz dates the release and adds the save line
+  ok    surumNotu returns the release body
+  ok    /surum answers the package version
+  ok    /kaydet/durum answers idle
+  ok    /kaydet refuses GET
+  ok    /kaydet refuses a request without the header
+  ok    /kaydet refuses a foreign origin
+  ok    /kaydet refuses a bad body
+  ok    /kaydet refuses an invalid field
+  ok    tokenMetni writes easing, duration, glow and meta.dark
+  ok    dogrula refuses an out-of-range curve, duration or glow
+  ok    other paths refuse POST
+ozel
+  ok    tokenYollari is null without a private shelf
+  ok    private settings are empty before the first save
+  ok    a private save lands under teknesyum-private/teknesyum-ui/onizleme
+  ok    the saved diff reads back unchanged
+  ok    a private save never touches the public repo
+  ok    saving does not publish
+  ok    publishing is a separate request that needs the preview header
+  ok    a private save without the preview header is refused
+  ok    a foreign origin is refused
+  ok    an invalid colour is refused
+  ok    a record with the old colour names reads back with renk-1/2/3
+  ok    the local fallback file is gitignored
+  ok    tokenYollari points under the private shelf
+  ok    tokenYaz writes benim.tokens.json and returns its path
+  ok    the written token file carries the changed colour
+  ok    tokenYaz writes no notes file: every choice is a token
+  ok    tokenYaz without an object returns null
+  ok    yaz strips tokenlar before saving and returns the tokens path
+  ok    the saved record never carries a tokenlar field
+  ok    yaz forwards its tokenlar to tokenYaz
+  ok    yaz without a tokenlar field records no tokens path
+skor
+  ok    puan hits its anchors
+  ok    puan rises with contrast
+  ok    not bands
+  ok    skorla resolves every part and scores 0–100
+  ok    genel is the usage-weighted mean
+  ok    a darker renk-1 lowers the score
+  ok    the renk-1 parts drop, the body text holds
+  ok    heavy parts weigh more than light ones
+  ok    onSec keeps the token pair above 7:1
+  ok    onSec switches when the pair drops below 7:1
+  ok    a missing file answers 404
+  ok    /skor.js is served for the page
+tema
+  ok    nine public themes, five light and four dark
+  ok    karbon is not a public theme
+  ok    theme names are unique
+  ok    buz passes the 7:1 gate and scores at least 85
+  ok    buz sets meta.dark from its kind
+  ok    gece passes the 7:1 gate and scores at least 85
+  ok    gece sets meta.dark from its kind
+  ok    grafit passes the 7:1 gate and scores at least 85
+  ok    grafit sets meta.dark from its kind
+  ok    kadife passes the 7:1 gate and scores at least 85
+  ok    kadife sets meta.dark from its kind
+  ok    kagit passes the 7:1 gate and scores at least 85
+  ok    kagit sets meta.dark from its kind
+  ok    kar passes the 7:1 gate and scores at least 85
+  ok    kar sets meta.dark from its kind
+  ok    keskin passes the 7:1 gate and scores at least 85
+  ok    keskin sets meta.dark from its kind
+  ok    kirik passes the 7:1 gate and scores at least 85
+  ok    kirik sets meta.dark from its kind
+  ok    kor passes the 7:1 gate and scores at least 85
+  ok    kor sets meta.dark from its kind
+  ok    a theme with the old colour names reads with renk-1/2/3
+  ok    /temalar.json lists every public theme and marks private ones
+hooks
+  ok    a new plugin version writes the bulk uc lines at session start
+  ok    the bulk uc state records the version
+  ok    the same version does not run the bulk uc again
+  ok    baslangic.js exits 0 with no UI files and only a machine config
+  ok    a project with a machine config but no UI files gets a context note
+  ok    that context note carries no systemMessage
+  ok    baslangic.js exits 0 with no UI files and a project config
+  ok    a project already configured with no UI files prints nothing
+  ok    baslangic.js exits 0 with a UI file and no project config
+  ok    an unconfigured UI project reports it was never set up
+  ok    that reason also ships a systemMessage
+  ok    baslangic.js exits 0 for a compact source
+  ok    a compact source never prints anything, UI or not
+  ok    once.js exits 0 when denying
+  ok    a .css write is denied when the project has no config of its own
+  ok    the denial explains the project was never set up
+  ok    once.js exits 0 when a project config already exists
+  ok    a .css write is allowed once the project is configured
+  ok    once.js exits 0 for a non-UI file
+  ok    a Markdown write is never denied
+rafkitap
+  ok    uc names the procedure and the rules books through raf.js
+  ok    uc asks for setup on a project that is not bound
+  ok    uc lists the pending shelf books
+  ok    uc carries the scope
+  ok    uc refreshes the layout on a bound project instead of checking
+  ok    uc is an order to convert and asks first when it will not
+  ok    uc finishes on a zero layout match and side-by-side evidence
+  ok    uc sends chrome text to the label files
+  ok    uc records the finish with --bitti
+  ok    uc asks for a themed icon and refreshed shortcuts
+  ok    without a shelf uc says only the scanner applies
+  ok    books with frontmatter are enforceable
+  ok    a book without frontmatter is not
+  ok    only the pp shelf is read for enforcement
+  ok    her: evet applies to every project
+  ok    path and content triggers match
+  ok    unapplied books are pending
+  ok    var: true reports a missing file
+  ok    var: true passes once the file exists
+  ok    icermez reports the line
+  ok    --uydu refuses while a check fails
+  ok    --uydu records once the checks pass
+  ok    --uyan lists state per book
+  ok    --uydu rejects a book without frontmatter
+  ok    an edited technical book makes its pp book pending again
+  ok    SessionStart names a pending book with no UI files
+  ok    SessionStart drops the book once it is applied
+  ok    a write the book names is denied once
+  ok    the second write in the session goes through
+  ok    an applied book never denies
+  ok    a file no book names is never denied
+  ok    scan reports shelf checks as raf/ister
+  ok    scan reports a missing required file
+esle
+  ok    the neon template maps to an empty diff
+  ok    every preview choice has a token
+  ok    an unknown choice is reported
+  ok    the mapping writes shape.window-edge.ref
+  ok    the mapping writes metric.titlebar-h-min.value
+  ok    the mapping writes metric.btn-h.value
+  ok    the mapping writes metric.btn-px.value
+  ok    the mapping writes metric.scrollbar-style.value
+  ok    the mapping writes metric.scroll-behavior.value
+  ok    the mapping writes derived.scrollbar-thumb.ref
+  ok    the mapping writes derived.bg-gradient.type
+  ok    the mapping writes derived.bg-gradient.rotate
+  ok    the mapping writes derived.glass.blur
+  ok    the mapping writes derived.shadow-panel.alpha
+  ok    the mapping writes shape.border-w.value
+  ok    the mapping writes space.1.value
+  ok    the mapping writes easing.out.bezier
+  ok    the mapping writes label.support.tr
+  ok    the mapping writes label.support.weight
+  ok    the mapping writes label.title.en
+  ok    the full mapping passes the validator
+  ok    the written tokens equal the mapping
+  ok    a label edit round-trips through the state
+  ok    the tr label file carries every signature key
+  ok    tr and en carry the same keys
+  ok    label css points at colour, size and weight tokens
+  ok    the gate reports settings that never reached the tokens
+  ok    the gate prints no colour value
+  ok    --yaz makes the gate pass
+  ok    --yaz removes the notes file
+  ok    setup --apply ends on a zero layout match
+  ok    setup writes the label files
+  ok    uc --bitti records the version once the gate passes
+  ok    the next uc does not rescan from scratch
+  ok    uc --toplu lists only the projects behind this version
+  ok    uc --toplu --yaz writes one uc line to the ledger, once
+  ok    an open uc line from an older version moves to this version
+  ok    artik finds ignored build output as deletable
+  ok    artik never deletes tracked output or node_modules
+  ok    artik --sil removes only the deletable items
+  ok    the uc instruction carries the leftover step
+  ok    the changes between two versions come from the changelog
+  ok    the gate catches a generated file that drifted
+  ok    uc --bitti refuses while the gate fails
+
+512 passed, 0 failed
