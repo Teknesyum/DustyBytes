@@ -18,6 +18,15 @@ public partial class OffersView : UserControl
     public static bool OnPurgeButton(object? source) =>
         source is Visual v && v.GetSelfAndVisualAncestors().OfType<Button>().Any(b => b.Classes.Contains("purge"));
 
+    void OnRowTapped(object? sender, TappedEventArgs e)
+    {
+        if (sender is not Control { DataContext: UnitCard { IsBatch: true } card } row)
+            return;
+        if (e.Source is Visual v && v.GetSelfAndVisualAncestors().TakeWhile(a => a != row).Any(a => a is Button or CheckBox))
+            return;
+        card.IsSelected = !card.IsSelected;
+    }
+
     void OnAnyPress(object? sender, PointerPressedEventArgs e)
     {
         if (DataContext is OffersViewModel { Purge.IsArmed: true } vm && !OnPurgeButton(e.Source))

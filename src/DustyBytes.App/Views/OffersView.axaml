@@ -9,6 +9,35 @@
       <Setter Property="Background" Value="{StaticResource Renk1x10}"/>
       <Setter Property="CornerRadius" Value="{StaticResource Radius}"/>
     </Style>
+    <Style Selector="Border.row">
+      <Setter Property="Background" Value="{StaticResource Surface}"/>
+      <Setter Property="BorderBrush" Value="{StaticResource BorderDecorative}"/>
+      <Setter Property="BorderThickness" Value="{StaticResource BorderWidth}"/>
+      <Setter Property="CornerRadius" Value="{StaticResource Radius}"/>
+      <Setter Property="Padding" Value="{StaticResource InputPadding}"/>
+      <Setter Property="MinHeight" Value="{StaticResource InputHeight}"/>
+    </Style>
+    <Style Selector="Border.row.pick">
+      <Setter Property="Cursor" Value="Hand"/>
+    </Style>
+    <Style Selector="Border.row.pick:pointerover">
+      <Setter Property="BorderBrush" Value="{StaticResource BorderStrong}"/>
+    </Style>
+    <Style Selector="Border.row.selected">
+      <Setter Property="Background" Value="{StaticResource Renk1x10}"/>
+      <Setter Property="BorderBrush" Value="{StaticResource Renk1}"/>
+    </Style>
+    <Style Selector="Border.chip">
+      <Setter Property="BorderThickness" Value="{StaticResource BorderWidth}"/>
+      <Setter Property="CornerRadius" Value="{StaticResource Radius}"/>
+      <Setter Property="Padding" Value="{StaticResource InputPadding}"/>
+      <Setter Property="VerticalAlignment" Value="Center"/>
+    </Style>
+    <Style Selector="CheckBox.wide">
+      <Setter Property="MinWidth" Value="{StaticResource InputHeight}"/>
+      <Setter Property="MinHeight" Value="{StaticResource InputHeight}"/>
+      <Setter Property="VerticalAlignment" Value="Center"/>
+    </Style>
     <Style Selector="CheckBox.placeholder">
       <Setter Property="Opacity" Value="0"/>
       <Setter Property="IsHitTestVisible" Value="False"/>
@@ -108,7 +137,7 @@
       </StackPanel>
 
       <ScrollViewer Name="CardScroller" HorizontalScrollBarVisibility="Disabled" IsVisible="{Binding HasCards}">
-        <ItemsControl Name="CardList" ItemsSource="{Binding Cards}" Margin="24,0,24,12">
+        <ItemsControl Name="CardList" ItemsSource="{Binding Cards}" Margin="24,0,24,12" Grid.IsSharedSizeScope="True">
           <ItemsControl.ItemsPanel>
             <ItemsPanelTemplate>
               <VirtualizingStackPanel/>
@@ -116,31 +145,44 @@
           </ItemsControl.ItemsPanel>
           <ItemsControl.ItemTemplate>
             <DataTemplate x:DataType="vm:UnitCard">
-              <StackPanel Spacing="{StaticResource RowGap}">
-              <Border Theme="{StaticResource Panel}" Padding="16">
-                <Grid ColumnDefinitions="Auto,*,Auto">
-                  <CheckBox VerticalAlignment="Top" Margin="0,2,12,0" IsChecked="{Binding IsSelected}"
+              <StackPanel Spacing="{StaticResource Space1}">
+              <Border Classes="row" Classes.selected="{Binding IsSelected}" Classes.pick="{Binding IsBatch}" Tapped="OnRowTapped" DoubleTapped="OnRowTapped">
+                <ToolTip.Tip>
+                  <StackPanel Spacing="{StaticResource Space1}">
+                    <TextBlock Theme="{StaticResource Body}" Text="{Binding Effect}" TextWrapping="Wrap"/>
+                    <TextBlock Theme="{StaticResource Hint}" Text="{Binding Reason}" IsVisible="{Binding HasReason}"/>
+                    <TextBlock Theme="{StaticResource Hint}" FontFamily="{StaticResource FontMono}" Text="{Binding PathText}"/>
+                  </StackPanel>
+                </ToolTip.Tip>
+                <Grid>
+                  <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto" SharedSizeGroup="kind"/>
+                    <ColumnDefinition Width="Auto" SharedSizeGroup="usage"/>
+                    <ColumnDefinition Width="Auto" SharedSizeGroup="size"/>
+                    <ColumnDefinition Width="Auto" SharedSizeGroup="actions"/>
+                  </Grid.ColumnDefinitions>
+                  <CheckBox Classes="wide" IsChecked="{Binding IsSelected}"
                             Classes.placeholder="{Binding IsExternal}" IsEnabled="{Binding IsBatch}"
                             AutomationProperties.Name="{Binding Name}"/>
-                  <StackPanel Grid.Column="1" Spacing="{StaticResource Space1}">
-                    <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space2}">
-                      <TextBlock Theme="{StaticResource H3}" Text="{Binding Name}" TextTrimming="CharacterEllipsis"/>
-                      <Border BorderBrush="{StaticResource BorderDefault}" BorderThickness="{StaticResource BorderWidth}"
-                              CornerRadius="{StaticResource Radius}" Padding="6,0" VerticalAlignment="Center">
-                        <TextBlock Theme="{StaticResource Label}" Text="{Binding KindLabel}"/>
-                      </Border>
-                      <Border IsVisible="{Binding HasUserData}" BorderBrush="{StaticResource Warning50}" BorderThickness="{StaticResource BorderWidth}"
-                              CornerRadius="{StaticResource Radius}" Padding="6,0" VerticalAlignment="Center">
-                        <TextBlock Theme="{StaticResource WarningBody}" FontSize="{StaticResource FontSize2}" Text="Kullanıcı verisi"/>
-                      </Border>
-                    </StackPanel>
-                    <TextBlock Theme="{StaticResource Body}" Text="{Binding Effect}" TextWrapping="Wrap"/>
-                    <TextBlock Theme="{StaticResource Hint}" Text="{Binding UsageText}" TextWrapping="Wrap"/>
-                    <TextBlock Theme="{StaticResource Hint}" FontFamily="{StaticResource FontMono}" Text="{Binding PathText}" TextWrapping="NoWrap" TextTrimming="PathSegmentEllipsis"/>
+                  <TextBlock Grid.Column="1" Theme="{StaticResource Body}" FontWeight="{StaticResource WeightSemi}" Text="{Binding Name}"
+                             TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
+                  <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="{StaticResource Space2}" Margin="{StaticResource InputPadding}" VerticalAlignment="Center">
+                    <Border Classes="chip" BorderBrush="{StaticResource BorderDefault}">
+                      <TextBlock Theme="{StaticResource Label}" Text="{Binding KindLabel}"/>
+                    </Border>
+                    <Border Classes="chip" IsVisible="{Binding HasUserData}" BorderBrush="{StaticResource Warning50}">
+                      <TextBlock Theme="{StaticResource WarningBody}" FontSize="{StaticResource FontSize2}" Text="Kullanıcı verisi"/>
+                    </Border>
                   </StackPanel>
-                  <StackPanel Grid.Column="2" Spacing="{StaticResource Space2}" HorizontalAlignment="Right" Margin="12,0,0,0">
-                    <TextBlock Theme="{StaticResource MonoValue}" Classes="data" Text="{Binding SizeText}" HorizontalAlignment="Right"/>
-                    <TextBlock Theme="{StaticResource Hint}" Text="hesaplanıyor" IsVisible="{Binding IsPending}" HorizontalAlignment="Right"/>
+                  <TextBlock Grid.Column="3" Theme="{StaticResource Hint}" Text="{Binding UsageText}" TextWrapping="NoWrap"
+                             Margin="{StaticResource InputPadding}" VerticalAlignment="Center"/>
+                  <Panel Grid.Column="4" Margin="{StaticResource InputPadding}" VerticalAlignment="Center">
+                    <TextBlock Theme="{StaticResource MonoValue}" Classes="data" Text="{Binding SizeText}" HorizontalAlignment="Right" IsVisible="{Binding IsSettled}"/>
+                    <TextBlock Theme="{StaticResource Hint}" Text="hesaplanıyor" HorizontalAlignment="Right" IsVisible="{Binding IsPending}"/>
+                  </Panel>
+                  <StackPanel Grid.Column="5" Orientation="Horizontal" Spacing="{StaticResource Space2}" HorizontalAlignment="Right" VerticalAlignment="Center">
                     <Button Classes="ghost" IsVisible="{Binding IsBatch}" Content="{Binding ActionText}"
                             ToolTip.Tip="{Binding ActionHint}" AutomationProperties.Name="{Binding ActionText}"
                             Command="{Binding $parent[ItemsControl].((vm:OffersViewModel)DataContext).RemoveOneCommand}"
