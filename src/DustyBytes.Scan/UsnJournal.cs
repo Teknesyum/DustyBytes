@@ -38,9 +38,20 @@ public static unsafe class UsnJournal
         return h;
     }
 
+    internal static nint OpenRoot(string root)
+    {
+        var vol = VolumeOf(root) ?? throw new ArgumentException("Yalnız sürücü harfli yerel birimler desteklenir: " + root);
+        var h = Native.CreateFile(vol + "\\", 0, Native.FILE_SHARE_ALL, 0, Native.OPEN_EXISTING, Native.FILE_FLAG_BACKUP_SEMANTICS, 0);
+        if (h == Native.InvalidHandle)
+            throw new Win32Exception(Marshal.GetLastPInvokeError(), "Sürücü kökü açılamadı: " + vol);
+        return h;
+    }
+
+    internal static nint Open(string root, bool privileged) => privileged ? OpenVolume(root) : OpenRoot(root);
+
     public static UsnJournalInfo Query(string root)
     {
-        var h = OpenVolume(root);
+        var h = OpenRoot(root);
         try
         {
             return Query(h);
@@ -74,12 +85,12 @@ public static unsafe class UsnJournal
         }
     }
 
-    public static List<UsnChange> ReadSince(string root, UsnCursor cursor, out UsnCursor next, CancellationToken cancel = default)
+    public static List<UsnChange> ReadSince(string root, UsnCursor cursor, out UsnCursor next, CancellationToken cancel = default, bool privileged = false)
     {
-        var h = OpenVolume(root);
+        var h = Open(root, privileged);
         try
         {
-            return ReadSince(h, cursor, out next, cancel);
+            return ReadSince(h, cursor, out next, cancel, privileged);
         }
         finally
         {
@@ -87,8 +98,9 @@ public static unsafe class UsnJournal
         }
     }
 
-    internal static List<UsnChange> ReadSince(nint volume, UsnCursor cursor, out UsnCursor next, CancellationToken cancel)
+    internal static List<UsnChange> ReadSince(nint volume, UsnCursor cursor, out UsnCursor next, CancellationToken cancel, bool privileged)
     {
+        var code = privileged ? Native.FSCTL_READ_USN_JOURNAL : Native.FSCTL_READ_UNPRIVILEGED_USN_JOURNAL;
         var info = Query(volume);
         if (info.JournalId != cursor.JournalId)
             throw new UsnJournalResetException("USN günlüğü yeniden oluşturulmuş; tam tarama gerekir.");
@@ -112,7 +124,7 @@ public static unsafe class UsnJournal
                     MinMajorVersion = 2,
                     MaxMajorVersion = 2,
                 };
-                if (!Native.DeviceIoControl(volume, Native.FSCTL_READ_USN_JOURNAL, &req, (uint)sizeof(Native.READ_USN_JOURNAL_DATA_V1), buf, size, out var got, 0))
+                if (!Native.DeviceIoControl(volume, code, &req, (uint)sizeof(Native.READ_USN_JOURNAL_DATA_V1), buf, size, out var got, 0))
                 {
                     var err = Marshal.GetLastPInvokeError();
                     if (err is Native.ERROR_JOURNAL_ENTRY_DELETED or Native.ERROR_JOURNAL_NOT_ACTIVE or Native.ERROR_JOURNAL_DELETE_IN_PROGRESS)
@@ -189,107 +201,169 @@ public sealed record UsnUpdateResult(ScanResult Result, int Changes, int Added, 
 
 public static class UsnUpdater
 {
-    private static unsafe ScanNode? Stat(string full, ScanNode? parent, long cluster, out uint tag)
+    private sealed record Listing(bool Gone, bool Failed, long Write, List<(ScanNode Node, uint Tag)> Entries)
     {
-        tag = 0;
-        Native.WIN32_FIND_DATAW data;
-        var longPath = Paths.ToLong(full);
-        var h = Native.FindFirstFileEx(longPath, Native.FindExInfoBasic, &data, Native.FindExSearchNameMatch, 0, 0);
-        if (h == Native.InvalidHandle)
-            return null;
-        Native.FindClose(h);
-        return FileScanRun.CreateNode(&data, Path.GetFileName(full), parent, longPath, cluster, out tag);
+        public static readonly Listing Missing = new(true, false, 0, []);
+        public static readonly Listing Unreadable = new(false, true, 0, []);
     }
 
-    public static async Task<UsnUpdateResult> ApplyAsync(ScanResult cached, CancellationToken cancel = default)
+    private static unsafe Listing List(string path, long cluster, string quarantine)
+    {
+        var longPath = Paths.ToLong(path);
+        if (!Native.GetFileAttributesEx(longPath, 0, out var ad))
+            return Marshal.GetLastPInvokeError() is Native.ERROR_FILE_NOT_FOUND or Native.ERROR_PATH_NOT_FOUND ? Listing.Missing : Listing.Unreadable;
+        if ((ad.dwFileAttributes & Native.FILE_ATTRIBUTE_DIRECTORY) == 0)
+            return Listing.Unreadable;
+        var entries = new List<(ScanNode, uint)>();
+        var longPrefix = longPath.EndsWith('\\') ? longPath : longPath + "\\";
+        var displayPrefix = path.EndsWith('\\') ? path : path + "\\";
+        Native.WIN32_FIND_DATAW data;
+        var h = Native.FindFirstFileEx(longPrefix + "*", Native.FindExInfoBasic, &data, Native.FindExSearchNameMatch, 0, Native.FIND_FIRST_EX_LARGE_FETCH);
+        if (h == Native.InvalidHandle)
+        {
+            var err = Marshal.GetLastPInvokeError();
+            return err is Native.ERROR_FILE_NOT_FOUND or Native.ERROR_NO_MORE_FILES
+                ? new Listing(false, false, Native.FileTimeToTicks(ad.ftLastWriteTime), entries)
+                : Listing.Unreadable;
+        }
+        try
+        {
+            do
+            {
+                var name = new string(data.cFileName);
+                if (name is "" or "." or "..")
+                    continue;
+                if ((data.dwFileAttributes & Native.FILE_ATTRIBUTE_DIRECTORY) != 0 && (displayPrefix + name).Equals(quarantine, StringComparison.OrdinalIgnoreCase))
+                    continue;
+                var node = FileScanRun.CreateNode(&data, name, null, longPrefix + name, cluster, out var tag);
+                entries.Add((node, tag));
+            }
+            while (Native.FindNextFile(h, &data));
+        }
+        finally
+        {
+            Native.FindClose(h);
+        }
+        return new Listing(false, false, Native.FileTimeToTicks(ad.ftLastWriteTime), entries);
+    }
+
+    private static bool Under(string path, HashSet<string> roots)
+    {
+        for (var p = Path.GetDirectoryName(path); p is not null; p = Path.GetDirectoryName(p))
+            if (roots.Contains(p))
+                return true;
+        return false;
+    }
+
+    public static async Task<UsnUpdateResult> ApplyAsync(ScanResult cached, CancellationToken cancel = default, bool privileged = false)
     {
         var cursor = cached.Usn ?? throw new InvalidOperationException("Önbellekteki taramada USN konumu yok; tam tarama gerekir.");
         var root = cached.Root;
         var rootPath = root.Name;
-        var volume = UsnJournal.OpenVolume(rootPath);
-        var cluster = FileScanRun.ClusterSize(Path.GetPathRoot(rootPath)!);
-        var quarantine = Path.Combine(Path.GetPathRoot(rootPath)!, Paths.QuarantineDir);
+        var volumeRoot = Path.GetPathRoot(rootPath)!;
+        var cluster = FileScanRun.ClusterSize(volumeRoot);
+        var quarantine = Path.Combine(volumeRoot, Paths.QuarantineDir);
         int added = 0, removed = 0, updated = 0, unresolved = 0;
         List<UsnChange> changes;
         UsnCursor next;
-        var targets = new Dictionary<string, bool>(StringComparer.OrdinalIgnoreCase);
+        var dirty = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var handle = UsnJournal.Open(rootPath, privileged);
         try
         {
-            changes = UsnJournal.ReadSince(volume, cursor, out next, cancel);
-            var parents = new Dictionary<ulong, string?>();
+            changes = UsnJournal.ReadSince(handle, cursor, out next, cancel, privileged);
+            var seen = new HashSet<ulong>();
             foreach (var c in changes)
             {
-                if (!parents.TryGetValue(c.ParentRef, out var parentPath))
-                {
-                    parentPath = UsnJournal.ResolvePath(volume, c.ParentRef);
-                    parents[c.ParentRef] = parentPath;
-                }
-                if (parentPath is null)
+                if (!seen.Add(c.ParentRef))
+                    continue;
+                cancel.ThrowIfCancellationRequested();
+                var path = UsnJournal.ResolvePath(handle, c.ParentRef);
+                if (path is null)
                 {
                     unresolved++;
                     continue;
                 }
-                var full = Path.Combine(parentPath, c.Name);
-                if (!Paths.IsUnder(full, rootPath) || Paths.IsUnder(full, quarantine))
-                    continue;
-                targets[full] = true;
+                path = Paths.Normalize(path);
+                if (Paths.IsUnder(path, rootPath) && !Paths.IsUnder(path, quarantine))
+                    dirty.Add(path);
             }
         }
         finally
         {
-            Native.CloseHandle(volume);
+            Native.CloseHandle(handle);
         }
 
+        var order = dirty.OrderBy(p => p.Length).ThenBy(p => p, StringComparer.OrdinalIgnoreCase).ToArray();
+        var listings = new Listing[order.Length];
+        Parallel.For(0, order.Length, new ParallelOptions { CancellationToken = cancel, MaxDegreeOfParallelism = Environment.ProcessorCount },
+            i => listings[i] = List(order[i], cluster, quarantine));
+
         var scanner = new FileScanner();
-        foreach (var full in targets.Keys.OrderBy(p => p.Length))
+        var fresh = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        for (var i = 0; i < order.Length; i++)
         {
             cancel.ThrowIfCancellationRequested();
-            var existing = root.Find(full);
-            var parentPath = Path.GetDirectoryName(full);
-            var parent = parentPath is null ? null : root.Find(parentPath);
-            var node = Stat(full, parent, cluster, out var tag);
-            if (node is null)
+            var path = order[i];
+            var listing = listings[i];
+            if (Under(path, fresh) || root.Find(path) is not { IsDirectory: true } node)
+                continue;
+            if (listing.Gone)
             {
-                if (existing is not null && existing != root && existing.Parent?.Children is { } siblings)
-                {
-                    siblings.Remove(existing);
+                if (node != root && node.Parent?.Children is { } siblings && siblings.Remove(node))
                     removed++;
-                }
                 continue;
             }
-            if (parent is null)
+            if (listing.Failed)
                 continue;
-            if (existing is not null && existing.IsDirectory == node.IsDirectory)
+            node.LastWriteTicks = listing.Write;
+            var old = new Dictionary<string, ScanNode>(StringComparer.OrdinalIgnoreCase);
+            if (node.Children is { } kids)
+                foreach (var k in kids)
+                    old.TryAdd(k.Name, k);
+            var children = new List<ScanNode>(listing.Entries.Count);
+            foreach (var (entry, tag) in listing.Entries)
             {
-                existing.LastWriteTicks = node.LastWriteTicks;
-                existing.Flags = (node.Flags & ~NodeFlags.HardLinkDuplicate) | (existing.Flags & NodeFlags.HardLinkDuplicate);
-                existing.ReparseTag = node.ReparseTag;
-                if (!existing.IsDirectory)
+                if (old.Remove(entry.Name, out var existing) && existing.IsDirectory == entry.IsDirectory && existing.Name == entry.Name
+                    && (!existing.IsDirectory || existing.ReparseTag == entry.ReparseTag))
                 {
-                    existing.Size = node.Size;
-                    existing.LogicalSize = node.LogicalSize;
-                    existing.CloudSize = node.CloudSize;
+                    if (existing.LastWriteTicks != entry.LastWriteTicks || existing.LogicalSize != entry.LogicalSize || existing.Flags != entry.Flags)
+                        updated++;
+                    existing.LastWriteTicks = entry.LastWriteTicks;
+                    existing.Flags = (entry.Flags & ~NodeFlags.HardLinkDuplicate) | (existing.Flags & (NodeFlags.HardLinkDuplicate | NodeFlags.Inaccessible));
+                    existing.ReparseTag = entry.ReparseTag;
+                    if (!existing.IsDirectory)
+                    {
+                        existing.Size = entry.Size;
+                        existing.LogicalSize = entry.LogicalSize;
+                        existing.CloudSize = entry.CloudSize;
+                        existing.NewestWriteTicks = entry.NewestWriteTicks;
+                    }
+                    children.Add(existing);
+                    continue;
                 }
-                updated++;
-                continue;
-            }
-            if (existing is not null)
-            {
-                parent.Children?.Remove(existing);
-                removed++;
-            }
-            if (node.IsDirectory && (tag == 0 || ReparseTags.ShouldEnter(tag)))
-            {
-                var sub = await scanner.ScanAsync(full, new ScanOptions(), null, cancel).ConfigureAwait(false);
-                if (sub.Root.Children is { } kids)
+                if (existing is not null)
+                    removed++;
+                entry.Parent = node;
+                if (entry.IsDirectory && (tag == 0 || ReparseTags.ShouldEnter(tag)))
                 {
-                    foreach (var k in kids)
-                        k.Parent = node;
-                    node.Children = kids;
+                    var full = Path.Combine(path, entry.Name);
+                    var sub = await scanner.ScanAsync(full, new ScanOptions(), null, cancel).ConfigureAwait(false);
+                    cancel.ThrowIfCancellationRequested();
+                    entry.Flags |= sub.Root.Flags & NodeFlags.Inaccessible;
+                    if (sub.Root.Children is { } subKids)
+                    {
+                        foreach (var k in subKids)
+                            k.Parent = entry;
+                        entry.Children = subKids;
+                    }
+                    fresh.Add(full);
                 }
+                children.Add(entry);
+                added++;
             }
-            (parent.Children ??= []).Add(node);
-            added++;
+            removed += old.Count;
+            children.TrimExcess();
+            node.Children = children.Count > 0 ? children : null;
         }
 
         ScanTree.Aggregate(root);

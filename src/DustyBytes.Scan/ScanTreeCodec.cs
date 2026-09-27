@@ -5,12 +5,31 @@ public static class ScanTreeCodec
     const uint Magic = 0x54424433;
     const int Version = 1;
 
+    public static string NewPath(string dir)
+    {
+        Directory.CreateDirectory(dir);
+        return Path.Combine(dir, "tree-" + Guid.NewGuid().ToString("N") + ".bin");
+    }
+
+    public static bool IsTreePath(string path, string dir)
+    {
+        try
+        {
+            var full = Path.GetFullPath(path);
+            var name = Path.GetFileName(full);
+            return string.Equals(Path.GetDirectoryName(full), Path.GetFullPath(dir).TrimEnd('\\'), StringComparison.OrdinalIgnoreCase)
+                && name.StartsWith("tree-", StringComparison.OrdinalIgnoreCase) && name.EndsWith(".bin", StringComparison.OrdinalIgnoreCase);
+        }
+        catch (Exception e) when (e is ArgumentException or NotSupportedException or PathTooLongException)
+        {
+            return false;
+        }
+    }
+
     public static void Write(ScanResult result, string path)
     {
-        var temp = path + ".tmp";
-        using (var stream = new FileStream(temp, FileMode.Create, FileAccess.Write, FileShare.None, 1 << 20))
-            Write(result, stream);
-        File.Move(temp, path, true);
+        using var stream = new FileStream(path, FileMode.CreateNew, FileAccess.Write, FileShare.None, 1 << 20);
+        Write(result, stream);
     }
 
     public static void Write(ScanResult result, Stream stream)

@@ -94,13 +94,16 @@ public sealed partial class OverviewViewModel : ViewModelBase
     public bool IsRestoring => Session.IsRestoring && !Session.HasSnapshot;
     public bool IsEmpty => !Session.HasSnapshot && !IsScanning && !Session.IsRestoring && Session.ScanError is null;
     public bool ShowContent => Session.HasSnapshot;
-    public string PrimaryText => HasError ? "Yeniden dene" : Session.HasSnapshot || Session.IsRestoring ? "Yeniden tara" : "Taramayı başlat";
+    public string PrimaryText => HasError ? "Yeniden dene" : Session.HasSnapshot || Session.IsRestoring ? "Yenile" : "Taramayı başlat";
 
     public Availability FastScanState => _main.Backend.FastScanAvailability();
     public bool FastScanEnabled => FastScanState.Enabled && !IsScanning && !Session.IsRestoring;
     const string RestoringTip = "Önceki tarama okunuyor; bitince tarama kendiliğinden başlar";
     public string FastScanTip => Session.IsRestoring ? RestoringTip : FastScanState.Reason;
-    public string ScanTip => Session.IsRestoring ? RestoringTip : "Sistem sürücüsü yönetici izni istemeden taranır";
+    public string ScanTip => Session.IsRestoring ? RestoringTip
+        : Session.HasSnapshot ? "Son taramadan bu yana değişenleri okur; tam taramadan çok daha kısa sürer"
+        : "Sistem sürücüsü yönetici izni istemeden taranır";
+    public string RescanTip => Session.IsRestoring ? RestoringTip : "Sürücüyü baştan tarar; yenileme şüpheli görünürse kullanın";
 
     void OnSession(object? sender, PropertyChangedEventArgs e)
     {
@@ -131,7 +134,9 @@ public sealed partial class OverviewViewModel : ViewModelBase
         OnPropertyChanged(nameof(FastScanEnabled));
         OnPropertyChanged(nameof(FastScanTip));
         OnPropertyChanged(nameof(ScanTip));
+        OnPropertyChanged(nameof(RescanTip));
         StartScanCommand.NotifyCanExecuteChanged();
+        RescanCommand.NotifyCanExecuteChanged();
         FastScanCommand.NotifyCanExecuteChanged();
     }
 
@@ -187,9 +192,14 @@ public sealed partial class OverviewViewModel : ViewModelBase
     bool CanScan() => !IsScanning && !Session.IsRestoring;
 
     [RelayCommand(CanExecute = nameof(CanScan))]
-    private async Task StartScan()
+    private Task StartScan() => Run(Session.HasSnapshot ? ScanMode.Refresh : ScanMode.Full);
+
+    [RelayCommand(CanExecute = nameof(CanScan))]
+    private Task Rescan() => Run(ScanMode.Full);
+
+    async Task Run(ScanMode mode)
     {
-        var task = Session.RunScanAsync(_main, fast: false);
+        var task = Session.RunScanAsync(_main, mode);
         Raise();
         await task;
         Raise();
@@ -198,13 +208,7 @@ public sealed partial class OverviewViewModel : ViewModelBase
     bool CanFastScan() => FastScanEnabled;
 
     [RelayCommand(CanExecute = nameof(CanFastScan))]
-    private async Task FastScan()
-    {
-        var task = Session.RunScanAsync(_main, fast: true);
-        Raise();
-        await task;
-        Raise();
-    }
+    private Task FastScan() => Run(ScanMode.Fast);
 
     [RelayCommand]
     private void OpenOffers() => _main.GoTo(_main.Offers);

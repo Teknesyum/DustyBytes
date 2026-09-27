@@ -87,6 +87,43 @@ public static class ScanTree
         }
     }
 
+    public static ScanNode Clone(ScanNode root)
+    {
+        static ScanNode Copy(ScanNode n, ScanNode? parent) => new()
+        {
+            Name = n.Name,
+            Parent = parent,
+            IsDirectory = n.IsDirectory,
+            Size = n.Size,
+            LogicalSize = n.LogicalSize,
+            CloudSize = n.CloudSize,
+            LastWriteTicks = n.LastWriteTicks,
+            NewestWriteTicks = n.NewestWriteTicks,
+            FileCount = n.FileCount,
+            Flags = n.Flags,
+            ReparseTag = n.ReparseTag,
+        };
+        var copy = Copy(root, null);
+        var stack = new Stack<(ScanNode From, ScanNode To)>();
+        stack.Push((root, copy));
+        while (stack.Count > 0)
+        {
+            var (from, to) = stack.Pop();
+            if (from.Children is not { Count: > 0 } kids)
+                continue;
+            var list = new List<ScanNode>(kids.Count);
+            foreach (var k in kids)
+            {
+                var c = Copy(k, to);
+                list.Add(c);
+                if (k.Children is { Count: > 0 })
+                    stack.Push((k, c));
+            }
+            to.Children = list;
+        }
+        return copy;
+    }
+
     public static (long Files, long Directories) Count(ScanNode root)
     {
         long files = 0, dirs = 0;

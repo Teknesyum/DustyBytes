@@ -30,6 +30,7 @@ public interface IAppBackend
 
     Task<ScanSnapshot?> LoadCachedAsync(IProgress<TaskStep>? progress, CancellationToken ct);
     Task<ScanSnapshot> ScanAsync(IProgress<TaskStep> progress, CancellationToken ct);
+    Task<ScanSnapshot?> RefreshAsync(ScanResult cached, IProgress<TaskStep> progress, CancellationToken ct);
     Availability FastScanAvailability();
     Task<ScanSnapshot> FastScanAsync(IProgress<TaskStep> progress, CancellationToken ct);
 

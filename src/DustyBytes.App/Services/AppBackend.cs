@@ -176,7 +176,7 @@ public sealed class AppBackend : IAppBackend, IAsyncDisposable
 
     static ScanResult ReadTree(string? path)
     {
-        if (path is not { Length: > 0 } || !SafeUnder(path, Paths.AppData) || !File.Exists(path))
+        if (path is not { Length: > 0 } || !ScanTreeCodec.IsTreePath(path, Paths.AppData) || !File.Exists(path))
             throw new InvalidOperationException("Hızlı tarama sonucu bulunamadı");
         try
         {
@@ -188,13 +188,75 @@ public sealed class AppBackend : IAppBackend, IAsyncDisposable
         }
         finally
         {
-            try
-            {
-                File.Delete(path);
-            }
-            catch (Exception e) when (e is IOException or UnauthorizedAccessException)
-            {
-            }
+            Discard(path);
+        }
+    }
+
+    static void Discard(string path)
+    {
+        try
+        {
+            File.Delete(path);
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+        }
+    }
+
+    public async Task<ScanSnapshot?> RefreshAsync(ScanResult cached, IProgress<TaskStep> progress, CancellationToken ct)
+    {
+        if (cached.Usn is null || cached.Cancelled || !string.Equals(cached.Root.Name, ScanRoot, StringComparison.OrdinalIgnoreCase))
+            return null;
+        progress.Report(new TaskStep("Değişiklikler okunuyor", -1, "Son taramadan bu yana USN günlüğü"));
+        var copy = await Task.Run(() => new ScanResult
+        {
+            Root = ScanTree.Clone(cached.Root),
+            Files = cached.Files,
+            Directories = cached.Directories,
+            Elapsed = cached.Elapsed,
+            FinishedAt = cached.FinishedAt,
+            Errors = cached.Errors,
+            Cancelled = cached.Cancelled,
+            Method = cached.Method,
+            Usn = cached.Usn,
+        }, ct).ConfigureAwait(false);
+        ScanResult? result;
+        try
+        {
+            var update = await Task.Run(() => UsnUpdater.ApplyAsync(copy, ct), ct).ConfigureAwait(false);
+            result = update.Result;
+        }
+        catch (UsnJournalResetException)
+        {
+            return null;
+        }
+        catch (Exception e) when (e is System.ComponentModel.Win32Exception or IOException or UnauthorizedAccessException)
+        {
+            result = WorkerRunning ? await RefreshInWorkerAsync(copy, progress, ct).ConfigureAwait(false) : null;
+        }
+        if (result is null)
+            return null;
+        var snapshot = await Build(result, progress, ct).ConfigureAwait(false);
+        _ = SaveAsync(result);
+        return snapshot;
+    }
+
+    async Task<ScanResult?> RefreshInWorkerAsync(ScanResult copy, IProgress<TaskStep> progress, CancellationToken ct)
+    {
+        var input = ScanTreeCodec.NewPath(Paths.AppData);
+        try
+        {
+            await Task.Run(() => ScanTreeCodec.Write(copy, input), ct).ConfigureAwait(false);
+            var response = await SendAsync(new WorkerRequest { Op = Ops.UsnRefresh, Target = ScanRoot, Items = [input] }, Span(progress, 0, 85)!, ct).ConfigureAwait(false);
+            return response.Ok ? await Task.Run(() => ReadTree(response.Payload), ct).ConfigureAwait(false) : null;
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException or InvalidOperationException)
+        {
+            return null;
+        }
+        finally
+        {
+            Discard(input);
         }
     }
 

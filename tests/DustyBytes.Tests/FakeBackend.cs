@@ -45,6 +45,8 @@ public sealed class FakeBackend : IAppBackend
     public Func<WorkerRequest, WorkerResponse>? Respond { get; set; }
     public ScanSnapshot? Cached { get; set; }
     public ScanSnapshot? Fresh { get; set; }
+    public ScanSnapshot? Refreshed { get; set; }
+    public List<string> ScanCalls { get; } = [];
     public Exception? ScanError { get; set; }
     public List<ProgramInfo> Programs { get; set; } = [];
     public LeftoverSnapshot? Preview { get; set; }
@@ -178,6 +180,7 @@ public sealed class FakeBackend : IAppBackend
 
     public async Task<ScanSnapshot> ScanAsync(IProgress<TaskStep> progress, CancellationToken ct)
     {
+        ScanCalls.Add("full");
         await Task.Yield();
         if (ScanError is not null)
             throw ScanError;
@@ -187,7 +190,18 @@ public sealed class FakeBackend : IAppBackend
 
     public Availability FastScanAvailability() => Fast;
 
-    public Task<ScanSnapshot> FastScanAsync(IProgress<TaskStep> progress, CancellationToken ct) => ScanAsync(progress, ct);
+    public Task<ScanSnapshot> FastScanAsync(IProgress<TaskStep> progress, CancellationToken ct)
+    {
+        ScanCalls.Add("fast");
+        return Task.FromResult(Fresh ?? Snapshot());
+    }
+
+    public async Task<ScanSnapshot?> RefreshAsync(ScanResult cached, IProgress<TaskStep> progress, CancellationToken ct)
+    {
+        ScanCalls.Add("refresh");
+        await Task.Yield();
+        return Refreshed;
+    }
 
     public TaskCompletionSource? ProgramsGate { get; set; }
 

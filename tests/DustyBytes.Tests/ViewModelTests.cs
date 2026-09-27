@@ -442,9 +442,41 @@ public class ViewModelTests
         Assert.True(vm.Overview.HasSnapshot);
         Assert.False(vm.Overview.IsRefreshing);
         Assert.False(vm.Overview.HasError);
-        Assert.Equal("Yeniden tara", vm.Overview.PrimaryText);
+        Assert.Equal("Yenile", vm.Overview.PrimaryText);
         Assert.False(vm.Overview.FastScanEnabled);
         Assert.False(string.IsNullOrWhiteSpace(vm.Overview.FastScanTip));
+    }
+
+    [AvaloniaFact]
+    public async Task Start_Refreshes_From_Cache_And_Falls_Back_To_Full_Scan()
+    {
+        var backend = FakeBackend.Rich();
+        backend.Cached = FakeBackend.Snapshot();
+        var vm = Shell(backend, withSnapshot: false);
+        await vm.StartAsync();
+        await Settle();
+        Assert.Equal(["refresh", "full"], backend.ScanCalls);
+
+        backend.ScanCalls.Clear();
+        backend.Refreshed = FakeBackend.Snapshot();
+        await vm.Overview.StartScanCommand.ExecuteAsync(null);
+        Assert.Equal(["refresh"], backend.ScanCalls);
+        Assert.Same(backend.Refreshed, vm.Session.Snapshot);
+
+        backend.ScanCalls.Clear();
+        await vm.Overview.RescanCommand.ExecuteAsync(null);
+        Assert.Equal(["full"], backend.ScanCalls);
+    }
+
+    [AvaloniaFact]
+    public async Task Start_Without_Cache_Scans_In_Full()
+    {
+        var backend = new FakeBackend();
+        var vm = Shell(backend, withSnapshot: false);
+        await vm.StartAsync();
+        await Settle();
+        Assert.Equal(["full"], backend.ScanCalls);
+        Assert.Equal("Yenile", vm.Overview.PrimaryText);
     }
 
     [AvaloniaFact]

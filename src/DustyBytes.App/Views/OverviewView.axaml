@@ -20,6 +20,9 @@
           <Button Name="FastScanButton" Classes="ghost" Content="Hızlı tarama (yönetici)"
                   Command="{Binding FastScanCommand}"
                   ToolTip.Tip="{Binding FastScanTip}" ToolTip.ShowOnDisabled="True"/>
+          <Button Name="RescanButton" Classes="ghost" Content="Baştan tara"
+                  Command="{Binding RescanCommand}" IsVisible="{Binding HasSnapshot}"
+                  ToolTip.Tip="{Binding RescanTip}" ToolTip.ShowOnDisabled="True"/>
           <Button Name="ScanButton" Classes="primary" Content="{Binding PrimaryText}"
                   Command="{Binding StartScanCommand}"
                   ToolTip.Tip="{Binding ScanTip}" ToolTip.ShowOnDisabled="True"/>

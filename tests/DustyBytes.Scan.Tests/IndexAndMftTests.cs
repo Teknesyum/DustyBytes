@@ -107,14 +107,16 @@ public sealed class IndexAndMftTests(ScanFixture fx, ITestOutputHelper output)
     [Fact]
     public async Task UsnIncrementalUpdate()
     {
-        if (!ScanFixture.IsAdmin)
-            return;
         var dir = Path.Combine(Path.GetTempPath(), "dustybytes-usn-" + Guid.NewGuid().ToString("N")[..8]);
         Directory.CreateDirectory(dir);
         File.WriteAllBytes(Path.Combine(dir, "silinecek.bin"), new byte[4000]);
         File.WriteAllBytes(Path.Combine(dir, "buyuyecek.bin"), new byte[100]);
         var r = await new FileScanner().ScanAsync(dir, new ScanOptions(), null, default);
-        Assert.NotNull(r.Usn);
+        if (r.Usn is null)
+        {
+            Directory.Delete(dir, true);
+            return;
+        }
         Assert.Equal(2, r.Root.FileCount);
 
         File.Delete(Path.Combine(dir, "silinecek.bin"));
@@ -123,9 +125,11 @@ public sealed class IndexAndMftTests(ScanFixture fx, ITestOutputHelper output)
         Directory.CreateDirectory(Path.Combine(dir, "alt"));
         File.WriteAllBytes(Path.Combine(dir, "alt", "ic.bin"), new byte[500]);
 
-        var changes = UsnJournal.ReadSince(dir, r.Usn!, out var next);
-        Assert.Contains(changes, c => c.Name == "yeni.bin");
-        Assert.True(next.NextUsn > r.Usn!.NextUsn);
+        var changes = UsnJournal.ReadSince(dir, r.Usn, out var next);
+        Assert.NotEmpty(changes);
+        Assert.True(next.NextUsn > r.Usn.NextUsn);
+        if (ScanFixture.IsAdmin)
+            Assert.Contains(UsnJournal.ReadSince(dir, r.Usn, out _, privileged: true), c => c.Name == "yeni.bin");
 
         var u = await UsnUpdater.ApplyAsync(r);
         var root = u.Result.Root;
@@ -141,5 +145,63 @@ public sealed class IndexAndMftTests(ScanFixture fx, ITestOutputHelper output)
         Assert.Equal(fresh.Root.Size, root.Size);
         Assert.Equal(fresh.Files, u.Result.Files);
         Directory.Delete(dir, true);
+    }
+
+    [Fact]
+    public async Task UsnRefreshMatchesFullScan()
+    {
+        var dir = Path.Combine(Path.GetTempPath(), "dustybytes-usn-" + Guid.NewGuid().ToString("N")[..8]);
+        void Put(string rel, int size)
+        {
+            var p = Path.Combine(dir, rel);
+            Directory.CreateDirectory(Path.GetDirectoryName(p)!);
+            File.WriteAllBytes(p, new byte[size]);
+        }
+        Put("silinecek.bin", 4000);
+        Put("buyuyecek.bin", 100);
+        Put("adi-degisecek.bin", 300);
+        Put(@"klasor\ic1.bin", 1000);
+        Put(@"klasor\alt\ic2.bin", 2000);
+        Put(@"tasinacak\t.bin", 5000);
+        Put(@"hedef\duran.bin", 10);
+        Put(@"agac\a\b\c.bin", 9000);
+        Put(@"agac\d.bin", 700);
+        Put(@"derin\x\y\z\eski.bin", 64);
+        Put(@"derin\x\y\z\degisen.bin", 64);
+        Directory.CreateDirectory(Path.Combine(dir, "bos"));
+        try
+        {
+            var r = await new FileScanner().ScanAsync(dir, new ScanOptions(), null, default);
+            if (r.Usn is null)
+                return;
+
+            File.Delete(Path.Combine(dir, "silinecek.bin"));
+            Put("buyuyecek.bin", 50000);
+            File.Move(Path.Combine(dir, "adi-degisecek.bin"), Path.Combine(dir, "yeni-ad.bin"));
+            Directory.Move(Path.Combine(dir, "klasor"), Path.Combine(dir, "klasor2"));
+            Directory.Move(Path.Combine(dir, "tasinacak"), Path.Combine(dir, "hedef", "tasinan"));
+            Directory.Delete(Path.Combine(dir, "agac"), true);
+            Put(@"yeni\n1\n2\f.bin", 12345);
+            Put(@"derin\x\y\z\yeni.bin", 777);
+            Put(@"derin\x\y\z\degisen.bin", 8888);
+            Put(@"bos\artik-dolu.bin", 1);
+
+            var u = await UsnUpdater.ApplyAsync(r);
+            output.WriteLine($"Değişiklik {u.Changes}, eklenen {u.Added}, silinen {u.Removed}, güncellenen {u.Updated}, çözülemeyen {u.Unresolved}");
+            var fresh = await new FileScanner().ScanAsync(dir, new ScanOptions(), null, default);
+            Assert.Equal(Flatten(fresh.Root), Flatten(u.Result.Root));
+            Assert.Equal(fresh.Files, u.Result.Files);
+            Assert.Equal(fresh.Directories, u.Result.Directories);
+            Assert.True(u.Result.Usn!.NextUsn > r.Usn.NextUsn);
+        }
+        finally
+        {
+            Directory.Delete(dir, true);
+        }
+
+        static List<string> Flatten(ScanNode root) =>
+            [.. new[] { root }.Concat(root.Descendants())
+                .Select(n => $"{Path.GetRelativePath(root.FullPath, n.FullPath)}|{n.IsDirectory}|{n.Size}|{n.LogicalSize}|{(n.IsDirectory ? 0 : n.LastWriteTicks)}|{n.NewestWriteTicks}|{n.FileCount}|{n.Flags}|{n.ReparseTag}")
+                .Order(StringComparer.OrdinalIgnoreCase)];
     }
 }

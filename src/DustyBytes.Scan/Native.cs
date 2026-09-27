@@ -40,6 +40,7 @@ internal static unsafe partial class Native
     public const uint FSCTL_GET_REPARSE_POINT = 0x000900A8;
     public const uint FSCTL_QUERY_USN_JOURNAL = 0x000900F4;
     public const uint FSCTL_READ_USN_JOURNAL = 0x000900BB;
+    public const uint FSCTL_READ_UNPRIVILEGED_USN_JOURNAL = 0x000903AB;
 
     public static readonly nint InvalidHandle = -1;
 

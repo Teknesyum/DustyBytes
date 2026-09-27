@@ -4,6 +4,13 @@ using DustyBytes.Core.Model;
 
 namespace DustyBytes.App.ViewModels;
 
+public enum ScanMode
+{
+    Refresh,
+    Full,
+    Fast,
+}
+
 public sealed partial class SessionState(IAppBackend backend) : ObservableObject
 {
     TaskProgressViewModel? _scan;
@@ -59,22 +66,40 @@ public sealed partial class SessionState(IAppBackend backend) : ObservableObject
         }
         if (cached is not null)
             SetSnapshot(cached);
-        await RunScanAsync(shell, fast: false);
+        await RunScanAsync(shell, ScanMode.Refresh);
     }
 
-    public async Task RunScanAsync(MainViewModel shell, bool fast)
+    public async Task RunScanAsync(MainViewModel shell, ScanMode mode)
     {
         Attach(shell);
         if (Scan.IsRunning)
             return;
+        var cached = Snapshot?.Result;
+        if (mode == ScanMode.Refresh && cached is null)
+            mode = ScanMode.Full;
         IsRefreshing = Snapshot is not null;
         ScanError = null;
         try
         {
-            var title = fast ? "Hızlı tarama yönetici izniyle yapılıyor" : $"{backend.ScanRoot} sürücüsü taranıyor";
-            var result = await Scan.RunAsync(title, (p, ct) => fast ? backend.FastScanAsync(p, ct) : backend.ScanAsync(p, ct));
+            var title = mode switch
+            {
+                ScanMode.Fast => "Hızlı tarama yönetici izniyle yapılıyor",
+                ScanMode.Refresh => "Son taramadan bu yana değişenler okunuyor",
+                _ => $"{backend.ScanRoot} sürücüsü taranıyor",
+            };
+            var refreshed = false;
+            var result = await Scan.RunAsync(title, async (p, ct) =>
+            {
+                if (mode == ScanMode.Refresh && await backend.RefreshAsync(cached!, p, ct) is { } fresh)
+                {
+                    refreshed = true;
+                    return fresh;
+                }
+                return mode == ScanMode.Fast ? await backend.FastScanAsync(p, ct) : await backend.ScanAsync(p, ct);
+            });
             SetSnapshot(result);
-            shell.Notify($"Tarama bitti: {Format.Count(result.Units.Count)} birim, {Format.Bytes(result.Units.Sum(u => u.SizeBytes))} açılabilir");
+            var summary = $"{Format.Count(result.Units.Count)} birim, {Format.Bytes(result.Units.Sum(u => u.SizeBytes))} açılabilir";
+            shell.Notify(refreshed ? "Değişiklikler işlendi: " + summary : "Tarama bitti: " + summary);
         }
         catch (OperationCanceledException)
         {

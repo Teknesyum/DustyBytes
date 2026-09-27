@@ -15,6 +15,7 @@ public static class Ops
     public const string Clean = "clean";
     public const string SystemClean = "system-clean";
     public const string FastScan = "fast-scan";
+    public const string UsnRefresh = "usn-refresh";
     public const string LockInfo = "lock-info";
     public const string Shutdown = "shutdown";
 }

@@ -86,6 +86,7 @@ public static class WorkerBindings
             WorkerCleanHandlers.HandleSystemClean(req, SystemTasks(protection), progress, ct));
 
         WorkerHandlers.Register(Ops.FastScan, FastScan);
+        WorkerHandlers.Register(Ops.UsnRefresh, UsnRefresh);
     }
 
     static QuarantineStore ShortcutStore()
@@ -98,14 +99,6 @@ public static class WorkerBindings
         return new QuarantineStore(gate, null, new RecycleBin(gate));
     }
 
-    public const string FastScanFile = "fastscan.bin";
-
-    static string TreePath(string name)
-    {
-        Directory.CreateDirectory(Paths.AppData);
-        return Path.Combine(Paths.AppData, name);
-    }
-
     public static async Task<WorkerResponse> FastScan(WorkerRequest request, IProgress<WorkerProgress> progress, CancellationToken ct)
     {
         var root = string.IsNullOrWhiteSpace(request.Target) ? Path.GetPathRoot(Environment.SystemDirectory)! : request.Target;
@@ -116,7 +109,7 @@ public static class WorkerBindings
 
         var sink = new Relay(p => progress.Report(new WorkerProgress(request.Id, p.Step, p.Percent, p.CurrentPath)));
         var result = await new FastScanner().ScanAsync(root, new ScanOptions(), sink, ct).ConfigureAwait(false);
-        var path = TreePath(FastScanFile);
+        var path = ScanTreeCodec.NewPath(Paths.AppData);
         ScanTreeCodec.Write(result, path);
         return new WorkerResponse
         {
@@ -124,6 +117,43 @@ public static class WorkerBindings
             Ok = true,
             Payload = path,
             Message = $"Hızlı tarama bitti: {result.Files:N0} dosya, {result.Directories:N0} klasör",
+        };
+    }
+
+    public static async Task<WorkerResponse> UsnRefresh(WorkerRequest request, IProgress<WorkerProgress> progress, CancellationToken ct)
+    {
+        WorkerResponse Fail(string message) => new() { Id = request.Id, Ok = false, Message = message };
+        if (request.Items is not [var input] || !ScanTreeCodec.IsTreePath(input, Paths.AppData) || !File.Exists(input))
+            return Fail("Yenilenecek tarama dosyası geçersiz");
+        progress.Report(new WorkerProgress(request.Id, "Değişiklikler okunuyor", -1, "USN günlüğü, yönetici izniyle"));
+        ScanResult cached;
+        try
+        {
+            cached = ScanTreeCodec.Read(input);
+        }
+        catch (Exception e) when (e is IOException or InvalidDataException or UnauthorizedAccessException)
+        {
+            return Fail("Tarama dosyası okunamadı: " + e.Message);
+        }
+        if (cached.Usn is null)
+            return Fail("Taramada USN konumu yok");
+        UsnUpdateResult update;
+        try
+        {
+            update = await UsnUpdater.ApplyAsync(cached, ct, privileged: true).ConfigureAwait(false);
+        }
+        catch (Exception e) when (e is UsnJournalResetException or System.ComponentModel.Win32Exception or IOException or UnauthorizedAccessException)
+        {
+            return Fail(e.Message);
+        }
+        var path = ScanTreeCodec.NewPath(Paths.AppData);
+        ScanTreeCodec.Write(update.Result, path);
+        return new WorkerResponse
+        {
+            Id = request.Id,
+            Ok = true,
+            Payload = path,
+            Message = $"Yenileme bitti: {update.Changes:N0} değişiklik",
         };
     }
 
