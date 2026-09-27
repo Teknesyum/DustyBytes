@@ -109,6 +109,7 @@ public sealed class AppBackend : IAppBackend, IAsyncDisposable
     public async Task<ScanSnapshot?> LoadCachedAsync(IProgress<TaskStep>? progress, CancellationToken ct)
     {
         var rows = Rows(progress, "Önceki tarama okunuyor", 0, 80);
+        _ = _usage.Value;
         var result = await Task.Run(() =>
         {
             try

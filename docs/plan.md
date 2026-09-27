@@ -329,3 +329,17 @@ Araştırma: `docs/danisma/buyuk-icerik-arastirmasi.md`.
 
 Güvenlik sınırı değişmez: yetkisiz arayüz dosyaya dokunmaz, her istek worker'da korumalı listeden geçer,
 yönetici yetkisiyle zamanlanmış görev kurulmaz (kullanıcı yazabilen exe'yi yükseltmek açık olurdu).
+
+## A10 Oyunlarda Tek Tık Ve Hızlı Açılış — 2026-09-27
+
+Ölçüm: `docs/olcum/2026-09-27-yukleme.md`.
+
+1. `GameInstall.Manifest`: Steam `appmanifest_<id>.acf`, Epic `.item` yolu okunur.
+2. Manifesti bilinen oyun (Steam, Epic) karantina birimi olur: yollar kurulum klasörü ve manifest. Kayıt klasörleri
+   birime girmez, yerinde kalır. Geri alınınca ikisi birlikte döner, başlatıcı oyunu yine kurulu görür.
+   Manifesti bilinmeyen oyun (GOG, Ubisoft, Xbox) eskisi gibi "Başlatıcıda aç".
+3. `ProtectedList.CheckGamePath`: başlatıcı kütüphane kökünün yalnız içindeki klasöre izin verir; kökün kendisi,
+   üst klasörü ve bütün sistem kökleri eskisi gibi reddedilir. Worker'ın kuralı değişmez.
+4. Oyun kartının etkisi: karantina, kayıtlar yerinde, 7 gün, geri alınabilir.
+5. `UnitBuilder` çakışma denetimi karesel taramadan ata kümesine iner.
+6. Testler: manifest okuma, oyun birimi, kütüphane kökü reddi, kart düğmesi; ölçüm önce ve sonra.

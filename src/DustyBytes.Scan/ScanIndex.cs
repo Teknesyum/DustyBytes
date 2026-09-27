@@ -183,23 +183,39 @@ public sealed class ScanIndex
             };
         }
 
-        var nodes = new List<ScanNode>();
-        long files = 0, dirs = 0;
+        long count;
         using (var q = db.CreateCommand())
         {
-            q.CommandText = "SELECT id, parent, name, is_dir, size, logical, cloud, write, newest, file_count, flags, tag FROM nodes WHERE scan_id = $s ORDER BY id;";
+            q.CommandText = "SELECT COALESCE(MAX(id), -1) + 1 FROM nodes WHERE scan_id = $s;";
             q.Parameters.AddWithValue("$s", scanId);
+            count = (long)q.ExecuteScalar()!;
+        }
+        if (count == 0)
+            return null;
+
+        var nodes = new ScanNode[count];
+        var parents = new long[count];
+        var read = 0L;
+        var parts = (int)Math.Clamp(count / 250_000, 1, Math.Min(8, Environment.ProcessorCount));
+        Parallel.For(0, parts, part =>
+        {
+            var from = count * part / parts;
+            var to = count * (part + 1) / parts;
+            using var conn = Open();
+            using var q = conn.CreateCommand();
+            q.CommandText = "SELECT id, parent, name, is_dir, size, logical, cloud, write, newest, file_count, flags, tag FROM nodes WHERE scan_id = $s AND id >= $a AND id < $b ORDER BY id;";
+            q.Parameters.AddWithValue("$s", scanId);
+            q.Parameters.AddWithValue("$a", from);
+            q.Parameters.AddWithValue("$b", to);
             using var r = q.ExecuteReader();
             while (r.Read())
             {
-                var parentId = r.GetInt64(1);
-                var parent = parentId >= 0 ? nodes[(int)parentId] : null;
-                var isDir = r.GetInt64(3) != 0;
-                var node = new ScanNode
+                var id = r.GetInt64(0);
+                parents[id] = r.GetInt64(1);
+                nodes[id] = new ScanNode
                 {
                     Name = r.GetString(2),
-                    IsDirectory = isDir,
-                    Parent = parent,
+                    IsDirectory = r.GetInt64(3) != 0,
                     Size = r.GetInt64(4),
                     LogicalSize = r.GetInt64(5),
                     CloudSize = r.GetInt64(6),
@@ -209,22 +225,27 @@ public sealed class ScanIndex
                     Flags = (NodeFlags)r.GetInt64(10),
                     ReparseTag = r.IsDBNull(11) ? null : r.GetString(11),
                 };
-                nodes.Add(node);
-                if (rows is not null && (nodes.Count & 0x3FFF) == 0)
-                    rows(nodes.Count, expected);
-                if (parent is not null)
-                {
-                    (parent.Children ??= []).Add(node);
-                    if (isDir)
-                        dirs++;
-                    else
-                        files++;
-                }
+                if (rows is not null && (Interlocked.Increment(ref read) & 0x3FFF) == 0)
+                    rows(Interlocked.Read(ref read), expected);
             }
+        });
+
+        long files = 0, dirs = 0;
+        for (var i = 0; i < count; i++)
+        {
+            var node = nodes[i];
+            if (node is null || parents[i] < 0 || nodes[parents[i]] is not { } parent)
+                continue;
+            node.Parent = parent;
+            (parent.Children ??= []).Add(node);
+            if (node.IsDirectory)
+                dirs++;
+            else
+                files++;
         }
-        if (nodes.Count == 0)
+        if (nodes[0] is null)
             return null;
-        rows?.Invoke(nodes.Count, nodes.Count);
+        rows?.Invoke(count, count);
         return new ScanResult
         {
             Root = nodes[0],

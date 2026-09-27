@@ -41,31 +41,39 @@ public static class UnitBuilder
 
     public static IReadOnlyList<Unit> Build(UnitContext ctx, IReadOnlyList<IUnitExtractor> extractors, Action<int, int>? stage = null)
     {
-        var all = new List<Unit>();
-        for (var i = 0; i < extractors.Count; i++)
+        var parts = new List<Unit>[extractors.Count];
+        var done = 0;
+        Parallel.For(0, extractors.Count, i =>
         {
-            all.AddRange(extractors[i].Extract(ctx));
-            stage?.Invoke(i + 1, extractors.Count);
-        }
+            parts[i] = [.. extractors[i].Extract(ctx)];
+            stage?.Invoke(Interlocked.Increment(ref done), extractors.Count);
+        });
+        var all = parts.SelectMany(p => p).ToList();
 
         var ordered = all.OrderBy(u => Priority.GetValueOrDefault(u.Kind, 99)).ToList();
 
-        var claimed = new List<string>();
+        var claimed = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var above = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var result = new List<Unit>();
 
         foreach (var unit in ordered)
         {
-            if (unit.Paths.Any(p => claimed.Any(c => Paths.IsUnder(p, c) || Paths.IsUnder(c, p))))
+            var normalized = unit.Paths.Select(Paths.Normalize).ToList();
+            if (normalized.Any(p => above.Contains(p) || Ancestors(p).Prepend(p).Any(claimed.Contains)))
                 continue;
 
-            if (unit.Kind != UnitKind.SystemArtifact && unit.Paths.Any(p => Blocks(unit, ctx.Protected.CheckPath(p))))
+            if (unit.Kind != UnitKind.SystemArtifact && unit.Paths.Any(p => Blocks(unit, Check(ctx.Protected, unit, p))))
                 continue;
 
             if (unit.Paths.Any(p => IsExcludedByFlags(ctx.Root, p)))
                 continue;
 
-            foreach (var p in unit.Paths)
-                claimed.Add(Paths.Normalize(p));
+            foreach (var p in normalized)
+            {
+                claimed.Add(p);
+                foreach (var a in Ancestors(p))
+                    above.Add(a);
+            }
 
             result.Add(unit);
         }
@@ -75,6 +83,15 @@ public static class UnitBuilder
             .OrderByDescending(u => u.Score)
             .ToList();
     }
+
+    static IEnumerable<string> Ancestors(string path)
+    {
+        for (var parent = Path.GetDirectoryName(path); !string.IsNullOrEmpty(parent); parent = Path.GetDirectoryName(parent))
+            yield return parent;
+    }
+
+    static Verdict Check(ProtectedList list, Unit unit, string path) =>
+        unit.Kind == UnitKind.Game && unit.Removal == RemovalMethod.Quarantine ? list.CheckGamePath(path) : list.CheckPath(path);
 
     static bool Blocks(Unit unit, Verdict verdict) =>
         !verdict.Allowed && !(unit.Removal == RemovalMethod.Launcher && verdict.Badge == Badge.Launcher);

@@ -1,0 +1,10 @@
+ScanIndex.Load	1670 ms
+  dosya 3337149, klasör 1000348
+UsageIndex.Collect	272 ms
+  oyun 6, kütüphane 4
+Protection	12 ms
+InstalledPrograms.Enumerate	192 ms
+UnitPrograms.From	1 ms
+UnitBuilder.Build	1105 ms
+  birim 4083
+Toplam	3258 ms
