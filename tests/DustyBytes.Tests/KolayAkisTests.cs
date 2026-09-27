@@ -7,6 +7,8 @@ using Avalonia.Threading;
 using Avalonia.VisualTree;
 using DustyBytes.App;
 using DustyBytes.App.ViewModels;
+using DustyBytes.Core.Ipc;
+using DustyBytes.Core.Model;
 
 namespace DustyBytes.Tests;
 
@@ -107,6 +109,150 @@ public class KolayAkisTests
         Assert.IsType<StackPanel>(ToolTip.GetTip(row));
         var box = row.GetVisualDescendants().OfType<CheckBox>().First();
         Assert.True(box.Bounds.Width >= (double)window.FindResource("InputHeight")!);
+        window.Close();
+    }
+
+    static async Task<(MainViewModel Vm, FakeBackend Backend)> Toured(bool dryRun = false)
+    {
+        var backend = FakeBackend.Rich();
+        backend.DryRun = dryRun;
+        var vm = new MainViewModel(backend);
+        vm.Session.SetSnapshot(FakeBackend.Snapshot());
+        vm.GoTo(vm.Overview);
+        await vm.StartTourAsync();
+        return (vm, backend);
+    }
+
+    [AvaloniaFact]
+    public async Task Auto_Step_Cleans_Only_Categories_That_Need_No_Question()
+    {
+        var (vm, backend) = await Toured();
+        Assert.Null(vm.Confirm);
+        Assert.Same(vm.Tour, vm.Navigation.Current);
+        Assert.DoesNotContain(backend.Requests, r => r.Op == Ops.Quarantine);
+        Assert.Equal(["u4"], backend.Requests.Where(r => r.Op == Ops.Delete).Select(r => r.UnitId));
+        Assert.Equal(["chrome/cache"], Assert.Single(backend.Requests, r => r.Op == Ops.Clean).Items);
+        Assert.Equal(["temp"], Assert.Single(backend.Requests, r => r.Op == Ops.SystemClean).Items);
+        Assert.DoesNotContain(vm.Session.Snapshot!.Units, u => u.Id == "u4");
+        Assert.True(vm.Tour.IsAsking);
+    }
+
+    [AvaloniaFact]
+    public async Task Tour_Walks_Large_Old_Units_In_Offer_Order_And_Warns_On_User_Data()
+    {
+        var (vm, backend) = await Toured();
+        var tour = vm.Tour;
+        Assert.Equal(["u1", "u3"], tour.Items.Select(c => c.Unit.Id));
+        Assert.Equal("u1", tour.Current!.Unit.Id);
+        Assert.Equal("1 / 2", tour.StepText);
+        Assert.False(tour.HasUserData);
+        Assert.Equal("Bunu silmek ister misiniz?", tour.Question);
+
+        tour.KeepCommand.Execute(null);
+        Assert.Equal("u3", tour.Current!.Unit.Id);
+        Assert.Equal("2 / 2", tour.StepText);
+        Assert.True(tour.HasUserData);
+        Assert.DoesNotContain(backend.Requests, r => r.UnitId is "u1" or "u3");
+
+        await tour.QuarantineCommand.ExecuteAsync(null);
+        var request = Assert.Single(backend.Requests, r => r.Op == Ops.Quarantine);
+        Assert.Equal("u3", request.UnitId);
+        Assert.True(request.UserApproved);
+        Assert.True(tour.IsDone);
+        Assert.True(tour.HasQuarantined);
+        Assert.Contains(tour.Summary!.Lines, l => l.StartsWith("Karantinaya alınan: 1 öğe", StringComparison.Ordinal));
+        Assert.Contains(tour.Summary.Lines, l => l == "Yerinde kalan: 1 öğe");
+        Assert.Equal(3_000_000_000 + 8_000_000_000, tour.FreedBytes);
+
+        tour.UndoCommand.Execute(null);
+        Assert.Same(vm.Quarantine, vm.Navigation.Current);
+    }
+
+    [AvaloniaFact]
+    public async Task Tour_Purge_Needs_Two_Presses_And_Expires()
+    {
+        var (vm, backend) = await Toured();
+        var tour = vm.Tour;
+        await tour.PurgeOneCommand.ExecuteAsync(null);
+        Assert.True(tour.IsPurgeArmed);
+        Assert.Equal(TwoStep.ArmedText, tour.PurgeText);
+        vm.Tick(TimeSpan.FromSeconds(4.5));
+        Assert.False(tour.IsPurgeArmed);
+        Assert.DoesNotContain(backend.Requests, r => r.UnitId == "u1");
+
+        await tour.PurgeOneCommand.ExecuteAsync(null);
+        await tour.PurgeOneCommand.ExecuteAsync(null);
+        var request = Assert.Single(backend.Requests, r => r.UnitId == "u1");
+        Assert.Equal(Ops.Delete, request.Op);
+        Assert.Equal("u3", tour.Current!.Unit.Id);
+        Assert.False(tour.IsPurgeArmed);
+        Assert.Equal(3_000_000_000 + 40_000_000_000, tour.FreedBytes);
+    }
+
+    [AvaloniaFact]
+    public async Task Tour_Ends_Early_And_Returns()
+    {
+        var (vm, backend) = await Toured();
+        vm.Tour.EndCommand.Execute(null);
+        Assert.True(vm.Tour.IsDone);
+        Assert.False(vm.Tour.HasQuarantined);
+        Assert.Contains(vm.Tour.Summary!.Lines, l => l == "Yerinde kalan: 2 öğe");
+        Assert.DoesNotContain(backend.Requests, r => r.Op == Ops.Quarantine);
+        vm.Tour.CloseCommand.Execute(null);
+        Assert.Same(vm.Overview, vm.Navigation.Current);
+    }
+
+    [AvaloniaFact]
+    public async Task Tour_Dry_Run_Keeps_Units()
+    {
+        var (vm, _) = await Toured(dryRun: true);
+        Assert.Contains(vm.Session.Snapshot!.Units, u => u.Id == "u4");
+        await vm.Tour.QuarantineCommand.ExecuteAsync(null);
+        await vm.Tour.QuarantineCommand.ExecuteAsync(null);
+        Assert.True(vm.Tour.Summary!.IsDryRun);
+        Assert.Contains(vm.Session.Snapshot!.Units, u => u.Id == "u1");
+    }
+
+    [AvaloniaFact]
+    public void Tour_Skips_Recent_Small_And_External_Units()
+    {
+        var now = DateTimeOffset.Now;
+        Unit Make(string id, long size, int days, RemovalMethod removal = RemovalMethod.Quarantine) => new()
+        {
+            Id = id, Name = id, Kind = UnitKind.Folder, Paths = [@"C:\" + id], SizeBytes = size, Removal = removal,
+            Usage = new UsageSignal(now.AddDays(-days), "prefetch", 0.9),
+        };
+        var picked = TourViewModel.Pick(
+        [
+            Make("recent", 50_000_000_000, 10),
+            Make("small", 100_000_000, 400),
+            Make("launcher", 50_000_000_000, 400, RemovalMethod.Launcher),
+            Make("old", 5_000_000_000, 400),
+        ], now);
+        Assert.Equal(["old"], picked.Select(u => u.Id));
+    }
+
+    [AvaloniaFact]
+    public async Task Auto_Button_Opens_Tour_Without_A_Window()
+    {
+        var (window, vm) = await OffersWindow();
+        var auto = window.GetVisualDescendants().OfType<Button>().First(b => b.Name == "AutoButton" && b.IsEffectivelyVisible);
+        Assert.Contains("primary", auto.Classes);
+        Click(window, auto);
+        for (var i = 0; i < 10; i++)
+        {
+            Pump();
+            await Task.Delay(5);
+        }
+        Assert.Same(vm.Tour, vm.Navigation.Current);
+        Assert.Null(vm.Confirm);
+        var card = window.GetVisualDescendants().OfType<TransitioningContentControl>().First(c => c.Name == "Card");
+        Assert.Same(vm.Tour.Current, card.Content);
+        var purge = window.GetVisualDescendants().OfType<Button>().First(b => b.Name == "TourPurge");
+        Click(window, purge);
+        Assert.Contains("danger", purge.Classes);
+        Click(window, window.GetVisualDescendants().OfType<TextBlock>().First(t => t.Name == "FreedText"));
+        Assert.False(vm.Tour.IsPurgeArmed);
         window.Close();
     }
 }

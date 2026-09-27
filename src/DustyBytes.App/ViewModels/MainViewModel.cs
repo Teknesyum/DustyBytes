@@ -27,6 +27,7 @@ public sealed partial class MainViewModel : ObservableObject
         Programs = new ProgramsViewModel(this);
         Cleanup = new CleanupViewModel(this);
         Quarantine = new QuarantineViewModel(this);
+        Tour = new TourViewModel(this);
         NavItems =
         [
             new NavItem("Genel bakış", "M3 3h7v7H3z M14 3h7v4h-7z M14 11h7v10h-7z M3 14h7v7H3z", Overview),
@@ -53,6 +54,20 @@ public sealed partial class MainViewModel : ObservableObject
     public ProgramsViewModel Programs { get; }
     public CleanupViewModel Cleanup { get; }
     public QuarantineViewModel Quarantine { get; }
+    public TourViewModel Tour { get; }
+
+    public async Task StartTourAsync()
+    {
+        if (!Session.HasSnapshot || Tour.IsActive)
+            return;
+        if (IsBusy)
+        {
+            Notify("Başka bir işlem sürüyor; bitince yeniden deneyin");
+            return;
+        }
+        Navigation.Push(Tour);
+        await Tour.StartAsync();
+    }
     public UpdateViewModel Update { get; }
 
     public bool IsBusy => Volatile.Read(ref _busyCount) > 0;

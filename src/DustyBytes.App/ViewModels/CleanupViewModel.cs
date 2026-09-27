@@ -16,7 +16,9 @@ public sealed partial class CleanOptionRow(string ruleId, CleanerOption option, 
     public string Label => Option.Label;
     public string? Warning => Option.Warning;
     public bool HasWarning => !string.IsNullOrWhiteSpace(Option.Warning);
-    public string Key => $"{RuleId}/{Option.Id}";
+    public string Key => KeyOf(RuleId, Option.Id);
+
+    public static string KeyOf(string ruleId, string optionId) => $"{ruleId}/{optionId}";
 
     [ObservableProperty]
     private bool _isChecked = check;
@@ -35,8 +37,10 @@ public sealed class CleanRuleRow
     public CleanRuleRow(CleanRuleInfo info, Action changed)
     {
         Info = info;
-        Options = [.. info.Rule.Options.Select(o => new CleanOptionRow(info.Rule.Id, o, !info.Running && string.IsNullOrWhiteSpace(o.Warning), changed))];
+        Options = [.. info.Rule.Options.Select(o => new CleanOptionRow(info.Rule.Id, o, Safe(info, o), changed))];
     }
+
+    public static bool Safe(CleanRuleInfo info, CleanerOption option) => !info.Running && string.IsNullOrWhiteSpace(option.Warning);
 
     public CleanRuleInfo Info { get; }
     public string Name => Info.Rule.Name;
@@ -63,9 +67,18 @@ public sealed partial class SystemTaskRow(SystemTaskInfo info, Action changed) :
     public string Tip => Info.Available ? Info.Detail : Info.Note ?? "Kullanılamıyor";
 
     [ObservableProperty]
-    private bool _isChecked = info.Available && info.Recommended;
+    private bool _isChecked = Safe(info);
+
+    public static bool Safe(SystemTaskInfo info) => info.Available && info.Recommended;
 
     partial void OnIsCheckedChanged(bool value) => changed();
+}
+
+public sealed class CleanOutcome
+{
+    public long Freed { get; set; }
+    public bool DryRun { get; set; }
+    public List<string> Failures { get; } = [];
 }
 
 public sealed partial class CleanupViewModel : ViewModelBase
@@ -192,29 +205,12 @@ public sealed partial class CleanupViewModel : ViewModelBase
                 "Önbellek ve sistem artıkları karantinaya alınmadan silinir; bu işlem geri alınamaz. Açık programların dosyaları atlanır.",
                 "Temizle"))
             return;
-        long freed = 0;
-        var dryRun = false;
-        var failures = new List<string>();
+        var outcome = new CleanOutcome();
         try
         {
             await Progress.RunAsync("Temizlik yapılıyor", async (p, ct) =>
             {
-                if (options.Count > 0)
-                {
-                    var response = await _main.Backend.SendAsync(new WorkerRequest { Op = Ops.Clean, UserApproved = true, Items = [.. options.Select(o => o.Key)] }, p, ct);
-                    freed += response.FreedBytes;
-                    dryRun |= response.DryRun;
-                    failures.AddRange(response.Items.Where(i => !i.Ok).Select(i => $"{i.Path}: {i.Message}"));
-                    if (!response.Ok)
-                        failures.Add(response.Message);
-                }
-                if (tasks.Count > 0)
-                {
-                    var response = await _main.Backend.SendAsync(new WorkerRequest { Op = Ops.SystemClean, UserApproved = true, Items = [.. tasks.Select(t => t.Id)] }, p, ct);
-                    freed += response.FreedBytes;
-                    dryRun |= response.DryRun;
-                    failures.AddRange(response.Items.Where(i => !i.Ok).Select(i => $"{i.Path}: {i.Message}"));
-                }
+                await SendAsync(_main.Backend, [.. options.Select(o => o.Key)], [.. tasks.Select(t => t.Id)], outcome, p, ct);
                 return true;
             });
         }
@@ -227,7 +223,9 @@ public sealed partial class CleanupViewModel : ViewModelBase
             _main.Fail("Temizlik yapılamadı: " + e.Message);
             return;
         }
-        if (dryRun)
+        var freed = outcome.Freed;
+        var failures = outcome.Failures;
+        if (outcome.DryRun)
         {
             _main.Notify("Prova: temizlik ölçüldü, hiçbir dosya silinmedi");
         }
@@ -240,5 +238,33 @@ public sealed partial class CleanupViewModel : ViewModelBase
         }
         foreach (var failure in failures.Take(MainViewModel.toastMax))
             _main.Fail(failure);
+    }
+
+    public static async Task<(List<string> Options, List<string> Tasks)> SafeDefaultsAsync(IAppBackend backend, CancellationToken ct)
+    {
+        var rules = await backend.CleanRulesAsync(ct);
+        var tasks = await backend.SystemTasksAsync(ct);
+        return ([.. rules.SelectMany(r => r.Rule.Options.Where(o => CleanRuleRow.Safe(r, o)).Select(o => CleanOptionRow.KeyOf(r.Rule.Id, o.Id)))],
+            [.. tasks.Where(SystemTaskRow.Safe).Select(t => t.Id)]);
+    }
+
+    public static async Task SendAsync(IAppBackend backend, IReadOnlyList<string> options, IReadOnlyList<string> tasks, CleanOutcome outcome, IProgress<TaskStep> p, CancellationToken ct)
+    {
+        if (options.Count > 0)
+        {
+            var response = await backend.SendAsync(new WorkerRequest { Op = Ops.Clean, UserApproved = true, Items = [.. options] }, p, ct);
+            outcome.Freed += response.FreedBytes;
+            outcome.DryRun |= response.DryRun;
+            outcome.Failures.AddRange(response.Items.Where(i => !i.Ok).Select(i => $"{i.Path}: {i.Message}"));
+            if (!response.Ok)
+                outcome.Failures.Add(response.Message);
+        }
+        if (tasks.Count > 0)
+        {
+            var response = await backend.SendAsync(new WorkerRequest { Op = Ops.SystemClean, UserApproved = true, Items = [.. tasks] }, p, ct);
+            outcome.Freed += response.FreedBytes;
+            outcome.DryRun |= response.DryRun;
+            outcome.Failures.AddRange(response.Items.Where(i => !i.Ok).Select(i => $"{i.Path}: {i.Message}"));
+        }
     }
 }

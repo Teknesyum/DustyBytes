@@ -23,6 +23,7 @@
     <DataTemplate DataType="vm:UninstallViewModel"><v:UninstallView/></DataTemplate>
     <DataTemplate DataType="vm:CleanupViewModel"><v:CleanupView/></DataTemplate>
     <DataTemplate DataType="vm:QuarantineViewModel"><v:QuarantineView/></DataTemplate>
+    <DataTemplate DataType="vm:TourViewModel"><v:TourView/></DataTemplate>
   </Window.DataTemplates>
 
   <Panel>

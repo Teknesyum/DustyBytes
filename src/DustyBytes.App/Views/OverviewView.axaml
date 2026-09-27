@@ -23,9 +23,12 @@
           <Button Name="RescanButton" Classes="ghost" Content="Baştan tara"
                   Command="{Binding RescanCommand}" IsVisible="{Binding HasSnapshot}"
                   ToolTip.Tip="{Binding RescanTip}" ToolTip.ShowOnDisabled="True"/>
-          <Button Name="ScanButton" Classes="primary" Content="{Binding PrimaryText}"
+          <Button Name="ScanButton" Classes.primary="{Binding !HasSnapshot}" Classes.ghost="{Binding HasSnapshot}" Content="{Binding PrimaryText}"
                   Command="{Binding StartScanCommand}"
                   ToolTip.Tip="{Binding ScanTip}" ToolTip.ShowOnDisabled="True"/>
+          <Button Name="AutoButton" Classes="primary" Content="Otomatik temizle"
+                  Command="{Binding AutoCleanCommand}" IsVisible="{Binding HasSnapshot}"
+                  ToolTip.Tip="Güvenli artıkları sormadan siler, büyük ve eski öğeleri tek tek sorar"/>
         </StackPanel>
       </Grid>
 

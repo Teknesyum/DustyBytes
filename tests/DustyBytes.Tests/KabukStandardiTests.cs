@@ -62,6 +62,15 @@ public class KabukStandardiTests
             await Settle();
             yield return (item.Label, window);
         }
+        await vm.StartTourAsync();
+        await Settle();
+        if (vm.Navigation.Current is TourViewModel tour)
+        {
+            yield return ("Tur", window);
+            tour.EndCommand.Execute(null);
+            await Settle();
+            yield return ("Tur özeti", window);
+        }
         vm.GoTo(vm.Programs);
         await Settle();
         vm.Programs.Selected = vm.Programs.Rows.FirstOrDefault();
@@ -189,6 +198,8 @@ public class KabukStandardiTests
             names.Add(name);
         }
         Assert.Contains("Kaldırma", names);
+        Assert.Contains("Tur", names);
+        Assert.Contains("Tur özeti", names);
     }
 
     [AvaloniaFact]

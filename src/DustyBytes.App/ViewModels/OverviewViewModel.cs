@@ -212,4 +212,7 @@ public sealed partial class OverviewViewModel : ViewModelBase
 
     [RelayCommand]
     private void OpenOffers() => _main.GoTo(_main.Offers);
+
+    [RelayCommand]
+    private Task AutoClean() => _main.StartTourAsync();
 }

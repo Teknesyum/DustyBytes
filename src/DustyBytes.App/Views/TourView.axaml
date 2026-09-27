@@ -1,0 +1,94 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:DustyBytes.App.ViewModels"
+             xmlns:v="using:DustyBytes.App.Views"
+             x:Class="DustyBytes.App.Views.TourView"
+             x:DataType="vm:TourViewModel">
+  <DockPanel>
+    <StackPanel DockPanel.Dock="Top" Margin="24,24,24,12" Spacing="{StaticResource FieldGap}">
+      <Grid ColumnDefinitions="*,Auto">
+        <TextBlock Theme="{StaticResource H2}" Text="Otomatik temizlik" VerticalAlignment="Center"/>
+        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="{StaticResource Space4}" VerticalAlignment="Center">
+          <TextBlock Name="StepText" Theme="{StaticResource MonoValue}" Classes="data" Text="{Binding StepText}" IsVisible="{Binding IsAsking}" VerticalAlignment="Center"/>
+          <TextBlock Name="FreedText" Theme="{StaticResource MonoValue}" Classes="data" Text="{Binding FreedText}" VerticalAlignment="Center"/>
+        </StackPanel>
+      </Grid>
+      <TextBlock Theme="{StaticResource Hint}" TextWrapping="Wrap" IsVisible="{Binding IsCleaning}"
+                 Text="Önbellek, geçici dosyalar ve kendiliğinden yeniden oluşan dosyalar sormadan silinir. Kişisel dosyalarınıza dokunulmaz."/>
+    </StackPanel>
+
+    <Border DockPanel.Dock="Bottom" Background="{StaticResource Surface}" BorderBrush="{StaticResource BorderDecorative}"
+            BorderThickness="0,1,0,0" Padding="{StaticResource PanelPadding}" IsVisible="{Binding !IsCleaning}">
+      <Panel>
+        <Grid ColumnDefinitions="*,Auto" IsVisible="{Binding IsAsking}">
+          <Button Name="TourEnd" Classes="ghost" Content="Turu bitir" HorizontalAlignment="Left" Command="{Binding EndCommand}"/>
+          <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="{StaticResource Space3}">
+            <Button Name="TourKeep" Classes="ghost" Content="Kalsın" Command="{Binding KeepCommand}"/>
+            <Button Name="TourPurge" Classes="purge" Classes.ghost="{Binding !IsPurgeArmed}" Classes.danger="{Binding IsPurgeArmed}"
+                    Content="{Binding PurgeText}" Command="{Binding PurgeOneCommand}"
+                    ToolTip.Tip="Karantinaya almadan siler; geri alınamaz"/>
+            <Button Name="TourQuarantine" Classes="primary" Content="Karantinaya al" Command="{Binding QuarantineCommand}"
+                    ToolTip.Tip="Hemen yer açılır; karantinadan istediğiniz an geri alırsınız"/>
+          </StackPanel>
+        </Grid>
+        <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space3}" HorizontalAlignment="Right" IsVisible="{Binding IsDone}">
+          <Button Name="TourUndo" Classes="ghost" Content="Geri al" Command="{Binding UndoCommand}" IsVisible="{Binding HasQuarantined}"
+                  ToolTip.Tip="Karantina ekranında istediğiniz öğeyi yerine döndürürsünüz"/>
+          <Button Name="TourClose" Classes="primary" Content="Tamam" Command="{Binding CloseCommand}"/>
+        </StackPanel>
+      </Panel>
+    </Border>
+
+    <Panel DockPanel.Dock="Top" Margin="24,0,24,12" IsVisible="{Binding Progress.IsRunning}">
+      <v:TaskProgressView DataContext="{Binding Progress}"/>
+    </Panel>
+
+    <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+      <TransitioningContentControl Name="Card" Margin="24,0,24,24" Content="{Binding Page}">
+        <TransitioningContentControl.DataTemplates>
+          <DataTemplate DataType="vm:UnitCard">
+            <Border Theme="{StaticResource Panel}">
+              <StackPanel Spacing="{StaticResource FieldStack}">
+                <StackPanel Spacing="{StaticResource Space1}">
+                  <TextBlock Theme="{StaticResource Label}" Text="{Binding KindLabel}"/>
+                  <TextBlock Theme="{StaticResource H3}" Text="{Binding Name}" TextTrimming="CharacterEllipsis"/>
+                </StackPanel>
+                <TextBlock Theme="{StaticResource Hero}" Classes="data" Text="{Binding SizeText}"/>
+                <TextBlock Theme="{StaticResource Hint}" Text="{Binding UsageText}"/>
+                <TextBlock Theme="{StaticResource Body}" Text="{Binding Effect}" TextWrapping="Wrap"/>
+                <TextBlock Theme="{StaticResource Hint}" Text="{Binding Reason}" IsVisible="{Binding HasReason}" TextWrapping="Wrap"/>
+                <TextBlock Theme="{StaticResource Hint}" FontFamily="{StaticResource FontMono}" Text="{Binding PathText}" TextTrimming="CharacterEllipsis"/>
+                <Border Name="UserDataWarning" Theme="{StaticResource WarningPanel}" IsVisible="{Binding HasUserData}">
+                  <TextBlock Theme="{StaticResource WarningBody}" TextWrapping="Wrap"
+                             Text="{Binding $parent[v:TourView].((vm:TourViewModel)DataContext).UserDataText}"/>
+                </Border>
+                <TextBlock Theme="{StaticResource H3}" Text="{Binding $parent[v:TourView].((vm:TourViewModel)DataContext).Question}"/>
+              </StackPanel>
+            </Border>
+          </DataTemplate>
+          <DataTemplate DataType="vm:TourSummary">
+            <Border Theme="{StaticResource Panel}">
+              <StackPanel Spacing="{StaticResource FieldStack}">
+                <TextBlock Theme="{StaticResource H3}" Text="Tur bitti"/>
+                <TextBlock Theme="{StaticResource Hero}" Classes="data" Text="{Binding FreedText}"/>
+                <ItemsControl ItemsSource="{Binding Lines}">
+                  <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                      <StackPanel Spacing="{StaticResource Space2}"/>
+                    </ItemsPanelTemplate>
+                  </ItemsControl.ItemsPanel>
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="x:String">
+                      <TextBlock Theme="{StaticResource Body}" Text="{Binding}" TextWrapping="Wrap"/>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <TextBlock Theme="{StaticResource Hint}" Text="{Binding DryRunText}" IsVisible="{Binding IsDryRun}"/>
+              </StackPanel>
+            </Border>
+          </DataTemplate>
+        </TransitioningContentControl.DataTemplates>
+      </TransitioningContentControl>
+    </ScrollViewer>
+  </DockPanel>
+</UserControl>
