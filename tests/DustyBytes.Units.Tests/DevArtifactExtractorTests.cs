@@ -46,6 +46,23 @@ public sealed class DevArtifactExtractorTests
     }
 
     [Fact]
+    public void TwoEcosystemsInOneFolderGetDistinctIds()
+    {
+        var proj = Tree.Dir("Mixed",
+            Tree.File("package.json", 300, Ctx.Now.AddDays(-30)),
+            Tree.File("Cargo.toml", 100, Ctx.Now.AddDays(-30)),
+            Tree.Dir("node_modules", Tree.File("a.js", 10_000_000, Ctx.Now.AddDays(-30))),
+            Tree.Dir("target", Tree.File("b.o", 20_000_000, Ctx.Now.AddDays(-30))));
+        var root = Tree.Dir(@"C:\", Tree.Dir("Code", proj));
+
+        var units = new DevArtifactExtractor(Rules()).Extract(Ctx.Build(root)).ToList();
+
+        Assert.Equal(2, units.Count);
+        Assert.Equal(2, units.Select(u => u.Id).Distinct().Count());
+        Assert.Equal(2, units.SelectMany(u => u.Paths).Distinct(StringComparer.OrdinalIgnoreCase).Count());
+    }
+
+    [Fact]
     public void ReasonReferencesProjectNameAndAge()
     {
         var proj = Tree.Dir("Tool",

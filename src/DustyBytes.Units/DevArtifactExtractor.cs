@@ -36,6 +36,7 @@ public sealed class DevArtifactExtractor : IUnitExtractor
                 continue;
 
             var files = FileNames(dir);
+            var first = true;
             foreach (var eco in files is null ? [] : _rules.Ecosystems)
             {
                 if (!eco.Markers.Any(m => Has(files!, dir, m)))
@@ -45,7 +46,7 @@ public sealed class DevArtifactExtractor : IUnitExtractor
                 foreach (var rel in eco.ArtifactDirs)
                 {
                     var node = dir.ResolveRelative(rel);
-                    if (node is not null)
+                    if (node is not null && !skip.Contains(node))
                         artifactNodes.Add(node);
                 }
 
@@ -69,7 +70,7 @@ public sealed class DevArtifactExtractor : IUnitExtractor
 
                 var unit = new Unit
                 {
-                    Id = UnitIdentity.Compute(UnitKind.DevArtifact, dir.FullPath),
+                    Id = UnitIdentity.Compute(UnitKind.DevArtifact, first ? dir.FullPath : $"{dir.FullPath}#{eco.Name}"),
                     Kind = UnitKind.DevArtifact,
                     Name = $"{dir.Name} ({eco.Name})",
                     Paths = artifactNodes.Select(n => n.FullPath).ToList(),
@@ -80,6 +81,7 @@ public sealed class DevArtifactExtractor : IUnitExtractor
                     Reason = reason,
                 };
                 units.Add(unit);
+                first = false;
             }
 
             if (dir.Children is null)
