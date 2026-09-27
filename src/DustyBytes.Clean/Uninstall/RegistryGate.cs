@@ -124,7 +124,7 @@ public static partial class RegistryGate
                 return null;
         var parts = path.Split('\\', StringSplitOptions.RemoveEmptyEntries);
         if (parts.Length >= 3 && parts[0].Equals("SOFTWARE", StringComparison.OrdinalIgnoreCase) && parts[1].Equals("Classes", StringComparison.OrdinalIgnoreCase) && parts[2].StartsWith('.'))
-            return parts.Length == 3 || parts.Length == 4 && parts[3].Equals("OpenWithProgids", StringComparison.OrdinalIgnoreCase)
+            return parts.Length == 3 && valueName.Length == 0 || parts.Length == 4 && parts[3].Equals("OpenWithProgids", StringComparison.OrdinalIgnoreCase)
                 ? null
                 : "Uzantı altındaki bu alan korunur";
         if (Under(path, CurrentVersion + @"Explorer\FileExts") && parts.Length == 8 && parts[7].Equals("OpenWithProgids", StringComparison.OrdinalIgnoreCase))

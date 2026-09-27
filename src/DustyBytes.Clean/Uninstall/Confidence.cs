@@ -82,6 +82,8 @@ public static class Confidence
         evidence.Any(e => PathCodes.Contains(e.Code))
         || evidence.Any(e => e.Code == "signer") && evidence.Any(e => e.Code is "company" or "product");
 
+    public static bool IsPathCode(string code) => PathCodes.Contains(code);
+
     public static bool IsCapped(IReadOnlyCollection<Evidence> evidence) =>
         evidence.Any(e => CapCodes.Contains(e.Code));
 

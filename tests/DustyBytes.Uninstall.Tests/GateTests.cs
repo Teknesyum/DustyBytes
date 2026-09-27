@@ -51,6 +51,9 @@ public class GateTests
         Assert.Null(RegistryGate.ValueBlock(Lm(@"SOFTWARE\Classes\.zqxv"), ""));
         Assert.Null(RegistryGate.ValueBlock(Lm(@"SOFTWARE\Classes\.zqxv\OpenWithProgids"), "Zqxv.Doc"));
         Assert.NotNull(RegistryGate.ValueBlock(Lm(@"SOFTWARE\Classes\.zqxv\ShellNew"), "Command"));
+        Assert.NotNull(RegistryGate.ValueBlock(Lm(@"SOFTWARE\Classes\.zqxv"), "Content Type"));
+        Assert.Null(RegistryGate.ValueBlock(new RegKeyRef(RegHive.CurrentUser, RegView.Registry64, @"Software\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.zqxv\OpenWithProgids"), "Zqxv.Doc"));
+        Assert.Null(RegistryGate.ValueBlock(new RegKeyRef(RegHive.CurrentUser, RegView.Registry64, @"Software\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\Run"), "Zqxv"));
         Assert.NotNull(RegistryGate.ValueBlock(Lm(LeftoverScanner.SharedDllsPath), @"C:\x\a.dll"));
         Assert.NotNull(RegistryGate.ValueBlock(Lm(@"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon"), "Shell"));
     }

@@ -65,7 +65,7 @@ public sealed partial class LeftoverScanner
         {
             ("Kurulum klasörü", () => AddInstallFolder(b, inferred)),
             ("Uygulama verisi klasörleri", () => ScanDataFolders(b)),
-            ("Kayıt defteri", () => { if (_ctx.ScanRegistrySoftware) ScanSoftwareKeys(b); AddUninstallKey(b); }),
+            ("Kayıt defteri", () => { if (_ctx.ScanRegistrySoftware) { ScanSoftwareKeys(b); ScanAppPaths(b); } AddUninstallKey(b); }),
             ("Servisler", () => { if (_ctx.ScanServices) ScanServices(b); }),
             ("Zamanlanmış görevler", () => ScanTasks(b)),
             ("Başlangıç girdileri", () => { if (_ctx.ScanStartup) ScanRunKeys(b); }),
@@ -637,6 +637,8 @@ public sealed partial class LeftoverScanner
             var ev = new List<Evidence> { Confidence.InsideInstallDir(exe) };
             AddNameEvidence(ev, _ctx.Registry.GetString(key, "DisplayName") ?? name, b.Program);
             AddExeIdentity(ev, [exe], b.Program);
+            if (_ctx.Registry.GetNumber(key, "Type") is 1 or 2)
+                ev.Add(Confidence.DriverService());
             Add(b, LeftoverKind.Service, name, ev, key: key, detail: image);
         }
     }
@@ -661,14 +663,16 @@ public sealed partial class LeftoverScanner
     {
         if (b.InstallDir is not { } dir)
             return;
-        var roots = new List<RegKeyRef>();
+        var roots = new List<(RegKeyRef Key, RegKeyRef Approved)>();
+        var machineApproved = new RegKeyRef(RegHive.LocalMachine, RegView.Registry64, StartupApprovedPath);
+        var userApproved = _ctx.User(StartupApprovedPath);
         foreach (var path in RunKeys)
         {
-            roots.Add(new RegKeyRef(RegHive.LocalMachine, RegView.Registry64, path));
-            roots.Add(new RegKeyRef(RegHive.LocalMachine, RegView.Registry32, path));
-            roots.Add(new RegKeyRef(RegHive.CurrentUser, RegView.Registry64, path));
+            roots.Add((new RegKeyRef(RegHive.LocalMachine, RegView.Registry64, path), machineApproved));
+            roots.Add((new RegKeyRef(RegHive.LocalMachine, RegView.Registry32, path), machineApproved));
+            roots.Add((_ctx.User(path), userApproved));
         }
-        foreach (var key in roots)
+        foreach (var (key, approved) in roots)
         {
             foreach (var name in _ctx.Registry.GetValueNames(key))
             {
@@ -682,6 +686,51 @@ public sealed partial class LeftoverScanner
                 AddNameEvidence(ev, name, b.Program);
                 AddExeIdentity(ev, [hit], b.Program);
                 Add(b, LeftoverKind.StartupEntry, $"{key.Display}\\{name}", ev, key: key, valueName: name, detail: cmd);
+                foreach (var list in new[] { "Run", "Run32" })
+                    AddLinkedValue(b, approved.Child(list), name, ev, $"başlangıç girdisi {name}");
+            }
+        }
+    }
+
+    const string StartupApprovedPath = @"SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved";
+
+    void AddLinkedValue(Builder b, RegKeyRef key, string valueName, List<Evidence> source, string what, string? expect = null, bool userChoice = false)
+    {
+        if (!_ctx.Registry.ValueExists(key, valueName))
+            return;
+        var ev = source.Where(e => !Confidence.IsPathCode(e.Code)).ToList();
+        ev.Insert(0, Confidence.LinkedTo(what));
+        if (userChoice)
+            ev.Add(Confidence.UserChoiceArea());
+        Add(b, LeftoverKind.RegistryValue, $"{key.Display}\\{(valueName.Length == 0 ? "(Varsayılan)" : valueName)}", ev, key: key, valueName: valueName, detail: what, expect: expect);
+    }
+
+    void ScanAppPaths(Builder b)
+    {
+        if (b.InstallDir is not { } dir)
+            return;
+        const string path = @"SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths";
+        var roots = new[]
+        {
+            new RegKeyRef(RegHive.LocalMachine, RegView.Registry64, path),
+            new RegKeyRef(RegHive.LocalMachine, RegView.Registry32, path),
+            _ctx.User(path),
+        };
+        foreach (var root in roots)
+        {
+            foreach (var name in _ctx.Registry.GetSubKeyNames(root))
+            {
+                var key = root.Child(name);
+                var target = _ctx.Registry.GetString(key, "") is { } def ? CommandLine.Executable(def) ?? CommandLine.Clean(def) : null;
+                var hit = target is not null && SafeIsUnder(target, dir) ? target
+                    : _ctx.Registry.GetString(key, "Path") is { } p && SafeIsUnder(CommandLine.Clean(p.Trim('"').TrimEnd(';')), dir) ? p : null;
+                if (hit is null)
+                    continue;
+                var ev = new List<Evidence> { Confidence.InsideInstallDir(hit) };
+                AddNameEvidence(ev, Path.GetFileNameWithoutExtension(name), b.Program);
+                if (target is not null && SafeIsUnder(target, dir))
+                    AddExeIdentity(ev, [target], b.Program);
+                Add(b, LeftoverKind.RegistryKey, key.Display, ev, key: key, detail: hit);
             }
         }
     }
@@ -718,6 +767,12 @@ public sealed partial class LeftoverScanner
                 AddNameEvidence(ev, Path.GetFileNameWithoutExtension(lnk), b.Program);
                 AddExeIdentity(ev, [target], b.Program);
                 Add(b, LeftoverKind.Shortcut, norm, ev, detail: target, bytes: FolderSize.MeasureAny(norm), forceHigh: own);
+                if (string.Equals(Path.GetFileName(Path.GetDirectoryName(norm)), "Startup", StringComparison.OrdinalIgnoreCase))
+                {
+                    var lnkName = Path.GetFileName(norm);
+                    AddLinkedValue(b, new RegKeyRef(RegHive.LocalMachine, RegView.Registry64, StartupApprovedPath + @"\StartupFolder"), lnkName, ev, $"başlangıç kısayolu {lnkName}");
+                    AddLinkedValue(b, _ctx.User(StartupApprovedPath + @"\StartupFolder"), lnkName, ev, $"başlangıç kısayolu {lnkName}");
+                }
             }
         }
     }
@@ -729,28 +784,42 @@ public sealed partial class LeftoverScanner
         var classRoots = new[]
         {
             new RegKeyRef(RegHive.LocalMachine, RegView.Registry64, @"SOFTWARE\Classes"),
-            new RegKeyRef(RegHive.CurrentUser, RegView.Registry64, @"Software\Classes"),
+            _ctx.UserClasses,
         };
+        var fileExts = _ctx.User(@"Software\Microsoft\Windows\CurrentVersion\Explorer\FileExts");
+        var userRefs = new List<(RegKeyRef Key, string Value, string? Expect, string Ext)>();
+        foreach (var n in _ctx.Registry.GetSubKeyNames(fileExts))
+            if (n.StartsWith('.'))
+                foreach (var v in _ctx.Registry.GetValueNames(fileExts.Child(n).Child("OpenWithProgids")))
+                    if (v.Length > 0)
+                        userRefs.Add((fileExts.Child(n).Child("OpenWithProgids"), v, null, n));
         foreach (var classes in classRoots)
         {
-            var progIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            var names = _ctx.Registry.GetSubKeyNames(classes);
-            foreach (var n in names)
+            var refs = new Dictionary<string, List<(RegKeyRef Key, string Value, string? Expect, string Ext)>>(StringComparer.OrdinalIgnoreCase);
+            void Ref(string progId, RegKeyRef key, string value, string? expect, string ext)
+            {
+                if (!refs.TryGetValue(progId, out var list))
+                    refs[progId] = list = [];
+                list.Add((key, value, expect, ext));
+            }
+            foreach (var n in _ctx.Registry.GetSubKeyNames(classes))
             {
                 if (!n.StartsWith('.'))
                     continue;
                 var ext = classes.Child(n);
                 if (_ctx.Registry.GetString(ext, "") is { } def)
-                    progIds.Add(def);
+                    Ref(def, ext, "", def, n);
                 foreach (var v in _ctx.Registry.GetValueNames(ext.Child("OpenWithProgids")))
                     if (v.Length > 0)
-                        progIds.Add(v);
+                        Ref(v, ext.Child("OpenWithProgids"), v, null, n);
             }
-            var apps = classes.Child("Applications");
-            foreach (var a in _ctx.Registry.GetSubKeyNames(apps))
-                progIds.Add("Applications\\" + a);
+            foreach (var a in _ctx.Registry.GetSubKeyNames(classes.Child("Applications")))
+                refs.TryAdd("Applications\\" + a, []);
+            foreach (var r in userRefs)
+                if (refs.ContainsKey(r.Value) || _ctx.Registry.KeyExists(classes.Child(r.Value)))
+                    Ref(r.Value, r.Key, r.Value, r.Expect, r.Ext);
 
-            foreach (var progId in progIds)
+            foreach (var (progId, list) in refs)
             {
                 var key = classes.Child(progId);
                 string? hit = null;
@@ -763,10 +832,19 @@ public sealed partial class LeftoverScanner
                 }
                 if (hit is null)
                     continue;
+                var className = progId.StartsWith("Applications\\", StringComparison.OrdinalIgnoreCase)
+                    ? Path.GetFileNameWithoutExtension(progId[13..])
+                    : progId.Split('.')[0];
                 var ev = new List<Evidence> { Confidence.InsideInstallDir(hit) };
-                AddNameEvidence(ev, progId.Split('.', '\\')[0], b.Program);
+                AddNameEvidence(ev, className, b.Program);
+                if (NameMatcher.MatchesPublisher(className, b.Program.Publisher))
+                    ev.Add(Confidence.PublisherMatch(className));
+                if (!ev.Any(e => e.Code is "name-exact" or "name-partial" or "publisher"))
+                    ev.Add(Confidence.NoNameForClass());
                 AddExeIdentity(ev, [hit], b.Program);
                 Add(b, LeftoverKind.FileAssociation, key.Display, ev, key: key, detail: hit);
+                foreach (var r in list)
+                    AddLinkedValue(b, r.Key, r.Value, ev, $"{r.Ext} uzantısı, ProgID {progId}", r.Expect, userChoice: true);
             }
         }
     }

@@ -21,6 +21,15 @@ public sealed class ScanContext
     public bool ScanStartup { get; init; } = true;
     public bool ScanAssociations { get; init; } = true;
     public bool ScanFirewall { get; init; } = true;
+    public string? UserSid { get; init; }
+
+    public RegKeyRef User(string path) => UserSid is { } sid
+        ? new RegKeyRef(RegHive.Users, RegView.Registry64, sid + "\\" + path)
+        : new RegKeyRef(RegHive.CurrentUser, RegView.Registry64, path);
+
+    public RegKeyRef UserClasses => UserSid is { } sid
+        ? new RegKeyRef(RegHive.Users, RegView.Registry64, sid + "_Classes")
+        : new RegKeyRef(RegHive.CurrentUser, RegView.Registry64, @"Software\Classes");
 
     public static ScanContext ForSystem(ProtectedList protection, IReadOnlyList<InstalledProgram> programs, IRegistryView? registry = null, IFileProbe? probe = null)
     {
