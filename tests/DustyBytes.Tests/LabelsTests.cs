@@ -1,10 +1,11 @@
+using Avalonia.Headless.XUnit;
 using DustyBytes.App.Services;
 
 namespace DustyBytes.Tests;
 
 public class LabelsTests
 {
-    [Fact]
+    [AvaloniaFact]
     public void TitleBarTextsComeFromGeneratedLabels()
     {
         var path = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "teknesyum-ui", "avalonia", "labels.tr.json");
