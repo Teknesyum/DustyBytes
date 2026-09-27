@@ -1,0 +1,18 @@
+\\Microsoft\\Windows\\CurrentVersion\\Explorer\\(RecentDocs|UserAssist|MountPoints2|ComDlg32|FeatureUsage|StartPage2|SessionInfo|Streams|TypedPaths|WordWheelQuery)
+\\Microsoft\\Windows\\Shell\\(Bags|BagMRU)
+\\Classes\\Local Settings\\Software\\Microsoft\\Windows\\Shell\\(Bags|BagMRU|MuiCache)
+\\Microsoft\\Windows NT\\CurrentVersion\\AppCompatFlags\\(Compatibility Assistant|Layers)
+\\Microsoft\\Windows\\CurrentVersion\\(Installer\\Folders|Installer\\UserData\\[^\\]+\\Components|Diagnostics|Search|CloudStore|Notifications|PushNotifications|DeliveryOptimization|WINEVT)
+\\Microsoft\\Windows\\CurrentVersion\\Explorer\\(FileExts\\[^\\]+\\(UserChoice|OpenWithList))
+\\Microsoft\\Windows Defender
+\\Microsoft\\(SystemCertificates|Cryptography|Tracing|RADAR|SQMClient|Windows Search)
+\\Services\\(bam|dam)\\
+\\Services\\[^\\]+\\(Parameters\\Tcpip|Enum)
+\\Services\\SharedAccess\\Parameters\\FirewallPolicy\\(RestrictedServices|RestrictedInterfaces)
+\\Windows\\(Prefetch|Temp|SoftwareDistribution|Logs|INF\\setupapi)
+\\Microsoft\\Windows\\(Recent|Caches|Explorer\\thumbcache|WER|INetCache|INetCookies|WebCache|Notifications|ActionCenterCache)
+\\AppData\\Local\\(Temp|CrashDumps|D3DSCache|NVIDIA|Packages\\Microsoft\.)
+\\ProgramData\\Microsoft\\(Windows Defender|Windows\\WER|Diagnosis|Search|Crypto|Network)
+\\System32\\Tasks\\Microsoft\\
+\\Config\.Msi\\
+\\\$Recycle\.Bin\\
