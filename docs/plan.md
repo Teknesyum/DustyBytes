@@ -389,6 +389,11 @@ Seçenek "Ayarları koru" işaretsiz; varsayılan kalıntısız.
 geri yükleme doğrulaması, MSIX tüm kullanıcılar. Ölçü: sanal makinede A/B/C anlık görüntüsü,
 (B−A) ∩ C = 0; negatif test Java kalkar, VirtualBox dokunulmaz (`tools/uninstall-bench/`).
 
+**Durum (2026-09-28)**: Dalga 1 ve 2 bitti (7be7949, 312b12e, 8aa4af1, be5e17e, acb1508, 663934d,
+209d72c). Ölçüm araçları yazıldı, çalıştırılmadı (`docs/olcum/kaldirma-gurultu.md`); gerçek makine
+testi `DUSTYBYTES_REAL_UNINSTALL` ile açılır. Başlangıç klasörü kısayolunun `StartupApproved` değeri
+kodda var, testi gerçek `.lnk` örneği bekliyor.
+
 ## A14 Kolay Akış Ve Otomatik Mod — 2026-09-28
 
 Sahibin sözü: "hiç teknik bilgisi olmayan bir kullanıcı bile ai ın en önerdiği seçenekleri turlayacak".
