@@ -343,3 +343,26 @@ yönetici yetkisiyle zamanlanmış görev kurulmaz (kullanıcı yazabilen exe'yi
 4. Oyun kartının etkisi: karantina, kayıtlar yerinde, 7 gün, geri alınabilir.
 5. `UnitBuilder` çakışma denetimi karesel taramadan ata kümesine iner.
 6. Testler: manifest okuma, oyun birimi, kütüphane kökü reddi, kart düğmesi; ölçüm önce ve sonra.
+
+## A12 Hızlı Tarama Akışı — 2026-09-28
+
+Kaynak: [danışma 002](danisma/002-fable-dustybytes-tarama-akisi.md). Sahibin sözü: "tarama kısmı halen yavaş işliyor
+tarama yaptıkça silinebilir özellikleri bastıralım görelim".
+
+1. Kaydetme bekleme yolundan çıktı (ce331a2): normal taramada −7/8 sn.
+2. Hızlı taramada worker ağacı SQLite yerine ikili dosyayla (`ScanTreeCodec`) geçirir; SQLite kaydı yanıttan sonra
+   worker'da arka planda. Hedef: hızlı tarama başlat → kartlar ≤ 11 sn.
+3. USN artımlı yenileme varsayılan: önbellek yükle → imleç geçerliyse `UsnUpdater` → birimler. Tam tarama yalnız
+   indeks yoksa, günlük sıfırlandıysa ya da "Baştan tara" denirse. Yetkisiz okuma (`FSCTL_READ_UNPRIVILEGED_USN_JOURNAL`)
+   önce denenir, olmazsa worker (`Ops.UsnRefresh`). Ölçüt: yenileme sonucu = tam tarama sonucu (birim kimlikleri ve toplam boyut).
+4. Worker zaten ayaktaysa normal tarama MFT'yle yapılır.
+5. Bulundukça gösterme: ağaçtan bağımsız türler (oyun, program, önbellek, kurulum dosyası, sistem artığı) tarama
+   sürerken kesin boyutla görünür; film, dizi, büyük klasör, geliştirici artığı tarama bitince. Kartlar akarken
+   yeniden sıralanmaz; boyutu kesinleşmemiş kart seçilemez.
+
+Ölçümler `docs/olcum/2026-09-28-tarama.md`.
+
+## A13 Kalıntısız Kaldırma — 2026-09-28
+
+Sahibin sözü: "artık regedit keyi falan bırakmadan temiz çalışarak sil". Araştırma: `danisma/kaldirma-arastirmasi.md`,
+fable görüşü 003. Değişecek yerler ve sıra fable cevabından sonra buraya yazılır.
