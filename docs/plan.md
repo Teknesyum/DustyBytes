@@ -388,3 +388,26 @@ Seçenek "Ayarları koru" işaretsiz; varsayılan kalıntısız.
 **Sonra**: zorla kaldır, servis durdurma, MSI yetimleri, güvenlik duvarı kimlikle, SharedDLLs,
 geri yükleme doğrulaması, MSIX tüm kullanıcılar. Ölçü: sanal makinede A/B/C anlık görüntüsü,
 (B−A) ∩ C = 0; negatif test Java kalkar, VirtualBox dokunulmaz (`tools/uninstall-bench/`).
+
+## A14 Kolay Akış Ve Otomatik Mod — 2026-09-28
+
+Sahibin sözü: "hiç teknik bilgisi olmayan bir kullanıcı bile ai ın en önerdiği seçenekleri turlayacak".
+
+1. **Kalıcı sil iki basışla**: onay penceresi kalkar. İlk basış düğmeyi kırmızıya (`DangerButton`)
+   çevirir, metin "Silmek için tekrar basın"; ikinci basış siler. 4 sn içinde basılmazsa ya da
+   başka yere tıklanırsa eski haline döner. Kart ve alt çubuk aynı davranış.
+2. **Öneriler tek satır**: her birim bir satır — onay kutusu, ad, tür çipi, son kullanım, boyut,
+   eylemler. Yol ve açıklama ipucunda. Satırın her yerine basmak seçimi değiştirir; onay kutusunun
+   basılabilir alanı büyür.
+3. **Tümünü seç**: listenin üstünde üç durumlu kutu; yalnız görünen ve toplu silinebilen birimler.
+4. **Otomatik mod**: Genel bakış ve Öneriler'de "Otomatik temizle" birincil düğmesi.
+   a. Emin olunanlar sorulmadan: Temizlik ekranının uyarısız, varsayılan işaretli seçenekleri
+      (geçici dosyalar, önbellekler) ve `DirectDelete` politikalı birimler temizlenir.
+   b. Tur: büyük ve uzun süre kullanılmamış birimler öneri sırasıyla birer birer gösterilir —
+      "Bunu silmek ister misiniz?"; Karantinaya al (birincil), Kalıcı sil (iki basış), Kalsın, Turu bitir.
+      Üstte "3 / 12" ve açılan toplam yer. Kullanıcı verisi olan birim uyarıyla gösterilir, asla sorulmadan gitmez.
+   c. Bitiş özeti: temizlenen, karantinaya alınan, kalıcı silinen, açılan yer; Geri al karantinayı açar.
+5. Geçişler akıcı: tur kartı değişiminde teknesyum-ui hareket token'ları; hiçbir adım pencere açmaz.
+
+Güvenlik değişmez: her silme worker'da SafetyGate'ten geçer; otomatik adım yalnız zaten
+sorusuz temizlenen kategorilere dokunur.
