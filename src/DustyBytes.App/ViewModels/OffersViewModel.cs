@@ -362,8 +362,56 @@ public sealed partial class OffersViewModel : ViewModelBase
 
     public IReadOnlyList<UnitCard> Chosen => [.. _all.Where(c => c.IsSelected && c.IsBatch)];
 
+    bool _bulk;
+
+    public bool HasBatch => Cards.Any(c => c.IsBatch);
+
+    public bool? AllSelected
+    {
+        get
+        {
+            var picked = 0;
+            var total = 0;
+            foreach (var card in Cards)
+            {
+                if (!card.IsBatch)
+                    continue;
+                total++;
+                if (card.IsSelected)
+                    picked++;
+            }
+            return picked == 0 ? false : picked == total ? true : null;
+        }
+    }
+
+    [RelayCommand]
+    private void ToggleAll()
+    {
+        var all = AllSelected == true;
+        SetMany(Cards.Where(c => c.IsBatch), !all);
+    }
+
+    void SetMany(IEnumerable<UnitCard> cards, bool value)
+    {
+        _bulk = true;
+        try
+        {
+            foreach (var card in cards.ToList())
+                card.IsSelected = value;
+        }
+        finally
+        {
+            _bulk = false;
+        }
+        Selected();
+    }
+
     void Selected()
     {
+        if (_bulk)
+            return;
+        OnPropertyChanged(nameof(AllSelected));
+        OnPropertyChanged(nameof(HasBatch));
         var chosen = Chosen;
         SelectedBytes = chosen.Sum(c => c.Unit.SizeBytes);
         SelectionText = chosen.Count == 0 ? "Hiçbir birim seçilmedi" : $"{Format.Count(chosen.Count)} birim seçildi · ";
@@ -520,11 +568,7 @@ public sealed partial class OffersViewModel : ViewModelBase
     }
 
     [RelayCommand]
-    private void ClearSelection()
-    {
-        foreach (var card in _all)
-            card.IsSelected = false;
-    }
+    private void ClearSelection() => SetMany(_all, false);
 
     [RelayCommand]
     private void OpenOverview() => _main.GoTo(_main.Overview);

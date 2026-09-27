@@ -67,6 +67,9 @@
         <TextBlock Theme="{StaticResource Hint}" Text="{Binding SmallText}"/>
       </CheckBox>
       <TextBlock Name="StreamNotice" Theme="{StaticResource Hint}" Text="{Binding Notice}" IsVisible="{Binding HasNotice}" TextWrapping="Wrap"/>
+      <CheckBox Name="SelectAll" Classes="wide" Margin="{StaticResource InputPadding}"
+                IsChecked="{Binding AllSelected, Mode=OneWay}" Command="{Binding ToggleAllCommand}"
+                IsVisible="{Binding HasBatch}" Content="Tümünü seç"/>
     </StackPanel>
 
     <Border DockPanel.Dock="Bottom" Background="{StaticResource Surface}" BorderBrush="{StaticResource BorderDecorative}"

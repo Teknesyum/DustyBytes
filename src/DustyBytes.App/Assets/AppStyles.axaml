@@ -192,9 +192,13 @@
                     BorderBrush="{TemplateBinding BorderBrush}"
                     BorderThickness="2"
                     CornerRadius="{StaticResource Radius}">
+              <Panel>
               <Path Name="check" Stroke="{StaticResource OnRenk1}" StrokeThickness="2"
                     StrokeLineCap="Round" StrokeJoin="Round"
                     Data="M4 10 L8 14 L15 6" Opacity="0"/>
+              <Path Name="dash" Stroke="{StaticResource OnRenk1}" StrokeThickness="2"
+                    StrokeLineCap="Round" Data="M5 10 L15 10" Opacity="0"/>
+              </Panel>
             </Border>
             <ContentPresenter Name="PART_ContentPresenter" Grid.Column="1"
                               Margin="8,0,0,0"
@@ -215,6 +219,13 @@
         <Setter Property="TextElement.Foreground" Value="{StaticResource OnRenk1}"/>
       </Style>
       <Style Selector="^:checked /template/ Path#check">
+        <Setter Property="Opacity" Value="1"/>
+      </Style>
+      <Style Selector="^:indeterminate /template/ Border#box">
+        <Setter Property="Background" Value="{StaticResource Renk1}"/>
+        <Setter Property="BorderBrush" Value="{StaticResource Renk1}"/>
+      </Style>
+      <Style Selector="^:indeterminate /template/ Path#dash">
         <Setter Property="Opacity" Value="1"/>
       </Style>
       <Style Selector="^:disabled">

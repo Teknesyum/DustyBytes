@@ -315,6 +315,35 @@ public class ViewModelTests
     }
 
     [AvaloniaFact]
+    public async Task Offers_Select_All_Covers_Only_Visible_Batch_Units()
+    {
+        var vm = Shell(new FakeBackend());
+        vm.GoTo(vm.Offers);
+        await vm.Offers.Ready;
+        var offers = vm.Offers;
+        Assert.True(offers.HasBatch);
+        Assert.False(offers.AllSelected);
+
+        offers.ToggleAllCommand.Execute(null);
+        Assert.True(offers.AllSelected);
+        Assert.Equal(["u1", "u3", "u4"], offers.Chosen.Select(c => c.Unit.Id).Order());
+        Assert.False(offers.Cards.First(c => c.Unit.Id == "u2").IsSelected);
+
+        offers.Cards.First(c => c.Unit.Id == "u3").IsSelected = false;
+        Assert.Null(offers.AllSelected);
+        offers.ToggleAllCommand.Execute(null);
+        Assert.True(offers.AllSelected);
+        offers.ToggleAllCommand.Execute(null);
+        Assert.False(offers.AllSelected);
+        Assert.Empty(offers.Chosen);
+
+        offers.SelectedFilter = offers.Filters.First(f => f.Label == "Oyun");
+        offers.ToggleAllCommand.Execute(null);
+        Assert.True(offers.AllSelected);
+        Assert.Equal("u1", Assert.Single(offers.Chosen).Unit.Id);
+    }
+
+    [AvaloniaFact]
     public void IdsOf_Parses_Pipe_Suffix()
     {
         var response = new WorkerResponse

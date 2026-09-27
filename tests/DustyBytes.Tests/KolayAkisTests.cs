@@ -75,6 +75,30 @@ public class KolayAkisTests
     }
 
     [AvaloniaFact]
+    public async Task Select_All_Box_Selects_Then_Clears()
+    {
+        var (window, vm) = await OffersWindow();
+        var box = window.GetVisualDescendants().OfType<CheckBox>().First(c => c.Name == "SelectAll");
+        Assert.True(box.IsEffectivelyVisible);
+        Assert.False(box.IsChecked);
+
+        Click(window, box);
+        Assert.True(vm.Offers.AllSelected);
+        Assert.True(box.IsChecked);
+
+        ((UnitCard)Row(window, "u3").DataContext!).IsSelected = false;
+        Pump();
+        Assert.Null(box.IsChecked);
+
+        Click(window, box);
+        Assert.True(box.IsChecked);
+        Click(window, box);
+        Assert.False(box.IsChecked);
+        Assert.Empty(vm.Offers.Chosen);
+        window.Close();
+    }
+
+    [AvaloniaFact]
     public async Task Row_Is_One_Line_With_Path_In_Tooltip()
     {
         var (window, _) = await OffersWindow();
