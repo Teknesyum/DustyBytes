@@ -181,22 +181,103 @@ public sealed partial class LeftoverScanner
             return (Paths.Normalize(loc), false);
         }
 
+        foreach (var (source, raw) in RecordedLocations(p))
+        {
+            if (Usable(raw, requireBase: false) is not { } dir)
+                continue;
+            note = $"InstallLocation boş; kurulum klasörü {source} kaydından alındı: {dir}";
+            return (dir, false);
+        }
+
         foreach (var cmd in new[] { p.UninstallString, p.QuietUninstallString, p.DisplayIcon })
         {
             var exe = CommandLine.Executable(cmd?.Split(',')[0]);
             if (exe is null || !Path.IsPathRooted(exe) || exe.Contains("msiexec", StringComparison.OrdinalIgnoreCase))
                 continue;
-            var dir = Path.GetDirectoryName(exe);
-            if (dir is null || _ctx.IsTooBroad(dir))
-                continue;
-            if (dir.Contains("InstallShield Installation Information", StringComparison.OrdinalIgnoreCase) || dir.Contains("Package Cache", StringComparison.OrdinalIgnoreCase))
-                continue;
-            if (!_ctx.DataBases.Any(b => Paths.IsUnder(dir, b)))
+            if (Usable(Path.GetDirectoryName(exe), requireBase: true) is not { } dir)
                 continue;
             note = $"InstallLocation boş; kurulum klasörü kaldırıcının konumundan çıkarıldı: {dir}";
-            return (Paths.Normalize(dir), true);
+            return (dir, true);
         }
+
+        foreach (var (source, exe) in NamedExecutables(p))
+        {
+            if (Usable(Path.GetDirectoryName(exe), requireBase: true) is not { } dir || NameMatcher.Match(Path.GetFileName(dir), p.DisplayName) == NameMatch.None)
+                continue;
+            note = $"InstallLocation boş; kurulum klasörü {source} üzerinden çıkarıldı: {dir}";
+            return (dir, true);
+        }
+
+        note = "Kurulum klasörü bulunamadı (InstallLocation, Inno, MSI, kaldırıcı, App Paths ve Başlat menüsü boş); yalnız ad ve yayıncı kanıtıyla arandı";
         return (null, false);
+    }
+
+    string? Usable(string? raw, bool requireBase)
+    {
+        if (string.IsNullOrWhiteSpace(raw))
+            return null;
+        var dir = CommandLine.Clean(raw.Trim().Trim('"')).TrimEnd('\\');
+        if (dir.Length < 3 || !Path.IsPathRooted(dir) || _ctx.IsTooBroad(dir))
+            return null;
+        if (dir.Contains("InstallShield Installation Information", StringComparison.OrdinalIgnoreCase) || dir.Contains("Package Cache", StringComparison.OrdinalIgnoreCase))
+            return null;
+        if (requireBase && !_ctx.DataBases.Any(b => SafeIsUnder(dir, b)))
+            return null;
+        return Paths.Normalize(dir);
+    }
+
+    IEnumerable<(string Source, string? Raw)> RecordedLocations(InstalledProgram p)
+    {
+        if (p.Key is { } key)
+            yield return ("Inno Setup", _ctx.Registry.GetString(key, "Inno Setup: App Path"));
+        if (p.ProductCode is { } pc)
+        {
+            yield return ("MSI", InstalledPrograms.MsiInstallLocation(_ctx.Registry, pc));
+            if (_ctx.UserSid is { } sid && MsiGuid.TryParseBraced(pc, out var g))
+                yield return ("MSI", _ctx.Registry.GetString(new RegKeyRef(RegHive.LocalMachine, RegView.Registry64,
+                    $@"SOFTWARE\Microsoft\Windows\CurrentVersion\Installer\UserData\{sid}\Products\{MsiGuid.Compress(g)}\InstallProperties"), "InstallLocation"));
+        }
+    }
+
+    IEnumerable<(string Source, string Exe)> NamedExecutables(InstalledProgram p)
+    {
+        const string appPaths = @"SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths";
+        foreach (var root in new[]
+        {
+            new RegKeyRef(RegHive.LocalMachine, RegView.Registry64, appPaths),
+            new RegKeyRef(RegHive.LocalMachine, RegView.Registry32, appPaths),
+            _ctx.User(appPaths),
+        })
+        {
+            foreach (var name in _ctx.Registry.GetSubKeyNames(root))
+            {
+                if (NameMatcher.Match(Path.GetFileNameWithoutExtension(name), p.DisplayName) != NameMatch.Exact)
+                    continue;
+                if (CommandLine.Executable(_ctx.Registry.GetString(root.Child(name), "")) is { } exe && Path.IsPathRooted(exe))
+                    yield return ("App Paths kaydı", exe);
+            }
+        }
+        foreach (var root in _ctx.ShortcutDirs)
+        {
+            IEnumerable<string> links;
+            try
+            {
+                links = Directory.Exists(root)
+                    ? Directory.EnumerateFiles(root, "*.lnk", new EnumerationOptions { RecurseSubdirectories = true, IgnoreInaccessible = true, AttributesToSkip = FileAttributes.ReparsePoint }).ToList()
+                    : [];
+            }
+            catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+            {
+                continue;
+            }
+            foreach (var lnk in links)
+            {
+                if (NameMatcher.Match(Path.GetFileNameWithoutExtension(lnk), p.DisplayName) != NameMatch.Exact)
+                    continue;
+                if (ShellLink.ReadTarget(lnk) is { } target && Path.IsPathRooted(target))
+                    yield return ("Başlat menüsü kısayolu", target);
+            }
+        }
     }
 
     void AddInstallFolder(Builder b, bool inferred)
