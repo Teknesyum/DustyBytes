@@ -22,6 +22,7 @@ public sealed class ScanContext
     public bool ScanAssociations { get; init; } = true;
     public bool ScanFirewall { get; init; } = true;
     public string? UserSid { get; init; }
+    public string? UserNote { get; init; }
 
     public RegKeyRef User(string path) => UserSid is { } sid
         ? new RegKeyRef(RegHive.Users, RegView.Registry64, sid + "\\" + path)
@@ -31,9 +32,21 @@ public sealed class ScanContext
         ? new RegKeyRef(RegHive.Users, RegView.Registry64, sid + "_Classes")
         : new RegKeyRef(RegHive.CurrentUser, RegView.Registry64, @"Software\Classes");
 
-    public static ScanContext ForSystem(ProtectedList protection, IReadOnlyList<InstalledProgram> programs, IRegistryView? registry = null, IFileProbe? probe = null)
+    public static ScanContext ForSystem(ProtectedList protection, IReadOnlyList<InstalledProgram> programs, IRegistryView? registry = null, IFileProbe? probe = null, UserScope? user = null)
     {
-        string F(Environment.SpecialFolder f) => Environment.GetFolderPath(f);
+        registry ??= WindowsRegistryView.Instance;
+        var shell = new Dictionary<Environment.SpecialFolder, string>
+        {
+            [Environment.SpecialFolder.ApplicationData] = "AppData",
+            [Environment.SpecialFolder.LocalApplicationData] = "Local AppData",
+            [Environment.SpecialFolder.Programs] = "Programs",
+            [Environment.SpecialFolder.Startup] = "Startup",
+            [Environment.SpecialFolder.DesktopDirectory] = "Desktop",
+        };
+        string F(Environment.SpecialFolder f) =>
+            (shell.TryGetValue(f, out var name) ? user?.Folder(registry, name) : null)
+            ?? (f == Environment.SpecialFolder.UserProfile ? user?.ProfilePath : null)
+            ?? Environment.GetFolderPath(f);
         var local = F(Environment.SpecialFolder.LocalApplicationData);
         var localLow = local.Length > 0 ? Path.Combine(Path.GetDirectoryName(local) ?? local, "LocalLow") : "";
         var bases = new[]
@@ -61,7 +74,7 @@ public sealed class ScanContext
         var userData = BroadPaths.UserDataFolders.Concat(protection.NeverLeftoverRoots).ToList();
         return new ScanContext
         {
-            Registry = registry ?? WindowsRegistryView.Instance,
+            Registry = registry,
             Probe = probe ?? FileProbe.Instance,
             Protection = protection,
             Programs = programs,
@@ -72,6 +85,8 @@ public sealed class ScanContext
             ShortcutDirs = Clean(shortcuts),
             DesktopDirs = Clean(desktops),
             TasksDir = ScheduledTasks.DefaultDirectory,
+            UserSid = user?.Sid,
+            UserNote = user?.Note,
         };
     }
 

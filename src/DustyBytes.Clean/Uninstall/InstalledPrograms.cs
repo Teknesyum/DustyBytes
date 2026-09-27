@@ -8,6 +8,7 @@ public sealed record EnumerateOptions
     public bool MeasureSize { get; init; } = true;
     public bool DetectBySignature { get; init; } = true;
     public bool IncludeHidden { get; init; }
+    public string? UserSid { get; init; }
 }
 
 public static class InstalledPrograms
@@ -48,7 +49,9 @@ public static class InstalledPrograms
 
         foreach (var (hive, view) in Views)
         {
-            var root = new RegKeyRef(hive, view, UninstallPath);
+            var root = hive == RegHive.CurrentUser && options.UserSid is { } sid
+                ? new RegKeyRef(RegHive.Users, view, sid + "\\" + UninstallPath)
+                : new RegKeyRef(hive, view, UninstallPath);
             foreach (var keyName in reg.GetSubKeyNames(root))
             {
                 var key = root.Child(keyName);
@@ -104,7 +107,7 @@ public static class InstalledPrograms
 
         var estimatedKb = reg.GetNumber(key, "EstimatedSize") ?? 0;
         var installer = InstallerDetector.Detect(keyName, windowsInstaller, uninstall, quiet, reg, key, options.DetectBySignature ? probe : null);
-        var perUser = key.Hive == RegHive.CurrentUser;
+        var perUser = key.Hive != RegHive.LocalMachine;
         var id = $"reg:{(perUser ? "HKCU" : "HKLM")}{(key.View == RegView.Registry32 ? "32" : "64")}:{keyName}";
 
         return new InstalledProgram

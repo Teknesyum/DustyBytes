@@ -31,6 +31,8 @@ public sealed class UninstallHandlers
 
     public Func<IReadOnlyList<InstalledProgram>>? ProgramProvider { get; init; }
 
+    public UserScope? User { get; init; }
+
     public Func<LeftoverScanner, Uninstaller>? UninstallerFactory { get; init; }
 
     public async Task<WorkerResponse> HandleUninstall(WorkerRequest request, IProgress<WorkerProgress> progress, CancellationToken ct)
@@ -40,7 +42,7 @@ public sealed class UninstallHandlers
         if (string.IsNullOrWhiteSpace(request.Target))
             return Fail(request, "Kaldırılacak program belirtilmedi");
 
-        var programs = ProgramProvider?.Invoke() ?? InstalledPrograms.Enumerate(_reg, _probe, new EnumerateOptions { MeasureSize = false });
+        var programs = ProgramProvider?.Invoke() ?? InstalledPrograms.Enumerate(_reg, _probe, new EnumerateOptions { MeasureSize = false, UserSid = User?.Sid });
         var program = programs.FirstOrDefault(p => p.Id.Equals(request.Target, StringComparison.Ordinal));
         if (program is null)
             return Fail(request, $"Program bulunamadı: {request.Target}");
@@ -52,7 +54,7 @@ public sealed class UninstallHandlers
             return Fail(request, "Bu program için kaldırma komutu yok");
 
         var p = Map(request.Id, progress);
-        var scanner = new LeftoverScanner(ScanContext.ForSystem(_protection, programs, _reg, _probe));
+        var scanner = new LeftoverScanner(ScanContext.ForSystem(_protection, programs, _reg, _probe, User));
         var uninstaller = UninstallerFactory?.Invoke(scanner) ?? new Uninstaller(scanner);
         var items = new List<ItemResult>();
 
@@ -132,8 +134,8 @@ public sealed class UninstallHandlers
         if (request.Items.Count == 0)
             return Fail(request, "Onaylı kalıntı yok");
 
-        var programs = ProgramProvider?.Invoke() ?? InstalledPrograms.Enumerate(_reg, _probe, new EnumerateOptions { MeasureSize = false, IncludeMsix = false, DetectBySignature = false });
-        var scanner = new LeftoverScanner(ScanContext.ForSystem(_protection, programs, _reg, _probe));
+        var programs = ProgramProvider?.Invoke() ?? InstalledPrograms.Enumerate(_reg, _probe, new EnumerateOptions { MeasureSize = false, IncludeMsix = false, DetectBySignature = false, UserSid = User?.Sid });
+        var scanner = new LeftoverScanner(ScanContext.ForSystem(_protection, programs, _reg, _probe, User));
         var quarantine = _quarantine ?? (_ => Task.FromResult(false));
         var remover = new LeftoverRemover(_reg, scanner, quarantine, _actions);
         var report = await remover.Remove(snapshot, request.Items, Map(request.Id, progress), ct).ConfigureAwait(false);

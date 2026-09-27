@@ -65,7 +65,7 @@ public static class WorkerBindings
         }
     }
 
-    public static void Register(WorkerServices services)
+    public static void Register(WorkerServices services, int? parentPid = null)
     {
         var protection = services.Gate.List;
         var shortcutStore = ShortcutStore();
@@ -75,7 +75,10 @@ public static class WorkerBindings
                 ? shortcutStore.Quarantine(path, includeUserData: true).Ok
                 : services.Quarantine.Quarantine(path).Ok);
 
-        var uninstall = new UninstallHandlers(protection, QuarantineLeftover);
+        var user = parentPid is { } pid
+            ? UserScope.Resolve(WorkerNative.ProcessUser(pid)?.Value, WindowsRegistryView.Instance)
+            : UserScope.Fallback("Arayüz süreci bilinmiyor");
+        var uninstall = new UninstallHandlers(protection, QuarantineLeftover) { User = user };
         WorkerHandlers.Register(Ops.Uninstall, uninstall.HandleUninstall);
         WorkerHandlers.Register(Ops.RemoveLeftovers, uninstall.HandleRemoveLeftovers);
 

@@ -51,7 +51,7 @@ public static class WorkerHost
         try
         {
             var services = WorkerServices.CreateDefault();
-            WorkerBindings.Register(services);
+            WorkerBindings.Register(services, parent.Value);
             _ = Task.Run(async () =>
             {
                 using var timer = new PeriodicTimer(PurgeEvery);

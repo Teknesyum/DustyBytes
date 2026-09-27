@@ -58,6 +58,8 @@ public sealed partial class LeftoverScanner
 
         var (installDir, inferred) = ResolveInstallDir(program, out var installNote);
         var b = new Builder(program, installDir);
+        if (_ctx.UserNote is not null)
+            b.Notes.Add(_ctx.UserNote);
         if (installNote is not null)
             b.Notes.Add(installNote);
 
@@ -587,7 +589,7 @@ public sealed partial class LeftoverScanner
         {
             new RegKeyRef(RegHive.LocalMachine, RegView.Registry64, "SOFTWARE"),
             new RegKeyRef(RegHive.LocalMachine, RegView.Registry32, "SOFTWARE"),
-            new RegKeyRef(RegHive.CurrentUser, RegView.Registry64, "Software"),
+            _ctx.User("Software"),
         };
         foreach (var root in roots)
         {
