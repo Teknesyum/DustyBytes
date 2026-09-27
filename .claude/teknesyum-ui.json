@@ -75,19 +75,10 @@
       "reason": "Yanlış eşleşme: NeonBlue zeminli kutunun içindeki işaret OnBlue ile çizilir (satır 279); TextBody yalnız kutunun dışındaki etikete uygulanır. KontrastTests altı ekranda ve üç ölçekte geçiyor."
     }
   ],
-  "duzen": "b3a56d17ff70849c",
-  "notlar": [
-    "Arka plan tasarımı: duz (token karşılığı yok).",
-    "Kaydırma çubuğu biçimi: solan.",
-    "Arayüz geçiş eğrisi: emphasized (önizlemede --tk-e-out yerine).",
-    "Cam bulanıklığı: 0 px.",
-    "Panel gölgesi gücü: ×0.",
-    "Pencere kenarı: yok.",
-    "Düğme: 28 px yükseklik, 10 px yatay dolgu.",
-    "Üst çubuk yüksekliği: 28 px (titlebar-h-min)."
-  ],
+  "duzen": "75ea90cdce3cabe5",
   "denetim": {
     "tarih": "2026-09-26T23:14:50.043Z",
     "duzen": "b3a56d17ff70849c"
-  }
+  },
+  "plugin": "0.13.0"
 }
