@@ -95,7 +95,19 @@ public sealed partial class SessionState(IAppBackend backend) : ObservableObject
                     refreshed = true;
                     return fresh;
                 }
-                return mode == ScanMode.Fast ? await backend.FastScanAsync(p, ct) : await backend.ScanAsync(p, ct);
+                if (mode == ScanMode.Fast)
+                    return await backend.FastScanAsync(p, ct);
+                if (backend.WorkerRunning && backend.FastScanAvailability().Enabled)
+                {
+                    try
+                    {
+                        return await backend.FastScanAsync(p, ct);
+                    }
+                    catch (InvalidOperationException)
+                    {
+                    }
+                }
+                return await backend.ScanAsync(p, ct);
             });
             SetSnapshot(result);
             var summary = $"{Format.Count(result.Units.Count)} birim, {Format.Bytes(result.Units.Sum(u => u.SizeBytes))} açılabilir";

@@ -544,6 +544,22 @@ public class ViewModelTests
     }
 
     [AvaloniaFact]
+    public async Task Full_Scan_Uses_Mft_When_Worker_Is_Already_Running()
+    {
+        var backend = new FakeBackend { WorkerRunning = true, Fast = new(true, "MFT") };
+        var vm = Shell(backend, withSnapshot: false);
+        await vm.StartAsync();
+        await Settle();
+        Assert.Equal(["fast"], backend.ScanCalls);
+
+        backend.ScanCalls.Clear();
+        backend.WorkerRunning = false;
+        vm.Overview.RescanCommand.Execute(null);
+        await Settle();
+        Assert.Equal(["full"], backend.ScanCalls);
+    }
+
+    [AvaloniaFact]
     public async Task Overview_Scan_Error_Shows_Retry()
     {
         var backend = new FakeBackend { ScanError = new IOException("Disk okunamadı") };
