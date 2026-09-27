@@ -12,6 +12,8 @@ public sealed class SystemArtifactExtractor : IUnitExtractor
         (@"Windows\SoftwareDistribution\DeliveryOptimization", "Delivery Optimization önbelleği"),
     ];
 
+    internal static IEnumerable<string> Roots => Targets.Select(t => t.Pattern);
+
     public IEnumerable<Unit> Extract(UnitContext ctx)
     {
         var units = new List<Unit>();

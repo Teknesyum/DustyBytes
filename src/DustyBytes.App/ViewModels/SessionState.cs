@@ -18,6 +18,19 @@ public sealed partial class SessionState(IAppBackend backend) : ObservableObject
     public TaskProgressViewModel Scan => _scan ?? throw new InvalidOperationException("Oturum başlatılmadı");
 
     public event EventHandler? SnapshotChanged;
+    public event EventHandler? DraftChanged;
+
+    readonly HashSet<string> _removedDuringScan = new(StringComparer.Ordinal);
+
+    public ScanDraft? Draft { get; private set; }
+
+    void SetDraft(ScanDraft? draft)
+    {
+        Draft = draft is null || _removedDuringScan.Count == 0
+            ? draft
+            : draft with { Units = [.. draft.Units.Where(u => !_removedDuringScan.Contains(u.Id))] };
+        DraftChanged?.Invoke(this, EventArgs.Empty);
+    }
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasSnapshot))]
@@ -79,6 +92,12 @@ public sealed partial class SessionState(IAppBackend backend) : ObservableObject
             mode = ScanMode.Full;
         IsRefreshing = Snapshot is not null;
         ScanError = null;
+        _removedDuringScan.Clear();
+        var drafts = Snapshot is null && mode == ScanMode.Full ? new Progress<ScanDraft>(d =>
+        {
+            if (Scan.IsRunning && Snapshot is null)
+                SetDraft(d);
+        }) : null;
         try
         {
             var title = mode switch
@@ -107,8 +126,10 @@ public sealed partial class SessionState(IAppBackend backend) : ObservableObject
                     {
                     }
                 }
-                return await backend.ScanAsync(p, ct);
+                return await backend.ScanAsync(p, ct, drafts);
             });
+            if (_removedDuringScan.Count > 0)
+                result = result with { Units = [.. result.Units.Where(u => !_removedDuringScan.Contains(u.Id))] };
             SetSnapshot(result);
             var summary = $"{Format.Count(result.Units.Count)} birim, {Format.Bytes(result.Units.Sum(u => u.SizeBytes))} açılabilir";
             shell.Notify(refreshed ? "Değişiklikler işlendi: " + summary : "Tarama bitti: " + summary);
@@ -125,6 +146,9 @@ public sealed partial class SessionState(IAppBackend backend) : ObservableObject
         finally
         {
             IsRefreshing = false;
+            _removedDuringScan.Clear();
+            if (Draft is not null)
+                SetDraft(null);
         }
     }
 
@@ -136,15 +160,20 @@ public sealed partial class SessionState(IAppBackend backend) : ObservableObject
 
     public void RemoveUnits(IEnumerable<string> ids)
     {
+        var gone = ids.ToHashSet(StringComparer.Ordinal);
+        if (_scan?.IsRunning == true)
+            _removedDuringScan.UnionWith(gone);
+        if (Draft is { } draft)
+            SetDraft(draft);
         if (Snapshot is null)
             return;
-        var gone = ids.ToHashSet(StringComparer.Ordinal);
         Snapshot = Snapshot with { Units = [.. Snapshot.Units.Where(u => !gone.Contains(u.Id))] };
         SnapshotChanged?.Invoke(this, EventArgs.Empty);
     }
 
     public void RestoreUnits(IEnumerable<Unit> units)
     {
+        _removedDuringScan.ExceptWith(units.Select(u => u.Id));
         if (Snapshot is null)
             return;
         var existing = Snapshot.Units.Select(u => u.Id).ToHashSet(StringComparer.Ordinal);

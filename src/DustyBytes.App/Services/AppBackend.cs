@@ -124,15 +124,47 @@ public sealed class AppBackend : IAppBackend, IAsyncDisposable
         return result is null ? null : await Build(result, progress, ct, 80).ConfigureAwait(false);
     }
 
-    public async Task<ScanSnapshot> ScanAsync(IProgress<TaskStep> progress, CancellationToken ct)
+    public async Task<ScanSnapshot> ScanAsync(IProgress<TaskStep> progress, CancellationToken ct, IProgress<ScanDraft>? drafts = null)
     {
         var scan = Span(progress, 0, 85)!;
         var sink = new Relay<ScanProgress>(p => scan.Report(new TaskStep(p.Step, p.Percent, p.CurrentPath)));
-        var result = await new FileScanner().ScanAsync(ScanRoot, new ScanOptions(), sink, ct).ConfigureAwait(false);
+        var options = new ScanOptions();
+        var drafting = drafts is null ? null : await StartDraftsAsync(drafts, ct).ConfigureAwait(false);
+        if (drafting is not null)
+            options = options with { Priority = drafting.Priority, SubtreeDone = drafting.Done };
+        ScanResult result;
+        try
+        {
+            result = await new FileScanner().ScanAsync(ScanRoot, options, sink, ct).ConfigureAwait(false);
+        }
+        finally
+        {
+            if (drafting is not null)
+                await drafting.StopAsync().ConfigureAwait(false);
+        }
         ct.ThrowIfCancellationRequested();
         var snapshot = await Build(result, progress, ct).ConfigureAwait(false);
         _ = SaveAsync(result);
         return snapshot;
+    }
+
+    async Task<ScanDrafts> StartDraftsAsync(IProgress<ScanDraft> drafts, CancellationToken ct)
+    {
+        var usage = await _usage.Value.WaitAsync(ct).ConfigureAwait(false);
+        return await Task.Run(() =>
+        {
+            var protection = Protection(usage);
+            var programs = ProgramsForUnits(protection);
+            var context = new UnitContext
+            {
+                ScanResult = new ScanResult { Root = new ScanNode { Name = ScanRoot, IsDirectory = true } },
+                UsageIndex = usage,
+                Protected = protection,
+                Now = DateTimeOffset.Now,
+                Programs = programs,
+            };
+            return new ScanDrafts(EarlyUnits.For(ScanRoot, usage, programs), context, drafts, TimeSpan.FromMilliseconds(250));
+        }, ct).ConfigureAwait(false);
     }
 
     readonly SemaphoreSlim _saveGate = new(1, 1);

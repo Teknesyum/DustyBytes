@@ -157,6 +157,37 @@ public sealed class FileScannerTests(ScanFixture fx)
     }
 
     [Fact]
+    public async Task PriorityRootsFinishWithFinalSizes()
+    {
+        var plain = await Scan(new ScanOptions { Excluded = [fx.Denied] });
+        var roots = new[] { Path.Combine(fx.Root, "a"), Path.Combine(fx.Root, @"a\b"), Path.Combine(fx.Root, "empty"), Path.Combine(fx.Root, "yok") };
+        var done = new System.Collections.Concurrent.ConcurrentDictionary<string, (long Size, int Files)>(StringComparer.OrdinalIgnoreCase);
+        var order = new System.Collections.Concurrent.ConcurrentQueue<string>();
+        var r = await Scan(new ScanOptions
+        {
+            Excluded = [fx.Denied],
+            MaxParallelism = 2,
+            Priority = roots,
+            SubtreeDone = n =>
+            {
+                done[n.FullPath] = (n.Size, n.FileCount);
+                order.Enqueue(n.FullPath);
+            },
+        });
+        Assert.Equal(3, done.Count);
+        foreach (var (path, (size, files)) in done)
+        {
+            var final = r.Root.Find(path)!;
+            Assert.Equal(final.Size, size);
+            Assert.Equal(final.FileCount, files);
+        }
+        Assert.True(order.ToList().IndexOf(Path.Combine(fx.Root, @"a\b")) < order.ToList().IndexOf(Path.Combine(fx.Root, "a")));
+        Assert.Equal(plain.Root.Size, r.Root.Size);
+        Assert.Equal(plain.Files, r.Files);
+        Assert.Equal(plain.Directories, r.Directories);
+    }
+
+    [Fact]
     public async Task ProgressReportsCompletion()
     {
         var steps = new List<ScanProgress>();

@@ -178,10 +178,16 @@ public sealed class FakeBackend : IAppBackend
 
     public Task<ScanSnapshot?> LoadCachedAsync(IProgress<TaskStep>? progress, CancellationToken ct) => Task.FromResult(Cached);
 
-    public async Task<ScanSnapshot> ScanAsync(IProgress<TaskStep> progress, CancellationToken ct)
+    public TaskCompletionSource? HoldScan { get; set; }
+    public IProgress<ScanDraft>? DraftSink { get; private set; }
+
+    public async Task<ScanSnapshot> ScanAsync(IProgress<TaskStep> progress, CancellationToken ct, IProgress<ScanDraft>? drafts = null)
     {
         ScanCalls.Add("full");
+        DraftSink = drafts;
         await Task.Yield();
+        if (HoldScan is { } hold)
+            await hold.Task.WaitAsync(ct);
         if (ScanError is not null)
             throw ScanError;
         progress.Report(new TaskStep("Taranıyor", 50, "C:\\Oyunlar"));

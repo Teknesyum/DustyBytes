@@ -10,6 +10,8 @@ public sealed class CacheExtractor : IUnitExtractor
     static readonly string[] WerPatterns = [@"ProgramData\Microsoft\Windows\WER"];
     static readonly string[] ThumbcacheDirPatterns = [@"Users\*\AppData\Local\Microsoft\Windows\Explorer"];
 
+    internal static IEnumerable<string> Roots => [.. TempPatterns, .. CrashDumpPatterns, .. WerPatterns, .. ThumbcacheDirPatterns];
+
     public IEnumerable<Unit> Extract(UnitContext ctx)
     {
         var units = new List<Unit>();

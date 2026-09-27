@@ -33,19 +33,42 @@ public sealed partial class UnitCard : ObservableObject
 {
     readonly Action _changed;
 
-    public UnitCard(Unit unit, DateTimeOffset now, Action changed, bool selected = false)
+    public UnitCard(Unit unit, DateTimeOffset now, Action changed, bool selected = false, bool settled = true)
     {
-        Unit = unit;
+        _unit = unit;
         _changed = changed;
-        _isSelected = selected;
+        _isSettled = settled;
+        _isSelected = selected && settled;
         KindLabel = KindText.Label(unit);
         Effect = KindText.Effect(unit);
-        SizeText = Format.Bytes(unit.SizeBytes);
         UsageText = KindText.Usage(unit.Usage, now);
-        PathText = unit.Paths.Count == 1 ? unit.Paths[0] : $"{unit.Paths[0]} ve {unit.Paths.Count - 1} yol daha";
+        PathText = Describe(unit);
     }
 
-    public Unit Unit { get; }
+    static string Describe(Unit unit) => unit.Paths.Count == 1 ? unit.Paths[0] : $"{unit.Paths[0]} ve {unit.Paths.Count - 1} yol daha";
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(SizeText))]
+    private Unit _unit;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(SizeText), nameof(IsPending), nameof(IsBatch), nameof(CanPurge))]
+    private bool _isSettled;
+
+    public bool IsPending => !IsSettled;
+
+    public void Settle(Unit unit, bool settled, DateTimeOffset now)
+    {
+        Unit = unit;
+        UsageText = KindText.Usage(unit.Usage, now);
+        PathText = Describe(unit);
+        IsSettled = settled;
+        if (!settled)
+            IsSelected = false;
+        OnPropertyChanged(nameof(UsageText));
+        OnPropertyChanged(nameof(PathText));
+    }
+
     public string Name => Unit.Name;
     public string KindLabel { get; }
     public string Effect { get; }
@@ -53,14 +76,15 @@ public sealed partial class UnitCard : ObservableObject
     public string ActionHint => IsDirect
         ? "Kendiliğinden yeniden oluşan dosyalar; hemen silinir"
         : $"Hemen yer açılır; {AppSettings.QuarantineDays.Days} gün içinde istediğin an geri alırsın";
-    public string SizeText { get; }
-    public string UsageText { get; }
-    public string PathText { get; }
+    public string SizeText => IsSettled ? Format.Bytes(Unit.SizeBytes) : "—";
+    public string UsageText { get; private set; }
+    public string PathText { get; private set; }
     public string Reason => Unit.Reason;
     public bool HasReason => !string.IsNullOrWhiteSpace(Unit.Reason);
     public bool HasUserData => Unit.ContainsUserData;
-    public bool IsBatch => Unit.Removal is RemovalMethod.Quarantine or RemovalMethod.DirectDelete;
-    public bool IsExternal => !IsBatch;
+    public bool IsRemovable => Unit.Removal is RemovalMethod.Quarantine or RemovalMethod.DirectDelete;
+    public bool IsBatch => IsRemovable && IsSettled;
+    public bool IsExternal => !IsRemovable;
     public bool IsDirect => Unit.Removal == RemovalMethod.DirectDelete;
     public bool CanPurge => IsBatch && !IsDirect;
     public string PurgeHint => "Karantinaya almadan siler; geri alınamaz";
@@ -82,7 +106,15 @@ public sealed partial class UnitCard : ObservableObject
     [ObservableProperty]
     private bool _isSelected;
 
-    partial void OnIsSelectedChanged(bool value) => _changed();
+    partial void OnIsSelectedChanged(bool value)
+    {
+        if (value && !IsBatch)
+        {
+            IsSelected = false;
+            return;
+        }
+        _changed();
+    }
 }
 
 public sealed partial class OffersViewModel : ViewModelBase
@@ -108,6 +140,74 @@ public sealed partial class OffersViewModel : ViewModelBase
         ];
         _selectedFilter = Filters[0];
         main.Session.SnapshotChanged += (_, _) => Invalidate();
+        main.Session.DraftChanged += (_, _) => Stream();
+    }
+
+    bool _streaming;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasNotice))]
+    private string _notice = "";
+
+    public bool HasNotice => Notice.Length > 0;
+
+    bool Visible(UnitCard card) => SelectedFilter.Matches(card.Unit.Kind) && (ShowSmall || !IsSmall(card));
+
+    void Stream()
+    {
+        var draft = _main.Session.Draft;
+        if (_main.Session.HasSnapshot)
+            return;
+        if (draft is null)
+        {
+            if (!_streaming)
+                return;
+            _streaming = false;
+            Notice = "";
+            _all = [];
+            Apply();
+            return;
+        }
+        if (!_streaming)
+        {
+            _streaming = true;
+            _generation++;
+            _all = [];
+            IsLoading = false;
+            if (Cards.Count > 0)
+                Cards.ReplaceAll([]);
+            Notice = "Tarama sürüyor. Film, dizi, geliştirici artığı ve büyük klasörler tarama bitince eklenir.";
+        }
+        var now = DateTimeOffset.Now;
+        var ids = draft.Units.Select(u => u.Id).ToHashSet(StringComparer.Ordinal);
+        foreach (var gone in _all.Where(c => !ids.Contains(c.Unit.Id)).ToList())
+        {
+            _all.Remove(gone);
+            Cards.Remove(gone);
+        }
+        var byId = _all.ToDictionary(c => c.Unit.Id, StringComparer.Ordinal);
+        foreach (var unit in draft.Units)
+        {
+            var settled = !draft.Pending.Contains(unit.Id);
+            if (byId.TryGetValue(unit.Id, out var card))
+            {
+                card.Settle(unit, settled, now);
+                var shown = Cards.Contains(card);
+                if (Visible(card) && !shown)
+                    Cards.Add(card);
+                else if (!Visible(card) && shown)
+                    Cards.Remove(card);
+            }
+            else
+            {
+                card = new UnitCard(unit, now, Selected, settled: settled);
+                _all.Add(card);
+                if (Visible(card))
+                    Cards.Add(card);
+            }
+        }
+        RaiseState();
+        Selected();
     }
 
     public TaskProgressViewModel Progress { get; }
@@ -147,7 +247,7 @@ public sealed partial class OffersViewModel : ViewModelBase
 
     public bool HasCards => Cards.Count > 0 && !IsLoading;
     public bool IsEmpty => Cards.Count == 0 && !IsLoading && _main.Session.HasSnapshot;
-    public bool NoScan => !_main.Session.HasSnapshot;
+    public bool NoScan => !_main.Session.HasSnapshot && !_streaming;
     public string EmptyText => _all.Count == 0 ? "Önerilecek birim bulunmadı" : HasSmall && !ShowSmall ? "1 GB üstünde birim yok" : "Bu süzgeçte birim yok";
     public string DisabledTip => "Önce en az bir birim seçin";
 
@@ -155,7 +255,7 @@ public sealed partial class OffersViewModel : ViewModelBase
 
     protected override void OnNavigatedTo()
     {
-        if (_stale)
+        if (_stale && (_main.Session.HasSnapshot || !_streaming))
             Ready = RefreshAsync();
     }
 
@@ -185,6 +285,15 @@ public sealed partial class OffersViewModel : ViewModelBase
             return;
         _all = built;
         IsLoading = false;
+        if (_streaming && _main.Session.HasSnapshot)
+        {
+            _streaming = false;
+            Notice = "Tarama bitti; sıralama güncellendi.";
+        }
+        else if (!_streaming)
+        {
+            Notice = "";
+        }
         Apply();
     }
 

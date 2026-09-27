@@ -34,7 +34,14 @@ public sealed class FileScanner : IScanner
 
 internal sealed class FileScanRun
 {
-    private readonly record struct DirWork(ScanNode Node, string LongPath, string DisplayPath);
+    private readonly record struct DirWork(ScanNode Node, string LongPath, string DisplayPath, Subtree? Owner = null, bool Chain = false);
+
+    private sealed class Subtree(ScanNode node, Subtree? parent)
+    {
+        public readonly ScanNode Node = node;
+        public readonly Subtree? Parent = parent;
+        public long Pending;
+    }
 
     private readonly string _display;
     private readonly string _long;
@@ -44,7 +51,11 @@ internal sealed class FileScanRun
     private readonly CancellationTokenSource _cts;
     private readonly HashSet<string> _excluded = new(StringComparer.OrdinalIgnoreCase);
     private readonly ConcurrentQueue<string> _errors = new();
-    private readonly Channel<DirWork> _queue = Channel.CreateUnbounded<DirWork>(new UnboundedChannelOptions { SingleReader = true });
+    private readonly ConcurrentQueue<DirWork> _urgent = new();
+    private readonly ConcurrentQueue<DirWork> _normal = new();
+    private readonly SemaphoreSlim _ready = new(0);
+    private readonly HashSet<string> _roots = new(StringComparer.OrdinalIgnoreCase);
+    private readonly HashSet<string> _chain = new(StringComparer.OrdinalIgnoreCase);
     private readonly HardLinkIndex _links = new();
     private readonly long _cluster;
     private readonly long _usedBytes;
@@ -75,6 +86,15 @@ internal sealed class FileScanRun
         foreach (var e in options.Excluded)
             _excluded.Add(Paths.Normalize(e));
         _excluded.Add(Path.Combine(_volumeRoot, Paths.QuarantineDir));
+        foreach (var r in options.Priority)
+        {
+            var full = Paths.Normalize(r);
+            if (full.Equals(_display, StringComparison.OrdinalIgnoreCase) || !Paths.IsUnder(full, _display))
+                continue;
+            _roots.Add(full);
+            for (var parent = Path.GetDirectoryName(full); parent is not null && parent.Length >= _display.Length; parent = Path.GetDirectoryName(parent))
+                _chain.Add(parent);
+        }
         _cluster = ClusterSize(_volumeRoot);
         if (Native.GetDiskFreeSpaceEx(_volumeRoot, out _, out var total, out var free))
             _usedBytes = (long)(total - free);
@@ -112,11 +132,14 @@ internal sealed class FileScanRun
         if ((rootNode.Flags & NodeFlags.Inaccessible) == 0)
         {
             _pending = 1;
-            _queue.Writer.TryWrite(new DirWork(rootNode, _long, _display));
+            Enqueue(new DirWork(rootNode, _long, _display, null, _roots.Count > 0));
             try
             {
-                await foreach (var work in _queue.Reader.ReadAllAsync(token).ConfigureAwait(false))
+                while (true)
                 {
+                    await _ready.WaitAsync(token).ConfigureAwait(false);
+                    if (!_urgent.TryDequeue(out var work) && !_normal.TryDequeue(out work))
+                        break;
                     await gate.WaitAsync(token).ConfigureAwait(false);
                     _ = Task.Run(() =>
                     {
@@ -130,9 +153,10 @@ internal sealed class FileScanRun
                         }
                         finally
                         {
-                            gate.Release();
+                            Finish(work.Owner, token);
                             if (Interlocked.Decrement(ref _pending) == 0)
-                                _queue.Writer.TryComplete();
+                                _ready.Release();
+                            gate.Release();
                         }
                     });
                 }
@@ -220,7 +244,17 @@ internal sealed class FileScanRun
                     var dir = CreateNode(&data, name, work.Node, longPrefix + name, _cluster, out var dtag);
                     children.Add(dir);
                     if (dtag == 0 || ReparseTags.ShouldEnter(dtag))
-                        subdirs.Add(new DirWork(dir, longPrefix + name, display));
+                    {
+                        var owner = work.Owner;
+                        var chain = false;
+                        if (work.Chain)
+                        {
+                            if (_roots.Contains(display))
+                                owner = new Subtree(dir, owner);
+                            chain = _chain.Contains(display);
+                        }
+                        subdirs.Add(new DirWork(dir, longPrefix + name, display, owner, chain));
+                    }
                     continue;
                 }
 
@@ -258,11 +292,37 @@ internal sealed class FileScanRun
             foreach (var s in subdirs)
             {
                 Interlocked.Increment(ref _pending);
-                _queue.Writer.TryWrite(s);
+                for (var t = s.Owner; t is not null; t = t.Parent)
+                    Interlocked.Increment(ref t.Pending);
+                Enqueue(s);
             }
         }
         var pct = _isVolumeRoot && _usedBytes > 0 ? Math.Min(99.9, Interlocked.Read(ref _bytes) * 100.0 / _usedBytes) : -1;
         Report("Taranıyor", pct, force: false);
+    }
+
+    private void Enqueue(DirWork work)
+    {
+        (work.Owner is not null || work.Chain ? _urgent : _normal).Enqueue(work);
+        _ready.Release();
+    }
+
+    private void Finish(Subtree? owner, CancellationToken token)
+    {
+        for (var t = owner; t is not null; t = t.Parent)
+        {
+            if (Interlocked.Decrement(ref t.Pending) != 0 || token.IsCancellationRequested)
+                continue;
+            ScanTree.Aggregate(t.Node);
+            try
+            {
+                _options.SubtreeDone?.Invoke(t.Node);
+            }
+            catch (Exception ex)
+            {
+                _errors.Enqueue($"{t.Node.FullPath}: {ex.Message}");
+            }
+        }
     }
 
     internal static unsafe ScanNode CreateNode(Native.WIN32_FIND_DATAW* data, string name, ScanNode? parent, string longPath, long cluster, out uint tag)

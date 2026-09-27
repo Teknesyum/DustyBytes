@@ -18,6 +18,8 @@ public sealed class BrowserCacheExtractor : IUnitExtractor
             ["cache2", "startupCache"]),
     ];
 
+    internal static IEnumerable<(string Pattern, string Group)> Roots => Browsers.Select(b => (b.ProfilesRootPattern, "tarayıcı:" + b.Name));
+
     public IEnumerable<Unit> Extract(UnitContext ctx)
     {
         var units = new List<Unit>();

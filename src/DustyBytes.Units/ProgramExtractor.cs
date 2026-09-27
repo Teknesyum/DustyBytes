@@ -14,20 +14,7 @@ public sealed class ProgramExtractor : IUnitExtractor
 
         foreach (var program in ctx.Programs)
         {
-            var raw = program.InstallLocation?.Trim().Trim('"') ?? "";
-            if (raw.Length == 0 || !Path.IsPathFullyQualified(raw))
-                continue;
-
-            string dir;
-            try
-            {
-                dir = Paths.Normalize(raw);
-            }
-            catch (Exception e) when (e is ArgumentException or NotSupportedException or PathTooLongException)
-            {
-                continue;
-            }
-            if (dir.Length <= 3 || !seen.Add(dir))
+            if (Location(program) is not { } dir || !seen.Add(dir))
                 continue;
 
             var node = ctx.Root.Find(dir);
@@ -50,5 +37,21 @@ public sealed class ProgramExtractor : IUnitExtractor
         }
 
         return units;
+    }
+
+    internal static string? Location(ProgramInstall program)
+    {
+        var raw = program.InstallLocation?.Trim().Trim('"') ?? "";
+        if (raw.Length == 0 || !Path.IsPathFullyQualified(raw))
+            return null;
+        try
+        {
+            var dir = Paths.Normalize(raw);
+            return dir.Length <= 3 ? null : dir;
+        }
+        catch (Exception e) when (e is ArgumentException or NotSupportedException or PathTooLongException)
+        {
+            return null;
+        }
     }
 }

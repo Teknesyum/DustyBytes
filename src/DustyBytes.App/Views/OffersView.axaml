@@ -37,6 +37,7 @@
       <CheckBox Name="ShowSmallToggle" IsChecked="{Binding ShowSmall}" IsVisible="{Binding HasSmall}">
         <TextBlock Theme="{StaticResource Hint}" Text="{Binding SmallText}"/>
       </CheckBox>
+      <TextBlock Name="StreamNotice" Theme="{StaticResource Hint}" Text="{Binding Notice}" IsVisible="{Binding HasNotice}" TextWrapping="Wrap"/>
     </StackPanel>
 
     <Border DockPanel.Dock="Bottom" Background="{StaticResource Surface}" BorderBrush="{StaticResource BorderDecorative}"
@@ -138,6 +139,7 @@
                   </StackPanel>
                   <StackPanel Grid.Column="2" Spacing="{StaticResource Space2}" HorizontalAlignment="Right" Margin="12,0,0,0">
                     <TextBlock Theme="{StaticResource MonoValue}" Classes="data" Text="{Binding SizeText}" HorizontalAlignment="Right"/>
+                    <TextBlock Theme="{StaticResource Hint}" Text="hesaplanıyor" IsVisible="{Binding IsPending}" HorizontalAlignment="Right"/>
                     <Button Classes="ghost" IsVisible="{Binding IsBatch}" Content="{Binding ActionText}"
                             ToolTip.Tip="{Binding ActionHint}" AutomationProperties.Name="{Binding ActionText}"
                             Command="{Binding $parent[ItemsControl].((vm:OffersViewModel)DataContext).RemoveOneCommand}"

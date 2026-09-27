@@ -559,6 +559,83 @@ public class ViewModelTests
         Assert.Equal(["full"], backend.ScanCalls);
     }
 
+    static async Task<(FakeBackend Backend, MainViewModel Vm, Task Start)> Streaming()
+    {
+        var backend = new FakeBackend { HoldScan = new TaskCompletionSource() };
+        var vm = Shell(backend, withSnapshot: false);
+        vm.GoTo(vm.Offers);
+        var start = vm.StartAsync();
+        await Settle();
+        Assert.NotNull(backend.DraftSink);
+        return (backend, vm, start);
+    }
+
+    static ScanDraft Draft(IEnumerable<string> ids, params string[] pending)
+    {
+        var units = FakeBackend.Snapshot().Units.ToDictionary(u => u.Id);
+        return new ScanDraft([.. ids.Select(id => units[id])], pending.ToHashSet(StringComparer.Ordinal));
+    }
+
+    [AvaloniaFact]
+    public async Task Streaming_Appends_Cards_And_Never_Reorders()
+    {
+        var (backend, vm, start) = await Streaming();
+        var actions = new List<System.Collections.Specialized.NotifyCollectionChangedAction>();
+        vm.Offers.Cards.CollectionChanged += (_, e) => actions.Add(e.Action);
+
+        backend.DraftSink!.Report(Draft(["u5", "u2"]));
+        await Settle();
+        backend.DraftSink.Report(Draft(["u1", "u5", "u2"], "u1"));
+        await Settle();
+        backend.DraftSink.Report(Draft(["u1", "u5", "u2"]));
+        await Settle();
+
+        Assert.Equal(["u2", "u1"], vm.Offers.Cards.Select(c => c.Unit.Id));
+        Assert.All(actions, a => Assert.Equal(System.Collections.Specialized.NotifyCollectionChangedAction.Add, a));
+        Assert.False(vm.Offers.NoScan);
+        Assert.True(vm.Offers.HasNotice);
+
+        backend.HoldScan!.SetResult();
+        await start;
+        await Settle();
+        Assert.Equal("u1", vm.Offers.Cards[0].Unit.Id);
+        Assert.Contains("sıralama güncellendi", vm.Offers.Notice);
+    }
+
+    [AvaloniaFact]
+    public async Task Unsettled_Card_Is_Not_Batchable()
+    {
+        var (backend, vm, start) = await Streaming();
+        backend.DraftSink!.Report(Draft(["u1"], "u1"));
+        await Settle();
+        var card = Assert.Single(vm.Offers.Cards);
+        Assert.True(card.IsPending);
+        Assert.False(card.IsBatch);
+        Assert.False(card.IsExternal);
+        Assert.Equal("—", card.SizeText);
+        card.IsSelected = true;
+        Assert.False(card.IsSelected);
+        Assert.Empty(vm.Offers.Chosen);
+        Assert.False(vm.Offers.QuarantineSelectedCommand.CanExecute(null));
+        await vm.Offers.RemoveOneCommand.ExecuteAsync(card);
+        Assert.Empty(backend.Requests);
+
+        backend.DraftSink.Report(Draft(["u1"]));
+        await Settle();
+        Assert.Same(card, Assert.Single(vm.Offers.Cards));
+        Assert.True(card.IsBatch);
+        card.IsSelected = true;
+        Assert.Single(vm.Offers.Chosen);
+
+        await vm.Offers.RemoveOneCommand.ExecuteAsync(card);
+        await Settle();
+        Assert.Empty(vm.Offers.Cards);
+        backend.HoldScan!.SetResult();
+        await start;
+        await Settle();
+        Assert.DoesNotContain(vm.Session.Snapshot!.Units, u => u.Id == "u1");
+    }
+
     [AvaloniaFact]
     public async Task Overview_Scan_Error_Shows_Retry()
     {

@@ -7,6 +7,8 @@ public sealed class InstallerExtractor : IUnitExtractor
     static readonly string[] Extensions = [".exe", ".msi", ".iso", ".zip", ".7z", ".rar"];
     static readonly string[] DownloadsPatterns = [@"Users\*\Downloads"];
 
+    internal static IEnumerable<string> Roots => DownloadsPatterns;
+
     public IEnumerable<Unit> Extract(UnitContext ctx)
     {
         var units = new List<Unit>();

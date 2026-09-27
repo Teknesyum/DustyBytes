@@ -110,6 +110,8 @@ public sealed record ScanOptions
     public IReadOnlyList<string> Excluded { get; init; } = [];
     public Func<string, ScanDecision>? Filter { get; init; }
     public bool SmallBuffer { get; init; }
+    public IReadOnlyList<string> Priority { get; init; } = [];
+    public Action<ScanNode>? SubtreeDone { get; init; }
 }
 
 public interface IScanner
