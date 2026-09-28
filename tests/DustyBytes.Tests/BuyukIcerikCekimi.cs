@@ -141,6 +141,18 @@ public sealed class BuyukIcerikCekimi
             await vm.Offers.Ready;
             await Settle();
             window.CaptureRenderedFrame()?.Save(Path.Combine(output, "oneriler.png"));
+            window.Width = 2560;
+            window.Height = 1392;
+            foreach (var zoom in new[] { 1.0, 1.25 })
+            {
+                window.SetZoom(zoom);
+                await Settle();
+                window.CaptureRenderedFrame()?.Save(Path.Combine(output, $"oneriler-1440p-{zoom * 100:0}.png"));
+            }
+            window.SetZoom(1.0);
+            window.Width = 1200;
+            window.Height = 780;
+            await Settle();
             File.WriteAllLines(Path.Combine(output, "oneriler-kartlar.txt"),
                 vm.Offers.Cards.Select(c => $"{Format.Bytes(c.Unit.SizeBytes)}\t{c.KindLabel}\t{c.Unit.Name}\t{(c.IsBatch ? c.ActionText : "yalnız dış düğme")}\t{string.Join(" | ", c.Unit.Paths)}\t{c.Effect}"));
 

@@ -3,6 +3,7 @@ using Avalonia.Animation;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.Media;
 using Avalonia.Threading;
 using DustyBytes.App.Services;
 using DustyBytes.App.ViewModels;
@@ -21,11 +22,15 @@ public partial class MainWindow : Window
     readonly DispatcherTimer _saveTimer;
     DateTime _lastTick = DateTime.UtcNow;
     WindowStateStore? _store;
+    double _baseMinWidth;
+    double _savedZoom;
+    public double ZoomLevel { get; private set; } = 1.0;
 
     public MainWindow()
     {
         InitializeComponent();
-        MinWidth = Token("SidebarWidth", SidebarWidth) + Token("ModalWidth", ModalWidth) + 2 * Token("Space5", Gutter);
+        _baseMinWidth = Token("SidebarWidth", SidebarWidth) + Token("ModalWidth", ModalWidth) + 2 * Token("Space5", Gutter);
+        SetZoom(1.0);
 
         if (!ReducedMotion.IsOn())
             Classes.Add("anim");
@@ -109,6 +114,10 @@ public partial class MainWindow : Window
     {
         _store = store;
         var placement = store.Load();
+        _savedZoom = placement?.Zoom ?? 0;
+        var screen = Screens.Primary;
+        var logicalHeight = screen is null ? 0 : screen.WorkingArea.Height / (screen.Scaling > 0 ? screen.Scaling : 1);
+        SetZoom(UiZoom.Resolve(_savedZoom, logicalHeight));
         var screens = Screens.All.Select(s => (X: (double)s.WorkingArea.X, Y: (double)s.WorkingArea.Y, Width: (double)s.WorkingArea.Width, Height: (double)s.WorkingArea.Height)).ToList();
         if (placement is not null && (screens.Count == 0 || WindowStateStore.IsVisible(placement, screens)))
         {
@@ -135,6 +144,27 @@ public partial class MainWindow : Window
         WindowState = WindowState.Maximized;
     }
 
+    public void SetZoom(double zoom)
+    {
+        ZoomLevel = UiZoom.Nearest(zoom);
+        Zoom.LayoutTransform = ZoomLevel == 1.0 ? null : new ScaleTransform(ZoomLevel, ZoomLevel);
+        MinWidth = _baseMinWidth * ZoomLevel;
+        ZoomText.Text = $"%{ZoomLevel * 100:0}";
+        ZoomOut.IsEnabled = ZoomLevel > UiZoom.Steps[0];
+        ZoomIn.IsEnabled = ZoomLevel < UiZoom.Steps[^1];
+    }
+
+    void OnZoomIn(object? sender, RoutedEventArgs e) => ChangeZoom(UiZoom.Larger(ZoomLevel));
+
+    void OnZoomOut(object? sender, RoutedEventArgs e) => ChangeZoom(UiZoom.Smaller(ZoomLevel));
+
+    void ChangeZoom(double zoom)
+    {
+        SetZoom(zoom);
+        _savedZoom = ZoomLevel;
+        QueueSave();
+    }
+
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
     {
         base.OnPropertyChanged(change);
@@ -155,11 +185,32 @@ public partial class MainWindow : Window
         if (_store is null || WindowState == WindowState.Minimized)
             return;
         var maximized = WindowState == WindowState.Maximized;
-        _store.Save(new WindowPlacement(Position.X, Position.Y, Bounds.Width, Bounds.Height, maximized));
+        _store.Save(new WindowPlacement(Position.X, Position.Y, Bounds.Width, Bounds.Height, maximized, _savedZoom));
     }
 
     void OnWindowKeyDown(object? sender, KeyEventArgs e)
     {
+        if (e.KeyModifiers == KeyModifiers.Control)
+        {
+            double? next = e.Key switch
+            {
+                Key.OemPlus or Key.Add => UiZoom.Larger(ZoomLevel),
+                Key.OemMinus or Key.Subtract => UiZoom.Smaller(ZoomLevel),
+                Key.D0 or Key.NumPad0 => UiZoom.Auto(Screens.Primary is { } p ? p.WorkingArea.Height / (p.Scaling > 0 ? p.Scaling : 1) : 0),
+                _ => null,
+            };
+            if (next is { } z)
+            {
+                ChangeZoom(z);
+                if (e.Key is Key.D0 or Key.NumPad0)
+                {
+                    _savedZoom = 0;
+                    QueueSave();
+                }
+                e.Handled = true;
+                return;
+            }
+        }
         if (e.Key == Key.Escape && DataContext is MainViewModel { Update.IsPanelOpen: true } vm)
         {
             vm.Update.IsPanelOpen = false;

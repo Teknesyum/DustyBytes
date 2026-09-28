@@ -26,6 +26,7 @@
     <DataTemplate DataType="vm:TourViewModel"><v:TourView/></DataTemplate>
   </Window.DataTemplates>
 
+  <LayoutTransformControl Name="Zoom">
   <Panel>
     <Panel Classes="appbg"/>
 
@@ -40,6 +41,15 @@
       <Border DockPanel.Dock="Left" Width="{StaticResource SidebarWidth}" Background="{StaticResource Surface}"
               BorderBrush="{StaticResource BorderDecorative}" BorderThickness="0,1,1,0">
         <DockPanel>
+        <Grid Name="ZoomBar" DockPanel.Dock="Bottom" ColumnDefinitions="*,Auto,Auto,Auto" Margin="24,0,12,16">
+          <TextBlock Theme="{StaticResource Hint}" Text="Yazı boyutu" VerticalAlignment="Center"/>
+          <Button Name="ZoomOut" Grid.Column="1" Classes="ghost" Content="−" Click="OnZoomOut"
+                  ToolTip.Tip="Küçült, kısayol ctrl ve eksi" AutomationProperties.Name="Yazıyı küçült"/>
+          <TextBlock Name="ZoomText" Grid.Column="2" Theme="{StaticResource Body}" FontFamily="{StaticResource FontMono}"
+                     VerticalAlignment="Center" Margin="8,0" Text="%100"/>
+          <Button Name="ZoomIn" Grid.Column="3" Classes="ghost" Content="+" Click="OnZoomIn"
+                  ToolTip.Tip="Büyüt, kısayol ctrl ve artı" AutomationProperties.Name="Yazıyı büyüt"/>
+        </Grid>
         <Border Name="DryRunNote" DockPanel.Dock="Bottom" IsVisible="{Binding IsDryRun}" Margin="12,16"
                 BorderBrush="{StaticResource Warning50}" BorderThickness="{StaticResource BorderWidth}"
                 CornerRadius="{StaticResource Radius}" Padding="{StaticResource InputPadding}">
@@ -52,7 +62,7 @@
           <ListBox.ItemTemplate>
             <DataTemplate x:DataType="vm:NavItem">
               <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space3}">
-                <Viewbox Width="{StaticResource IconSize2}" MinHeight="{StaticResource IconSize2}" VerticalAlignment="Center">
+                <Viewbox Width="{StaticResource IconSize3}" MinHeight="{StaticResource IconSize3}" VerticalAlignment="Center">
                   <Path Classes="navicon" Data="{Binding Glyph}" StrokeThickness="1.5"
                         StrokeLineCap="Round" StrokeJoin="Round" Width="24" MinHeight="24"/>
                 </Viewbox>
@@ -120,4 +130,5 @@
       </Border>
     </Panel>
   </Panel>
+  </LayoutTransformControl>
 </Window>

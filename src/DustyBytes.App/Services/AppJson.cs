@@ -2,7 +2,7 @@ using System.Text.Json.Serialization;
 
 namespace DustyBytes.App.Services;
 
-public sealed record WindowPlacement(double X, double Y, double Width, double Height, bool Maximized);
+public sealed record WindowPlacement(double X, double Y, double Width, double Height, bool Maximized, double Zoom = 0);
 
 public sealed record LedgerData(long FreedBytes, int Actions);
 
