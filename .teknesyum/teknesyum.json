@@ -1,0 +1,84 @@
+{
+  "icon": ".teknesyum/icon.png",
+  "screenshot": ".teknesyum/shot.jpg",
+  "full": ".teknesyum/full.jpg",
+  "catalog": {
+    "category": "system",
+    "tags": {
+      "tr": [
+        "disk-temizleme",
+        "kaldırıcı",
+        "karantina",
+        "windows"
+      ],
+      "en": [
+        "disk-cleaner",
+        "uninstaller",
+        "quarantine",
+        "windows"
+      ]
+    },
+    "summary": {
+      "tr": "Windows diskinde yer kaplayan ve uzun süredir kullanılmayan şeyleri amacına göre listeleyen bir disk temizleyici. Dosyaları klasör ağacı yerine oyun, film, program, önbellek, derleme klasörü gibi gruplar halinde gösterir; her grubun boyutu, son kullanım tarihi ve gerekçesi yazılıdır. Silinen her şey önce karantinaya gider ve geri alınabilir. Programları kaldırdıktan sonra kalan kayıt defteri anahtarlarını, klasörleri ve kısayolları da bulur. Telemetri yok. Diski dolan ve neyin gidebileceğini bilmek isteyen Windows kullanıcıları için.",
+      "en": "A Windows disk cleaner that lists what takes space and has not been used for a long time, grouped by purpose. Instead of a raw file tree it shows games, films, programs, caches and build folders, each with a size, a last-used date and a reason. Everything removed goes to a quarantine first and can be restored. After a vendor uninstaller runs, it also finds leftover registry keys, folders, services and shortcuts. No telemetry. For Windows users with a full drive who want to know what can safely go."
+    },
+    "points": {
+      "tr": [
+        "Diski iki tarayıcıyla okur: hızlı ve NTFS MFT",
+        "Dosyaları amaca göre gruplar: oyun, program, film, önbellek",
+        "Boyut ve son kullanıma göre silinebilecekleri sıralar",
+        "Steam, Epic, GOG ve Windows kayıtlarından kullanım okur",
+        "Yapay zekâ modeli ve geliştirici önbelleklerini tanır",
+        "Silinen öğeler karantinaya gider, geri alınabilir",
+        "7 gün sonra karantinayı kendiliğinden boşaltır",
+        "Win32, MSI ve MSIX programları kaldırır",
+        "Kaldırma sonrası artıkları bulup puanlar",
+        "23 kurallı temizlik: tarayıcı, geçici, döküm dosyaları",
+        "Windows Update ve DISM bileşen temizliği",
+        "Korumalı sistem yollarına asla dokunmaz",
+        "Tıklayıp derine inilen ağaç haritası",
+        "Tek tıkla kaldırma, geri al bildirimi",
+        "İmza doğrulamalı kendi kendini güncelleme",
+        "Türkçe ve İngilizce, Windows 10/11"
+      ],
+      "en": [
+        "Reads the disk with two scanners: fast and NTFS MFT",
+        "Groups files by purpose: games, programs, films, caches",
+        "Ranks removable items by size and last use",
+        "Reads usage from Steam, Epic, GOG and Windows records",
+        "Recognises AI model and developer caches",
+        "Removed items go to quarantine and can be restored",
+        "Empties quarantine on its own after 7 days",
+        "Uninstalls Win32, MSI and MSIX programs",
+        "Finds and scores leftovers after uninstall",
+        "23-rule cleaning: browser, temp and dump files",
+        "Windows Update and DISM component cleanup",
+        "Never touches protected system paths",
+        "Treemap you click to drill down",
+        "One-click removal with an undo toast",
+        "Signature-verified self-update",
+        "Turkish and English, Windows 10/11"
+      ]
+    },
+    "uses": {
+      "tr": [
+        "Kullanılmayan büyük dosyaları bul",
+        "Diski amacına göre gruplanmış gör",
+        "Sileceğini karantinadan geri al",
+        "Programları artıklarıyla birlikte kaldır",
+        "Sistem çöpünü tek tıkla temizle"
+      ],
+      "en": [
+        "Find large files you never use",
+        "See disk use grouped by purpose",
+        "Restore deletions from quarantine",
+        "Uninstall programs with their leftovers",
+        "Clean system junk in one click"
+      ]
+    },
+    "lead": {
+      "tr": "Disk Temizleyici, Program Kaldırıcı ve Artık Bulucu",
+      "en": "Disk Cleaner, Uninstaller and Leftover Finder"
+    }
+  }
+}
