@@ -173,4 +173,32 @@ public class ShortcutTests
 
         Assert.Contains(after.Candidates, c => c.Kind == LeftoverKind.Shortcut && c.Tier == ConfidenceTier.High);
     }
+
+    [Fact]
+    public void StartupFolderShortcutTakesItsStartupApprovedValue()
+    {
+        using var s = new Setup();
+        var other = s.Tree.File(@"Programs\Other\other.exe");
+        s.Lnk(s.StartMenu, @"Startup\Acme Widget.lnk", s.Exe);
+        s.Lnk(s.StartMenu, @"Startup\Other.lnk", other);
+        const string path = @"SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\StartupFolder";
+        var user = s.Reg.Key(RegHive.CurrentUser, RegView.Registry64, path);
+        var machine = s.Reg.Key(RegHive.LocalMachine, RegView.Registry64, path);
+        foreach (var key in new[] { user, machine })
+        {
+            s.Reg.Set(key, "Acme Widget.lnk", new byte[] { 2, 0, 0, 0 });
+            s.Reg.Set(key, "Other.lnk", new byte[] { 2, 0, 0, 0 });
+        }
+
+        var snap = new LeftoverScanner(s.Context).Snapshot(s.Program);
+
+        var values = snap.Candidates.Where(c => c.Kind == LeftoverKind.RegistryValue).ToList();
+        Assert.Equal(2, values.Count);
+        Assert.All(values, c => Assert.Equal("Acme Widget.lnk", c.ValueName));
+        Assert.Contains(values, c => c.Key!.Identity == user.Identity);
+        Assert.Contains(values, c => c.Key!.Identity == machine.Identity);
+        Assert.All(values, c => Assert.Contains(c.Evidence, e => e.Code == "linked"));
+        Assert.DoesNotContain(snap.Candidates, c => c.ValueName == "Other.lnk" || c.Target.Contains("Other.lnk"));
+        Assert.DoesNotContain(snap.Blocked, b => b.Target.Contains("Other.lnk"));
+    }
 }

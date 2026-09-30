@@ -7,5 +7,8 @@
     <StyleInclude Source="avares://DustyBytes/Tema/Theme.axaml" />
     <StyleInclude Source="avares://DustyBytes/Kabuk/KabukStilleri.axaml" />
     <StyleInclude Source="avares://DustyBytes/Assets/AppStyles.axaml" />
+    <Style Selector="Popup">
+      <Setter Property="InheritsTransform" Value="True" />
+    </Style>
   </Application.Styles>
 </Application>

@@ -1,6 +1,11 @@
+using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
+using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.Media;
+using Avalonia.Threading;
+using Avalonia.VisualTree;
 using DustyBytes.App;
 using DustyBytes.App.Services;
 
@@ -53,6 +58,58 @@ public sealed class UiZoomTests
         Assert.Equal(1.125, window.ZoomLevel);
         Assert.Equal("%113", window.FindControl<TextBlock>("ZoomText")!.Text);
         Assert.True(zoomOut.IsEnabled);
+        window.Close();
+    }
+
+    static void Pump()
+    {
+        for (var i = 0; i < 10; i++)
+        {
+            Dispatcher.UIThread.RunJobs();
+            AvaloniaHeadlessPlatform.ForceRenderTimerTick(1);
+        }
+        Dispatcher.UIThread.RunJobs();
+    }
+
+    static double ScaleOnScreen(Control content)
+    {
+        var root = Assert.IsAssignableFrom<Visual>(content.GetVisualRoot());
+        var matrix = content.TransformToVisual(root);
+        Assert.NotNull(matrix);
+        return matrix.Value.M11;
+    }
+
+    [AvaloniaFact]
+    public void Tooltip_Follows_The_Zoom()
+    {
+        var window = new MainWindow();
+        window.Show();
+        window.SetZoom(1.25);
+        Pump();
+        var target = window.FindControl<Button>("ZoomIn")!;
+        var content = new TextBlock { Text = "Yakınlaştır" };
+        ToolTip.SetTip(target, content);
+        ToolTip.SetIsOpen(target, true);
+        Pump();
+        Assert.Equal(1.25, ScaleOnScreen(content), 3);
+        ToolTip.SetIsOpen(target, false);
+        window.Close();
+    }
+
+    [AvaloniaFact]
+    public void Flyout_Follows_The_Zoom()
+    {
+        var window = new MainWindow();
+        window.Show();
+        window.SetZoom(1.5);
+        Pump();
+        var target = window.FindControl<Button>("ZoomIn")!;
+        var content = new TextBlock { Text = "Seçenekler" };
+        var flyout = new Flyout { Content = content };
+        flyout.ShowAt(target);
+        Pump();
+        Assert.Equal(1.5, ScaleOnScreen(content), 3);
+        flyout.Hide();
         window.Close();
     }
 }
