@@ -12,6 +12,7 @@ public static class Ops
     public const string ListQuarantine = "list-quarantine";
     public const string Uninstall = "uninstall";
     public const string RemoveLeftovers = "remove-leftovers";
+    public const string ForceUninstall = "force-uninstall";
     public const string Clean = "clean";
     public const string SystemClean = "system-clean";
     public const string FastScan = "fast-scan";

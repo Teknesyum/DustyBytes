@@ -21,7 +21,10 @@
       <Grid ColumnDefinitions="*,Auto">
         <TextBlock Theme="{StaticResource Hint}" Text="{Binding UninstallTip}" VerticalAlignment="Center"/>
         <Button Name="UninstallButton" Grid.Column="1" Classes="primary" Content="Seçili programı kaldır"
-                Command="{Binding UninstallCommand}"
+                Command="{Binding UninstallCommand}" IsVisible="{Binding ShowSingle}"
+                ToolTip.Tip="{Binding UninstallTip}" ToolTip.ShowOnDisabled="True"/>
+        <Button Name="BulkUninstallButton" Grid.Column="1" Classes="primary" Content="{Binding BulkText}"
+                Command="{Binding BulkUninstallCommand}" IsVisible="{Binding HasChecked}"
                 ToolTip.Tip="{Binding UninstallTip}" ToolTip.ShowOnDisabled="True"/>
       </Grid>
     </Border>
@@ -50,14 +53,17 @@
                AutomationProperties.Name="Kurulu programlar">
         <ListBox.ItemTemplate>
           <DataTemplate x:DataType="vm:ProgramRow">
-            <Grid ColumnDefinitions="*,Auto">
-              <StackPanel Spacing="2">
+            <Grid ColumnDefinitions="Auto,*,Auto">
+              <CheckBox IsChecked="{Binding IsChecked}" IsEnabled="{Binding CanCheck}" VerticalAlignment="Center" Margin="0,0,12,0"
+                        AutomationProperties.Name="{Binding Name}"
+                        ToolTip.Tip="Toplu kaldırma sırasına ekler" ToolTip.ShowOnDisabled="True"/>
+              <StackPanel Grid.Column="1" Spacing="2">
                 <TextBlock Theme="{StaticResource Body}" FontWeight="SemiBold" Text="{Binding Name}" TextTrimming="CharacterEllipsis"/>
                 <TextBlock Theme="{StaticResource Hint}" TextTrimming="CharacterEllipsis">
                   <Run Text="{Binding Publisher}"/><Run Text=" · "/><Run Text="{Binding UsageText}"/>
                 </TextBlock>
               </StackPanel>
-              <TextBlock Grid.Column="1" Theme="{StaticResource MonoValue}" Classes="data" Text="{Binding SizeText}" VerticalAlignment="Center" Margin="12,0,0,0"/>
+              <TextBlock Grid.Column="2" Theme="{StaticResource MonoValue}" Classes="data" Text="{Binding SizeText}" VerticalAlignment="Center" Margin="12,0,0,0"/>
             </Grid>
           </DataTemplate>
         </ListBox.ItemTemplate>

@@ -56,7 +56,7 @@ public class WorkerTests
         Assert.Equal(Environment.ProcessId.ToString(), ping.Payload);
 
         var file = h.Tree.File(@"kaynak\a.txt", "veri");
-        foreach (var op in new[] { Ops.Quarantine, Ops.Delete, Ops.Purge, Ops.Uninstall, Ops.RemoveLeftovers, Ops.Clean, Ops.SystemClean, Ops.Compress, Ops.Uncompress, Ops.CloudFree, Ops.CloudKeep })
+        foreach (var op in new[] { Ops.Quarantine, Ops.Delete, Ops.Purge, Ops.Uninstall, Ops.RemoveLeftovers, Ops.ForceUninstall, Ops.Clean, Ops.SystemClean, Ops.Compress, Ops.Uncompress, Ops.CloudFree, Ops.CloudKeep })
         {
             var denied = await client.SendAsync(new WorkerRequest { Op = op, Paths = [file], Items = [Guid.NewGuid().ToString("N")] });
             Assert.False(denied.Ok);

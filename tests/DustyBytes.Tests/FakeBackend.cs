@@ -44,6 +44,7 @@ public sealed class FakeBackend : IAppBackend
 {
     public List<WorkerRequest> Requests { get; } = [];
     public Func<WorkerRequest, WorkerResponse>? Respond { get; set; }
+    public Func<WorkerRequest, IProgress<TaskStep>, Task>? BeforeRespond { get; set; }
     public ScanSnapshot? Cached { get; set; }
     public ScanSnapshot? Fresh { get; set; }
     public ScanSnapshot? Refreshed { get; set; }
@@ -264,9 +265,11 @@ public sealed class FakeBackend : IAppBackend
 
     public Task<CompressionEstimate> EstimateCompressionAsync(Unit unit, CancellationToken ct) => Task.FromResult(Estimate);
 
-    public Task<WorkerResponse> SendAsync(WorkerRequest request, IProgress<TaskStep> progress, CancellationToken ct)
+    public async Task<WorkerResponse> SendAsync(WorkerRequest request, IProgress<TaskStep> progress, CancellationToken ct)
     {
         Requests.Add(request);
+        if (BeforeRespond is { } before)
+            await before(request, progress);
         var response = Respond?.Invoke(request) ?? new WorkerResponse
         {
             Id = request.Id,
@@ -274,7 +277,7 @@ public sealed class FakeBackend : IAppBackend
             DryRun = DryRun,
             Items = [.. request.Paths.Select((p, i) => new ItemResult($"{p}|{request.UnitId}-{i}", true, "", 0))],
         };
-        return Task.FromResult(response);
+        return response;
     }
 
     public LedgerData ReadLedger() => Ledger;

@@ -21,6 +21,7 @@
     <DataTemplate DataType="vm:MapViewModel"><v:MapView/></DataTemplate>
     <DataTemplate DataType="vm:ProgramsViewModel"><v:ProgramsView/></DataTemplate>
     <DataTemplate DataType="vm:UninstallViewModel"><v:UninstallView/></DataTemplate>
+    <DataTemplate DataType="vm:BulkUninstallViewModel"><v:BulkUninstallView/></DataTemplate>
     <DataTemplate DataType="vm:CleanupViewModel"><v:CleanupView/></DataTemplate>
     <DataTemplate DataType="vm:QuarantineViewModel"><v:QuarantineView/></DataTemplate>
     <DataTemplate DataType="vm:TourViewModel"><v:TourView/></DataTemplate>

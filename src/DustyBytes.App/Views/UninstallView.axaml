@@ -21,12 +21,15 @@
     <Border DockPanel.Dock="Bottom" Background="{StaticResource Surface}" BorderBrush="{StaticResource BorderDecorative}"
             BorderThickness="0,1,0,0" Padding="{StaticResource PanelPadding}">
       <Grid ColumnDefinitions="*,Auto">
-        <TextBlock Theme="{StaticResource Hint}" VerticalAlignment="Center" Text="{Binding RemoveTip}" IsVisible="{Binding IsAfter}"/>
+        <TextBlock Theme="{StaticResource Hint}" VerticalAlignment="Center" TextWrapping="Wrap" Text="{Binding BottomTip}" IsVisible="{Binding ShowBottomTip}"/>
         <Button Name="UninstallRun" Grid.Column="1" Classes="danger" Content="Programı kaldır"
-                IsVisible="{Binding IsPreview}" Command="{Binding UninstallCommand}"
+                IsVisible="{Binding ShowUninstallRun}" Command="{Binding UninstallCommand}"
                 ToolTip.Tip="Onay sorulur; önce geri yükleme noktası oluşturulur" ToolTip.ShowOnDisabled="True"/>
+        <Button Name="ForceRun" Grid.Column="1" Classes="danger" Content="Zorla kaldır"
+                IsVisible="{Binding ForceOffered}" Command="{Binding ForceCommand}"
+                ToolTip.Tip="{Binding BottomTip}" ToolTip.ShowOnDisabled="True"/>
         <Button Name="RemoveLeftovers" Grid.Column="1" Classes="danger" Content="Seçili kalıntıları sil"
-                IsVisible="{Binding IsAfter}" Command="{Binding RemoveLeftoversCommand}"
+                IsVisible="{Binding ShowRemoveLeftovers}" Command="{Binding RemoveLeftoversCommand}"
                 ToolTip.Tip="{Binding RemoveTip}" ToolTip.ShowOnDisabled="True"/>
       </Grid>
     </Border>
@@ -49,7 +52,25 @@
           </StackPanel>
         </Border>
 
-        <Border Theme="{StaticResource Panel}" IsVisible="{Binding IsPreview}">
+        <Border Name="ForceCard" Theme="{StaticResource Panel}" IsVisible="{Binding ForceOffered}">
+          <StackPanel Spacing="{StaticResource FieldGap}">
+            <TextBlock Theme="{StaticResource H3}" Text="Zorla kaldırma"/>
+            <TextBlock Theme="{StaticResource Body}" Text="{Binding ForceReason}" TextWrapping="Wrap"/>
+            <TextBlock Theme="{StaticResource Body}" TextWrapping="Wrap"
+                       Text="Zorla kaldırmada programın kaldırıcısı çalıştırılmaz. DustyBytes kurulum klasörünü ve yayıncının izlerini kendisi bulur."/>
+            <TextBlock Theme="{StaticResource Body}" TextWrapping="Wrap"
+                       Text="Yalnız iki bağımsız kanıtla bu programa bağlanan yüksek güvenli izler 7 gün karantinaya alınır; kayıt anahtarları önce .reg dosyasına yedeklenir."/>
+            <TextBlock Theme="{StaticResource Body}" TextWrapping="Wrap"
+                       Text="Programın listedeki kaydı ancak dosyaları gittikten sonra silinir. Kurulum klasörü taşınamazsa kayıt yerinde kalır."/>
+            <TextBlock Theme="{StaticResource Hint}" TextWrapping="Wrap"
+                       Text="Korunanlar: orta ve düşük güvenli izler işaretsiz kalır. Kişisel klasörleriniz (belgeler, masaüstü, indirilenler) ve başka programların klasörleri asla silinmez."/>
+            <CheckBox Name="ForceKeepSettingsOption" IsChecked="{Binding KeepSettings}">
+              <TextBlock Theme="{StaticResource Body}" Text="Ayarları koru (yeniden kurarsanız ayarlarınız yerinde olur)" TextWrapping="Wrap"/>
+            </CheckBox>
+          </StackPanel>
+        </Border>
+
+        <Border Theme="{StaticResource Panel}" IsVisible="{Binding ShowUninstallRun}">
           <StackPanel Spacing="{StaticResource FieldGap}">
             <TextBlock Theme="{StaticResource H3}" Text="Kaldırma biçimi"/>
             <CheckBox Name="AutoCleanOption" IsChecked="{Binding AutoClean}">

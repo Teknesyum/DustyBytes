@@ -80,6 +80,14 @@ public class KabukStandardiTests
             await Settle();
             yield return ("Kaldırma", window);
         }
+        vm.GoTo(vm.Programs);
+        await Settle();
+        if (vm.Programs.Rows.Count > 0)
+        {
+            vm.Navigation.Push(new BulkUninstallViewModel(vm, vm.Programs, [.. vm.Programs.Rows.Take(2)]));
+            await Settle();
+            yield return ("Toplu kaldırma", window);
+        }
         window.Close();
     }
 
