@@ -52,7 +52,7 @@ Storage Sense and Disk Cleanup clear temp files, the recycle bin and old Windows
 - No direct delete: every removal is quarantine, recycle bin or a rule with its own policy.
 - No defragmentation, no driver updates, no "PC speed-up".
 - No telemetry. Nothing leaves the machine.
-- No signed release yet; Windows SmartScreen will warn.
+- Releases are not code-signed. On first launch SmartScreen shows "Windows protected your PC": click **More info**, then **Run anyway**. The `.sha256` file proves the download is the published one.
 
 ## Installation
 
@@ -64,7 +64,7 @@ The program goes to `%LOCALAPPDATA%\Programs\DustyBytes` (change it with Değiş
 
 Set `KUR_PROVA=1` for a dry run that installs to a temporary folder and writes no shortcut. `KUR_OTOMATIK=1` runs without a window and exits with 0 or 1.
 
-**By hand.** From the [Releases](https://github.com/Teknesyum/DustyBytes/releases) page, download `DustyBytes-win-x64.zip`, check it against the `.sha256` file next to it, unzip and run `DustyBytes.exe`. The build is self-contained, so no .NET install is needed. It is not code-signed yet, so SmartScreen may warn on first launch.
+**By hand.** From the [Releases](https://github.com/Teknesyum/DustyBytes/releases) page, download `DustyBytes-win-x64.zip`, check it against the `.sha256` file next to it, unzip and run `DustyBytes.exe`. The build is self-contained, so no .NET install is needed. It is not code-signed, so SmartScreen warns on first launch: **More info**, then **Run anyway**.
 
 **From source.** You need the .NET 10 SDK:
 

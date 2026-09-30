@@ -224,6 +224,7 @@
       <Style Selector="^:indeterminate /template/ Border#box">
         <Setter Property="Background" Value="{StaticResource Renk1}"/>
         <Setter Property="BorderBrush" Value="{StaticResource Renk1}"/>
+        <Setter Property="TextElement.Foreground" Value="{StaticResource OnRenk1}"/>
       </Style>
       <Style Selector="^:indeterminate /template/ Path#dash">
         <Setter Property="Opacity" Value="1"/>

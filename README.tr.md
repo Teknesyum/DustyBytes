@@ -52,7 +52,7 @@ Depolama Algısı ve Disk Temizleme geçici dosyaları, geri dönüşüm kutusun
 - Doğrudan silme yok: her kaldırma karantina, geri dönüşüm kutusu ya da kendi politikası olan bir kuraldır.
 - Birleştirme yok, sürücü güncelleme yok, "bilgisayarı hızlandırma" yok.
 - Telemetri yok. Makineden hiçbir şey çıkmaz.
-- Henüz imzalı sürüm yok; Windows SmartScreen uyarı verir.
+- Sürümler kod imzalı değil. İlk açılışta SmartScreen "Windows bilgisayarınızı korudu" der: **Ek bilgi**, sonra **Yine de çalıştır**. `.sha256` dosyası indirilenin yayımlanan dosya olduğunu kanıtlar.
 
 ## Kurulum
 
@@ -64,7 +64,7 @@ Program `%LOCALAPPDATA%\Programs\DustyBytes` klasörüne gider (Kur'a basmadan �
 
 `KUR_PROVA=1` verirsen prova koşar: geçici klasöre kurar, kısayol yazmaz. `KUR_OTOMATIK=1` pencere açmadan koşar, 0 ya da 1 ile çıkar.
 
-**Elle.** [Releases](https://github.com/Teknesyum/DustyBytes/releases) sayfasından `DustyBytes-win-x64.zip`'i indir, yanındaki `.sha256` dosyasıyla karşılaştır, aç ve `DustyBytes.exe`'yi çalıştır. Paket kendi başına çalışır, .NET kurmak gerekmez. Henüz kod imzası yok; SmartScreen ilk açılışta uyarabilir.
+**Elle.** [Releases](https://github.com/Teknesyum/DustyBytes/releases) sayfasından `DustyBytes-win-x64.zip`'i indir, yanındaki `.sha256` dosyasıyla karşılaştır, aç ve `DustyBytes.exe`'yi çalıştır. Paket kendi başına çalışır, .NET kurmak gerekmez. Kod imzası yok; SmartScreen ilk açılışta uyarır: **Ek bilgi**, sonra **Yine de çalıştır**.
 
 **Kaynaktan.** .NET 10 SDK gerekir:
 

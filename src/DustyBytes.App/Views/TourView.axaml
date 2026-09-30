@@ -43,8 +43,8 @@
       <v:TaskProgressView DataContext="{Binding Progress}"/>
     </Panel>
 
-    <ScrollViewer HorizontalScrollBarVisibility="Disabled">
-      <TransitioningContentControl Name="Card" Margin="24,0,24,24" Content="{Binding Page}">
+    <ScrollViewer HorizontalScrollBarVisibility="Disabled" Padding="24,0,24,24">
+      <TransitioningContentControl Name="Card" Content="{Binding Page}">
         <TransitioningContentControl.DataTemplates>
           <DataTemplate DataType="vm:UnitCard">
             <Border Theme="{StaticResource Panel}">
