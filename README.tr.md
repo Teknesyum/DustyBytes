@@ -56,6 +56,10 @@ Depolama Algısı ve Disk Temizleme geçici dosyaları, geri dönüşüm kutusun
 
 ## Kurulum
 
+**Önerilen: Teknesyum Base Pro (Windows).** Bu depo özeldir; özel depoları yalnız [Teknesyum Base](https://github.com/Teknesyum/Teknesyum-Base)'in Pro sürümü listeler, herkese açık Base yalnız açık depoları gösterir. Base Pro'yu açın, listeden **DustyBytes** uygulamasını bulup kurun. Base sonradan güncellemeyi ve kaldırmayı da yapar, yönetici hakkı gerekmez.
+
+**Ya da elle kurun.**
+
 Windows 10 sürüm 2004 (derleme 19041) ya da sonrası, x64.
 
 **Kurucuyla.** Bu depodaki `Kur.bat` ile `kur-dustybytes.ps1`'i aynı klasöre koy, `Kur.bat`'a çift tıkla. GitHub'dan son sürümü sorar, `DustyBytes-win-x64.zip`'i `.sha256` dosyasıyla birlikte indirir; özet tutmazsa kurmaz.
