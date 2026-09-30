@@ -51,6 +51,21 @@
         </StackPanel>
       </Border>
 
+      <Border Name="FreeNowPanel" Theme="{StaticResource Panel}" IsVisible="{Binding HasFreeNow}">
+        <StackPanel Spacing="{StaticResource FieldGap}">
+          <Grid ColumnDefinitions="*,Auto">
+            <TextBlock Theme="{StaticResource H3}" Text="{Binding FreeNowTitle}" VerticalAlignment="Center"/>
+            <Button Name="FreeNowButton" Grid.Column="1" Classes="purge" Classes.ghost="{Binding !IsFreeNowArmed}" Classes.danger="{Binding IsFreeNowArmed}"
+                    Content="{Binding FreeNowButtonText}" Command="{Binding FreeNowCommand}"
+                    ToolTip.Tip="Karantinadakileri beklemeden siler; geri alınamaz" ToolTip.ShowOnDisabled="True"/>
+          </Grid>
+          <TextBlock Theme="{StaticResource Hint}" Text="{Binding FreeNowHint}" TextWrapping="Wrap"/>
+          <Panel IsVisible="{Binding FreeProgress.IsRunning}">
+            <v:TaskProgressView DataContext="{Binding FreeProgress}"/>
+          </Panel>
+        </StackPanel>
+      </Border>
+
       <StackPanel Spacing="{StaticResource SectionGap}" IsVisible="{Binding ShowContent}">
         <Border Theme="{StaticResource Panel}">
           <Grid ColumnDefinitions="*,Auto,Auto" RowDefinitions="Auto,Auto,Auto">
@@ -130,6 +145,42 @@
         </Border>
 
       </StackPanel>
+
+      <Border Name="HistoryPanel" Theme="{StaticResource Panel}">
+        <StackPanel Spacing="{StaticResource RowGap}">
+          <Grid ColumnDefinitions="*,Auto">
+            <TextBlock Theme="{StaticResource H3}" Text="{Binding MonthText}" VerticalAlignment="Center"/>
+            <CheckBox Name="WeeklyCheckToggle" Grid.Column="1" IsChecked="{Binding WeeklyCheck}" ToolTip.Tip="{Binding WeeklyCheckTip}">
+              <TextBlock Theme="{StaticResource Body}" Text="Haftalık disk kontrolü"/>
+            </CheckBox>
+          </Grid>
+          <TextBlock Theme="{StaticResource Hint}" Text="{Binding LastCleanupText}" IsVisible="{Binding HasLastCleanup}" TextWrapping="Wrap"/>
+          <ItemsControl Name="CompareBars" ItemsSource="{Binding Compare}" IsVisible="{Binding HasCompare}">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate>
+                <StackPanel Spacing="{StaticResource FieldGap}"/>
+              </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:KindBar">
+                <Grid ColumnDefinitions="160,*,120">
+                  <TextBlock Theme="{StaticResource Body}" Text="{Binding Label}" VerticalAlignment="Center"/>
+                  <Border Grid.Column="1" MinHeight="12" VerticalAlignment="Center" CornerRadius="{StaticResource Radius}"
+                          Background="{StaticResource Renk1x10}" ClipToBounds="True">
+                    <Border Classes="bar" CornerRadius="{StaticResource Radius}"
+                            Background="{Binding Kind, Converter={x:Static v:UiConvert.KindFill}}"
+                            BorderBrush="{Binding Kind, Converter={x:Static v:UiConvert.KindStroke}}"
+                            BorderThickness="{StaticResource BorderWidth}"
+                            RenderTransform="{Binding Share, Converter={x:Static v:UiConvert.ScaleX}}"/>
+                  </Border>
+                  <TextBlock Grid.Column="2" Theme="{StaticResource MonoValue}" Classes="data" Text="{Binding SizeText}"
+                             HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                </Grid>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </StackPanel>
+      </Border>
     </StackPanel>
   </ScrollViewer>
 </UserControl>

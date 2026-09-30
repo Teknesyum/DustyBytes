@@ -407,7 +407,24 @@ public sealed class AppBackend : IAppBackend, IAsyncDisposable
 
     public LedgerData ReadLedger() => _ledger.Read();
 
-    public LedgerData AddFreed(long bytes) => _ledger.Add(bytes);
+    public LedgerData AddFreed(long bytes, string? root = null) => _ledger.Add(bytes, DiskCheck.Measure(root ?? ScanRoot));
+
+    public IReadOnlyList<DriveSpace> Drives() => DiskCheck.FixedDrives();
+
+    public bool WeeklyCheck => AppSettings.Load().WeeklyCheck;
+
+    public Task<IntegrationResult> SetWeeklyCheckAsync(bool enabled) => Task.Run(() =>
+    {
+        try
+        {
+            (AppSettings.Load() with { WeeklyCheck = enabled }).Save();
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+            return new IntegrationResult(true, false, "Ayar kaydedilemedi: " + e.Message);
+        }
+        return SystemIntegration.ForCurrentUser().SetWeekly(enabled);
+    });
 
     public async ValueTask DisposeAsync()
     {

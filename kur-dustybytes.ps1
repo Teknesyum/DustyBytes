@@ -47,6 +47,7 @@ $S = [hashtable]::Synchronized(@{
   prova = ([bool]$Prova -or [bool]$env:KUR_PROVA)
   otomatik = ([bool]$Otomatik -or [bool]$env:KUR_OTOMATIK)
   baslat = $null
+  sagtik = (-not $kok)
 })
 
 $is = {
@@ -189,6 +190,16 @@ $is = {
         Yaz "Kısayol: $kisayol"
       }
       $S.kisayol = Join-Path $S.masaustu ($S.ad + ".lnk")
+      if ($S.sagtik) {
+        try {
+          $anahtar = "HKCU:\Software\Classes\Directory\shell\DustyBytes"
+          New-Item -Path ($anahtar + "\command") -Force -ErrorAction Stop | Out-Null
+          Set-Item -LiteralPath $anahtar -Value "DustyBytes ile incele" -ErrorAction Stop
+          New-ItemProperty -LiteralPath $anahtar -Name "Icon" -Value ($calistir + ",0") -PropertyType String -Force -ErrorAction Stop | Out-Null
+          Set-Item -LiteralPath ($anahtar + "\command") -Value ('"' + $calistir + '" --inspect "%1"') -ErrorAction Stop
+          Yaz "Sağ tık menüsü: DustyBytes ile incele"
+        } catch { Yaz ("Sağ tık menüsü yazılamadı: " + $_.Exception.Message) }
+      } else { Yaz "Sınama kökü: sağ tık menüsü yazılmadı" }
     }
 
     if ($S.surum) { $son = "Kurulum tamamlandı · sürüm " + $S.surum } else { $son = "Kurulum tamamlandı" }

@@ -193,5 +193,5 @@ public sealed partial class SessionState(IAppBackend backend) : ObservableObject
         }
     }
 
-    public void AddFreed(long bytes) => Ledger = backend.AddFreed(bytes);
+    public void AddFreed(long bytes, string? root = null) => Ledger = backend.AddFreed(bytes, root);
 }

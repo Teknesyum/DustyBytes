@@ -45,5 +45,9 @@ public interface IAppBackend
     Task<WorkerResponse> SendAsync(WorkerRequest request, IProgress<TaskStep> progress, CancellationToken ct);
 
     LedgerData ReadLedger();
-    LedgerData AddFreed(long bytes);
+    LedgerData AddFreed(long bytes, string? root = null);
+
+    IReadOnlyList<DriveSpace> Drives();
+    bool WeeklyCheck { get; }
+    Task<IntegrationResult> SetWeeklyCheckAsync(bool enabled);
 }

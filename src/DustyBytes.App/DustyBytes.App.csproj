@@ -10,6 +10,7 @@
   </PropertyGroup>
   <ItemGroup>
     <AvaloniaResource Include="Assets\**" />
+    <Content Include="Assets\DustyBytes.png" Link="DustyBytes.png" CopyToOutputDirectory="PreserveNewest" />
     <AvaloniaXaml Include="../../teknesyum-ui/avalonia/Theme.axaml" Link="Tema/Theme.axaml" />
     <AvaloniaResource Include="../../teknesyum-ui/avalonia/labels.tr.json" Link="Tema/labels.tr.json" />
     <AvaloniaXaml Include="../../teknesyum-ui/ustcubuk/*.axaml;../../teknesyum-ui/durum/*.axaml" Link="Kabuk/%(Filename)%(Extension)" />

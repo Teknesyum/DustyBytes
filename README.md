@@ -56,6 +56,10 @@ Storage Sense and Disk Cleanup clear temp files, the recycle bin and old Windows
 
 ## Installation
 
+**Recommended: Teknesyum Base Pro (Windows).** This repository is private, and only the Pro build of [Teknesyum Base](https://github.com/Teknesyum/Teknesyum-Base) lists private repositories; the public Base lists public ones only. Open Base Pro, find **DustyBytes** in the list and install it. It also updates and removes it later, and needs no admin rights.
+
+**Or install manually.**
+
 Windows 10 version 2004 (build 19041) or later, x64.
 
 **With the installer.** Put `Kur.bat` and `kur-dustybytes.ps1` from this repository in one folder and double-click `Kur.bat`. It asks GitHub for the latest release, downloads `DustyBytes-win-x64.zip` with its `.sha256` file and refuses to install if the checksum does not match.

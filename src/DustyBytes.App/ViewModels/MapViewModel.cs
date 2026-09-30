@@ -107,6 +107,65 @@ public sealed partial class MapViewModel : ViewModelBase
                 }
             }
         Show(snapshot.Result.Root);
+        ApplyFocus();
+    }
+
+    string? _focus;
+    bool _told;
+
+    public string? FocusPath => _focus;
+
+    public void Focus(string path)
+    {
+        _focus = path;
+        _told = false;
+        ApplyFocus();
+    }
+
+    void ApplyFocus()
+    {
+        if (_focus is null || _main.Session.Snapshot is not { } snapshot)
+            return;
+        var (node, exact) = Nearest(snapshot.Result.Root, _focus);
+        if (node is null)
+        {
+            Tell("Bu klasör taramada yok; tarama bitince yeniden deneyin");
+            return;
+        }
+        Show(node);
+        if (!exact)
+            Tell("Klasörün kendisi taramada yok; en yakın üst klasör gösteriliyor");
+    }
+
+    void Tell(string message)
+    {
+        if (_told)
+            return;
+        _told = true;
+        _main.Notify(message);
+    }
+
+    public static (ScanNode? Node, bool Exact) Nearest(ScanNode root, string path)
+    {
+        for (var p = path; !string.IsNullOrEmpty(p); p = Path.GetDirectoryName(p))
+        {
+            ScanNode? found;
+            try
+            {
+                found = root.Find(p);
+            }
+            catch (ArgumentException)
+            {
+                return (null, false);
+            }
+            if (found is not null)
+            {
+                while (found is { IsDirectory: false, Parent: { } parent })
+                    found = parent;
+                return (found, string.Equals(p, path, StringComparison.OrdinalIgnoreCase));
+            }
+        }
+        return (null, false);
     }
 
     public UnitKind? KindOf(ScanNode node)
@@ -151,7 +210,10 @@ public sealed partial class MapViewModel : ViewModelBase
     private void Enter(MapEntry? entry)
     {
         if (entry?.Node is { } node && entry.CanEnter)
+        {
+            _focus = null;
             Show(node);
+        }
         else
             Selected = entry;
     }
@@ -162,14 +224,20 @@ public sealed partial class MapViewModel : ViewModelBase
     private void Up()
     {
         if (Current?.Parent is { } parent)
+        {
+            _focus = null;
             Show(parent);
+        }
     }
 
     [RelayCommand]
     private void Jump(Crumb? crumb)
     {
         if (crumb is not null && !ReferenceEquals(crumb.Node, Current))
+        {
+            _focus = null;
             Show(crumb.Node);
+        }
     }
 
     [RelayCommand]
