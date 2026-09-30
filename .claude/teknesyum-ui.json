@@ -69,19 +69,24 @@
       "rule": "forms/no-ui-string-literal",
       "file": "src/DustyBytes.App/Views/TourView.axaml",
       "reason": "Tek dilli Türkçe uygulama; docs/plan.md yerelleştirme içermiyor. Metinler locale/*.json'a taşınırsa en.json eşliği de gerekir — ürün kararı, arayüz dalgasının dışında."
+    },
+    {
+      "rule": "forms/no-ui-string-literal",
+      "file": "src/DustyBytes.App/Views/BulkUninstallView.axaml",
+      "reason": "Tek dilli Türkçe uygulama; docs/plan.md yerelleştirme içermiyor. Metinler locale/*.json'a taşınırsa en.json eşliği de gerekir — ürün kararı, arayüz dalgasının dışında."
     }
   ],
   "duzen": "920c61ba2837ca0d",
   "denetim": {
-    "tarih": "2026-09-27T21:45:18.576Z",
-    "duzen": "a0eaf97ec84216aa"
+    "tarih": "2026-09-30T20:45:19.379Z",
+    "duzen": "920c61ba2837ca0d"
   },
   "plugin": "0.32.0",
   "uc": {
-    "surum": "0.26.0",
-    "duzen": "a0eaf97ec84216aa",
-    "commit": "57b653f9f40124ed9c6b4140e908ae5d416c987e",
-    "tarih": "2026-09-27"
+    "surum": "0.32.0",
+    "duzen": "920c61ba2837ca0d",
+    "commit": "0e3f539dab7cb35f571a582a58fbea3c13d5b527",
+    "tarih": "2026-09-30"
   },
   "pencere": "maximize"
 }

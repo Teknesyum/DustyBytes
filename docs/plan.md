@@ -439,6 +439,8 @@ Kaynak: `docs/danisma/2026-09-30-piyasa-karsilastirmasi.md` (20 eksik, sıralı)
 **Dalga 2**: yinelenen dosya (eksik 8, yalnız karantina, işlem anında yeniden doğrulama), zorla
 kaldırma (14), toplu kaldırma (15).
 
+Durum: iki dalga da birleşti ve 0.6.0 ile yayımlandı (2026-09-30), 644 test geçti.
+
 **Sonra**: başlangıç programları (13, disk dışı), başka sürücüye taşı (16), gölge kopya alanı (18),
 tarayıcı kapanınca temizle (19, sürekli süreç ister), paket yazılım tespiti (20).
 

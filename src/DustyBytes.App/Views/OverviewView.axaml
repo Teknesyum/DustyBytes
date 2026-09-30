@@ -82,13 +82,13 @@
               <ListBox.ItemTemplate>
                 <DataTemplate x:DataType="vm:DriveChip">
                   <StackPanel Spacing="{StaticResource Space1}" Margin="{StaticResource InputPadding}">
-                    <TextBlock Text="{Binding Label}" HorizontalAlignment="Center"/>
+                    <TextBlock Text="{Binding Label}"/>
                     <Border Height="{StaticResource Space2}" CornerRadius="{StaticResource Radius}"
                             Background="{StaticResource Renk1x10}" ClipToBounds="True">
                       <Border Classes="bar" CornerRadius="{StaticResource Radius}" Background="{StaticResource Renk1}"
                               RenderTransform="{Binding Share, Converter={x:Static v:UiConvert.ScaleX}}"/>
                     </Border>
-                    <TextBlock Theme="{StaticResource Hint}" Classes="data" Text="{Binding Detail}" HorizontalAlignment="Center"/>
+                    <TextBlock Theme="{StaticResource Hint}" Classes="data" Text="{Binding Detail}"/>
                   </StackPanel>
                 </DataTemplate>
               </ListBox.ItemTemplate>

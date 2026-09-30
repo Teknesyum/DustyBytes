@@ -11,7 +11,7 @@ Amacına göre Windows disk temizleyici.
 | Ne | Sayı | Kaynak |
 |---|---|---|
 | İncelenen açık kaynak depo | 61, yedi raporda | `docs/inceleme/` |
-| Geçen test | 339 (tarama 18, sinyal 24, birim 40, güvenlik 46, kaldırma 105, temizlik 27, arayüz 79) | `dotnet test` |
+| Geçen test | 644 (tarama 34, sinyal 24, birim 71, güvenlik 127, kaldırma 177, temizlik 27, arayüz 184) | `dotnet test` |
 | `C:\` tam tarama, MFT okuyucu | 8,6 sn, 2,84 M dosya | tek makine, n=1 |
 | `C:\` tam tarama, `FindFirstFileEx` | 33,2 sn, 2,90 M dosya | aynı makine |
 | Bulunan kurulu program | 199 (47 MSI, 53 MSIX) | aynı makine |
@@ -43,6 +43,12 @@ Depolama Algısı ve Disk Temizleme geçici dosyaları, geri dönüşüm kutusun
 - **Karantina.** Kaldırılan aynı sürücüde bir karantina klasörüne manifestiyle taşınır; kalıcı silinene kadar geri yüklenebilir. 7 günü geçenler yönetici yardımcısı çalışırken kalıcı silinir: açıldığında ve sonra saatte bir. Karantina ekranı her şeyi tek tıkla boşaltır; otomatik silme de oradan kapatılır.
 - **Kaldırıcı.** Win32, MSI ve MSIX programlar; kaldırmadan önce kayıt defteri dışa aktarımı; kalıntılar Yüksek, Orta ya da Düşük güvenle puanlanır.
 - **Temizlik kuralları.** 23 JSON kural dosyası (tarayıcı önbellekleri, Windows geçici dosyaları, çökme dökümleri, uygulama önbellekleri) ve isteğe bağlı `winapp2.ini`; ayrıca DISM bileşen temizliği, Windows Update önbelleği ve Teslim İyileştirme.
+- **Bütün sürücüler.** Her sabit sürücü kendi diziniyle taranır; Genel bakışta "Tümü" varsayılan bir sürücü seçici var.
+- **Silmeden yer aç.** "Küçült", bir oyunu ya da programı Windows'un saydam sıkıştırmasıyla küçültür (NTFS, geri alınabilir). Uzun süredir açılmayan OneDrive dosyaları "yalnız çevrimiçi" olabilir: bulutta kalır, açınca yeniden iner.
+- **Yeni kaynaklar.** Geri Dönüşüm Kutusu, 90 gündür açılmamış indirilenler (karantinaya gider, bir anda kalıcı silinmez) ve hazırda bekletme dosyası.
+- **Kopya dosyalar.** Taramadan sonra arka planda bulunur; her grupta seçtiğiniz bir kopya kalır. Kopyalar yalnız karantinaya gider, worker kaldırma anında içeriği yeniden doğrular.
+- **Zorla ve toplu kaldırma.** Kaldırıcısı olmayan ya da bozuk bir program zorla kaldırılabilir: yalnız yüksek güvenli izler karantinaya gider, kayıt anahtarları önce yedeklenir. Birden çok program tek sırada, kaldırıcı izin veriyorsa sessizce kaldırılır.
+- **Hatırlatma.** Kullanıcı düzeyindeki haftalık denetim boş alanı ölçer, azsa Windows bildirimi gösterir; hiçbir şey silmez. Explorer sağ tık menüsünde "DustyBytes ile incele" var.
 
 ## Yapmadıkları
 

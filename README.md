@@ -11,7 +11,7 @@ Windows disk cleaner, by purpose.
 | What | Count | Source |
 |---|---|---|
 | Open source repositories reviewed | 61, in 7 reports | `docs/inceleme/` |
-| Tests passing | 339 (scan 18, signals 24, units 40, safety 46, uninstall 105, cleaning 27, UI 79) | `dotnet test` |
+| Tests passing | 644 (scan 34, signals 24, units 71, safety 127, uninstall 177, cleaning 27, UI 184) | `dotnet test` |
 | Full scan of `C:\` with the MFT reader | 8.6 s, 2.84 M files | one machine, n=1 |
 | Full scan of `C:\` with `FindFirstFileEx` | 33.2 s, 2.90 M files | same machine |
 | Installed programs detected | 199 (47 MSI, 53 MSIX) | same machine |
@@ -43,6 +43,12 @@ Storage Sense and Disk Cleanup clear temp files, the recycle bin and old Windows
 - **Quarantine.** Removed items move to a quarantine folder on the same drive with a manifest; they can be restored until they are purged. Items older than 7 days are purged while the elevated worker runs: when it starts and every hour after that. The Quarantine screen can empty everything at once, and automatic purge can be turned off there.
 - **Uninstaller.** Win32, MSI and MSIX programs; registry export before removal; leftovers scored High, Medium or Low confidence.
 - **Cleaning rules.** 23 JSON rule files (browser caches, Windows temp, crash dumps, app caches) and optional `winapp2.ini`, plus DISM component cleanup, Windows Update cache and Delivery Optimization.
+- **Every drive.** All fixed drives are scanned, each with its own index; the overview has a drive selector with "All" as the default.
+- **Space without deleting.** "Compress" shrinks a game or program with transparent Windows compression (NTFS, reversible). OneDrive files not opened for a long time can go "online only": they stay in the cloud and download again when opened.
+- **More sources.** Recycle bin, downloads not opened for 90 days (quarantined, never purged at once) and the hibernation file.
+- **Duplicate files.** Found in the background after a scan; each group keeps one copy you choose. Copies only go to quarantine, and the worker re-hashes them at the moment of removal.
+- **Force and bulk uninstall.** A program with a missing or broken uninstaller can be force-removed: only high-confidence traces go to quarantine, registry keys are backed up first. Several programs can be uninstalled in one queue, silently where the uninstaller allows it.
+- **Reminders.** A weekly user-level check measures free space and shows a Windows notification when it runs low; it never deletes. Explorer's right-click menu gets "DustyBytes ile incele" (inspect with DustyBytes).
 
 ## What It Does Not Do
 
