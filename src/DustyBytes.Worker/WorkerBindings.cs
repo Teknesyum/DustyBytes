@@ -88,6 +88,7 @@ public static class WorkerBindings
         var uninstall = new UninstallHandlers(protection, QuarantineLeftover) { User = user };
         WorkerHandlers.Register(Ops.Uninstall, uninstall.HandleUninstall);
         WorkerHandlers.Register(Ops.RemoveLeftovers, uninstall.HandleRemoveLeftovers);
+        WorkerHandlers.Register(Ops.ForceUninstall, uninstall.HandleForceUninstall);
 
         WorkerHandlers.Register(Ops.Clean, (req, progress, ct) =>
             Task.Run(() => WorkerCleanHandlers.HandleClean(req, LoadCatalog(protection), new RealFileDeleter(), progress, ct), ct));

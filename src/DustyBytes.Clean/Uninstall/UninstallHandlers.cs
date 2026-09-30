@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Text.Json;
 using DustyBytes.Core;
 using DustyBytes.Core.Ipc;
@@ -18,6 +19,7 @@ public sealed class UninstallHandlers
     readonly Func<string, Task<bool>>? _quarantine;
     readonly SnapshotStore _store;
     readonly ISystemActions? _actions;
+    readonly ConcurrentDictionary<string, string> _vendorFailed = new(StringComparer.Ordinal);
 
     public UninstallHandlers(ProtectedList protection, Func<string, Task<bool>>? quarantine, IRegistryView? registry = null, IFileProbe? probe = null, SnapshotStore? store = null, ISystemActions? actions = null)
     {
@@ -34,6 +36,10 @@ public sealed class UninstallHandlers
     public UserScope? User { get; init; }
 
     public Func<LeftoverScanner, Uninstaller>? UninstallerFactory { get; init; }
+
+    public string? BackupDir { get; init; }
+
+    public bool VendorFailed(string programId) => _vendorFailed.ContainsKey(programId);
 
     public async Task<WorkerResponse> HandleUninstall(WorkerRequest request, IProgress<WorkerProgress> progress, CancellationToken ct)
     {
@@ -76,6 +82,10 @@ public sealed class UninstallHandlers
             _ = vendor.Ran ? RestorePoint.Complete(r.Sequence) : RestorePoint.Cancel(r.Sequence);
 
         var after = vendor.Ran && !DryRun.Enabled ? uninstaller.Diff(before, p) : before with { IsDiff = false };
+        if (!DryRun.Enabled && (!vendor.Ok || after.ProgramStillInstalled))
+            _vendorFailed[program.Id] = vendor.Message;
+        else if (!DryRun.Enabled)
+            _vendorFailed.TryRemove(program.Id, out _);
         long freed = 0;
         if (request.Items.Contains(AutoClean))
         {
@@ -106,7 +116,7 @@ public sealed class UninstallHandlers
         var ids = after.Candidates.Where(c => c.AutoRemovable && !(keepSettings && c.IsSettings)).Select(c => c.Id).ToList();
         if (ids.Count == 0)
             return (after, new ItemResult(AutoClean, true, "Kesin kalıntı kalmadı"));
-        var remover = new LeftoverRemover(_reg, scanner, _quarantine ?? (_ => Task.FromResult(false)), _actions);
+        var remover = new LeftoverRemover(_reg, scanner, _quarantine ?? (_ => Task.FromResult(false)), _actions, BackupDir);
         var report = await remover.Remove(after, ids, p, ct).ConfigureAwait(false);
         var done = report.Items.Where(i => i.Ok).Select(i => i.Id).ToHashSet(StringComparer.OrdinalIgnoreCase);
         var cleaned = after with
@@ -137,7 +147,7 @@ public sealed class UninstallHandlers
         var programs = ProgramProvider?.Invoke() ?? InstalledPrograms.Enumerate(_reg, _probe, new EnumerateOptions { MeasureSize = false, IncludeMsix = false, DetectBySignature = false, UserSid = User?.Sid });
         var scanner = new LeftoverScanner(ScanContext.ForSystem(_protection, programs, _reg, _probe, User));
         var quarantine = _quarantine ?? (_ => Task.FromResult(false));
-        var remover = new LeftoverRemover(_reg, scanner, quarantine, _actions);
+        var remover = new LeftoverRemover(_reg, scanner, quarantine, _actions, BackupDir);
         var report = await remover.Remove(snapshot, request.Items, Map(request.Id, progress), ct).ConfigureAwait(false);
         return new WorkerResponse
         {
@@ -149,6 +159,130 @@ public sealed class UninstallHandlers
             PendingBytes = report.Items.Where(i => i.Ok).Sum(i => i.Bytes),
             Payload = JsonSerializer.Serialize(report, UninstallJson.Default.RemovalReport),
         };
+    }
+
+    public async Task<WorkerResponse> HandleForceUninstall(WorkerRequest request, IProgress<WorkerProgress> progress, CancellationToken ct)
+    {
+        if (!request.UserApproved)
+            return Fail(request, "Kullanıcı onayı yok; zorla kaldırma reddedildi");
+        if (string.IsNullOrWhiteSpace(request.Target))
+            return Fail(request, "Kaldırılacak program belirtilmedi");
+
+        var programs = ProgramProvider?.Invoke() ?? InstalledPrograms.Enumerate(_reg, _probe, new EnumerateOptions { MeasureSize = false, UserSid = User?.Sid });
+        var program = programs.FirstOrDefault(p => p.Id.Equals(request.Target, StringComparison.Ordinal));
+        if (program is null)
+            return Fail(request, $"Program bulunamadı: {request.Target}");
+        if (ForceUninstall.Refusal(program, _reg, _protection) is { } refusal)
+            return Fail(request, refusal);
+        var broken = ForceUninstall.BrokenReason(program, _reg, _probe);
+        if (broken is null && !_vendorFailed.ContainsKey(program.Id))
+            return Fail(request, "Programın kaldırıcısı çalışır görünüyor; önce normal kaldırmayı deneyin");
+
+        var p = Map(request.Id, progress);
+        var scanner = new LeftoverScanner(ScanContext.ForSystem(_protection, programs, _reg, _probe, User));
+        var uninstaller = UninstallerFactory?.Invoke(scanner) ?? new Uninstaller(scanner);
+        var items = new List<ItemResult>();
+
+        RestorePointResult? restore = null;
+        if (!request.Items.Contains(SkipRestorePoint))
+        {
+            restore = uninstaller.CreateRestorePoint($"DustyBytes: {program.DisplayName} zorla kaldırılıyor", p);
+            items.Add(new ItemResult("restore-point", restore.Ok, restore.Message));
+            if (!restore.Ok && !request.Items.Contains(ContinueWithoutRestorePoint))
+                return new WorkerResponse { Id = request.Id, Ok = false, Message = $"Uyarı: {restore.Message}. Devam etmek için onay gerekiyor", Items = items, DryRun = DryRun.Enabled };
+        }
+
+        var snapshot = uninstaller.Snapshot(program, p, ct);
+        items.Add(new ItemResult("snapshot", true, $"{snapshot.Candidates.Count} iz bulundu" + (broken is null ? "" : $"; {broken}")));
+
+        var keepSettings = request.Items.Contains(KeepSettings);
+        var entry = snapshot.Candidates.FirstOrDefault(c => ForceUninstall.IsEntry(c, program));
+        var fileIds = snapshot.Candidates
+            .Where(c => c.AutoRemovable && !ForceUninstall.IsEntry(c, program) && !(keepSettings && c.IsSettings))
+            .Select(c => c.Id).ToList();
+        var remover = new LeftoverRemover(_reg, scanner, _quarantine ?? (_ => Task.FromResult(false)), _actions, BackupDir);
+        var first = await remover.Remove(snapshot, fileIds, p, ct).ConfigureAwait(false);
+        items.Add(new ItemResult(ForceUninstall.FilesStep, first.Failed == 0,
+            $"{first.Removed} kesin iz karantinaya alındı ya da yedeklenip silindi" + (first.Failed > 0 ? $", {first.Failed} ize dokunulamadı" : "")));
+
+        var fileFailed = first.Items.Any(i => !i.Ok && i.Kind is LeftoverKind.Folder or LeftoverKind.File or LeftoverKind.Shortcut);
+        var folderLeft = DryRun.Enabled ? null : InstallFolderLeft(snapshot, program, scanner);
+        RemovalReport? second = null;
+        bool entryOk;
+        string entryMessage;
+        if (DryRun.Enabled)
+        {
+            entryOk = true;
+            entryMessage = "Prova kipi: program kaydı silinmedi";
+        }
+        else if (entry is null)
+        {
+            entryOk = program.Key is not { } k || !_reg.KeyExists(k);
+            entryMessage = entryOk ? "Program kaydı zaten yok" : "Program kaydı güvenle eşleşmedi; korundu";
+        }
+        else if (folderLeft is { } left)
+        {
+            entryOk = false;
+            entryMessage = $"Kurulum klasörü hâlâ yerinde ({left}); program kaydı korundu";
+        }
+        else if (fileFailed)
+        {
+            entryOk = false;
+            entryMessage = "Bazı dosyalar taşınamadı; program kaydı korundu";
+        }
+        else
+        {
+            second = await remover.Remove(snapshot, [entry.Id], p, ct).ConfigureAwait(false);
+            entryOk = second.Items.Count > 0 && second.Items.All(i => i.Ok);
+            entryMessage = entryOk
+                ? "Program kaydı silindi; yedeği .reg dosyasında"
+                : second.Items.FirstOrDefault(i => !i.Ok)?.Message ?? "Program kaydı silinemedi";
+        }
+        items.Add(new ItemResult(ForceUninstall.EntryStep, entryOk, entryMessage));
+
+        if (restore is { Ok: true, Sequence: > 0 } r)
+            _ = first.Removed > 0 || second is not null ? RestorePoint.Complete(r.Sequence) : RestorePoint.Cancel(r.Sequence);
+
+        List<RemovalItem> removed = [.. first.Items, .. second?.Items ?? []];
+        var done = removed.Where(i => i.Ok).Select(i => i.Id).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var stillListed = DryRun.Enabled || program.Key is { } key && _reg.KeyExists(key);
+        var after = snapshot with
+        {
+            IsDiff = !DryRun.Enabled,
+            ProgramStillInstalled = stillListed,
+            Candidates = DryRun.Enabled ? snapshot.Candidates : [.. snapshot.Candidates.Where(c => !done.Contains(c.Id))],
+            AutoRemoved = DryRun.Enabled ? [] : removed,
+            RegBackupFile = second?.RegBackupFile ?? first.RegBackupFile,
+            Notes = [.. snapshot.Notes, "Zorla kaldırma: üreticinin kaldırıcısı çalıştırılmadı"],
+        };
+        _store.Save(after);
+        if (!stillListed)
+            _vendorFailed.TryRemove(program.Id, out _);
+
+        var ok = entryOk && first.Failed == 0;
+        return new WorkerResponse
+        {
+            Id = request.Id,
+            Ok = ok,
+            Message = DryRun.Enabled ? "Prova kipi: hiçbir şey taşınmadı"
+                : ok ? $"{program.DisplayName} zorla kaldırıldı; {first.Removed} kesin iz karantinada ya da yedekte"
+                : $"Zorla kaldırma yarım kaldı: {entryMessage}",
+            DryRun = DryRun.Enabled,
+            Items = items,
+            PendingBytes = DryRun.Enabled ? 0 : removed.Where(i => i.Ok).Sum(i => i.Bytes),
+            Payload = JsonSerializer.Serialize(after, UninstallJson.Default.LeftoverSnapshot),
+        };
+    }
+
+    static string? InstallFolderLeft(LeftoverSnapshot snapshot, InstalledProgram program, LeftoverScanner scanner)
+    {
+        var probe = scanner.Context.Probe;
+        foreach (var c in snapshot.Candidates.Where(ForceUninstall.IsInstallFolder))
+            if (probe.DirectoryExists(c.Target))
+                return c.Target;
+        if (program.InstallLocation is { Length: > 0 } loc && !scanner.Context.IsTooBroad(loc) && probe.DirectoryExists(loc))
+            return loc;
+        return null;
     }
 
     static IProgress<ScanProgress> Map(string id, IProgress<WorkerProgress> target) =>

@@ -2,11 +2,12 @@ using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using DustyBytes.App.Services;
+using DustyBytes.Clean.Uninstall;
 using DustyBytes.Core.Model;
 
 namespace DustyBytes.App.ViewModels;
 
-public sealed class ProgramRow(ProgramInfo info, DateTimeOffset now)
+public sealed partial class ProgramRow(ProgramInfo info, DateTimeOffset now) : ObservableObject
 {
     public ProgramInfo Info { get; } = info;
     public string Name => Info.Program.DisplayName;
@@ -16,6 +17,20 @@ public sealed class ProgramRow(ProgramInfo info, DateTimeOffset now)
     public string UsageText { get; } = KindText.Usage(info.Usage, now);
     public string VersionText => Info.Program.DisplayVersion is { Length: > 0 } v ? "Sürüm " + v : "";
     public bool CanUninstall => Info.Program.CanUninstall;
+    public bool UninstallerMissing => Info.Program.UninstallerMissing;
+    public bool CanForce => UninstallerMissing && ForceUninstall.Refusal(Info.Program) is null;
+    public bool CanOpen => CanUninstall || CanForce;
+    public bool CanCheck => CanUninstall && !UninstallerMissing;
+
+    public bool CanForceAfter(bool vendorFailed, bool uninstalled) =>
+        ForceUninstall.Refusal(Info.Program) is null && (UninstallerMissing && !uninstalled || vendorFailed);
+
+    public Action? Changed { get; set; }
+
+    [ObservableProperty]
+    private bool _isChecked;
+
+    partial void OnIsCheckedChanged(bool value) => Changed?.Invoke();
 }
 
 public sealed partial class ProgramsViewModel : ViewModelBase
@@ -56,11 +71,17 @@ public sealed partial class ProgramsViewModel : ViewModelBase
     public bool HasRows => Rows.Count > 0;
     public bool IsEmpty => _loaded && Rows.Count == 0 && Error is null && !IsLoading;
     public bool HasError => Error is not null && !IsLoading;
+    public int CheckedCount => _all.Count(r => r.IsChecked);
+    public bool HasChecked => CheckedCount > 0;
+    public bool ShowSingle => !HasChecked;
+    public string BulkText => $"Seçilenleri kaldır ({CheckedCount})";
 
     public string UninstallTip => Selected switch
     {
-        null => "Önce listeden bir program seçin",
-        { CanUninstall: false } => "Bu program için kaldırma komutu yok",
+        _ when HasChecked => $"{Format.Count(CheckedCount)} program sırayla, sessiz kaldırılır; önce onay sorulur",
+        null => "Önce listeden bir program seçin; birden çok program için kutuları işaretleyin",
+        { CanOpen: false } => "Bu program için kaldırma komutu yok",
+        { CanForce: true } => "Kaldırıcısı bulunamadı; açılan sayfada zorla kaldırma önerilir",
         _ => "Kalıntı önizlemesini açar; henüz hiçbir şey silinmez",
     };
 
@@ -81,7 +102,7 @@ public sealed partial class ProgramsViewModel : ViewModelBase
         {
             var list = await Progress.RunAsync("Kurulu programlar okunuyor", (p, ct) => _main.Backend.ListProgramsAsync(p, ct));
             var now = DateTimeOffset.Now;
-            _all = [.. list.Select(i => new ProgramRow(i, now)).OrderByDescending(r => r.ShownBytes)];
+            _all = [.. list.Select(i => new ProgramRow(i, now) { Changed = CheckedChanged }).OrderByDescending(r => r.ShownBytes)];
             _loaded = true;
             Apply();
         }
@@ -113,6 +134,17 @@ public sealed partial class ProgramsViewModel : ViewModelBase
         OnPropertyChanged(nameof(HasRows));
         OnPropertyChanged(nameof(IsEmpty));
         OnPropertyChanged(nameof(HasError));
+        CheckedChanged();
+    }
+
+    void CheckedChanged()
+    {
+        OnPropertyChanged(nameof(CheckedCount));
+        OnPropertyChanged(nameof(HasChecked));
+        OnPropertyChanged(nameof(ShowSingle));
+        OnPropertyChanged(nameof(BulkText));
+        OnPropertyChanged(nameof(UninstallTip));
+        BulkUninstallCommand.NotifyCanExecuteChanged();
     }
 
     public void Removed(ProgramRow row)
@@ -121,7 +153,7 @@ public sealed partial class ProgramsViewModel : ViewModelBase
         Apply();
     }
 
-    bool CanUninstall() => Selected is { CanUninstall: true };
+    bool CanUninstall() => Selected is { CanOpen: true };
 
     [RelayCommand(CanExecute = nameof(CanUninstall))]
     private void Uninstall()
@@ -130,5 +162,23 @@ public sealed partial class ProgramsViewModel : ViewModelBase
             return;
         var page = new UninstallViewModel(_main, this, row);
         _main.Navigation.Push(page);
+    }
+
+    bool CanBulk() => HasChecked && !Progress.IsRunning;
+
+    [RelayCommand(CanExecute = nameof(CanBulk))]
+    private async Task BulkUninstall()
+    {
+        var rows = _all.Where(r => r.IsChecked).ToList();
+        if (rows.Count == 0)
+            return;
+        var body = "Programlar sırayla, kendi kaldırıcılarıyla sessiz kaldırılır. İlkinden önce bir geri yükleme noktası oluşturulur. "
+            + "Her programdan sonra kesin kalıntılar kayıt yedeği alınıp 7 gün karantinada tutularak temizlenir. "
+            + "Sessiz kaldırılamayan programın penceresini siz bitirirsiniz; iptal ederseniz o anki program bitince sıra durur.";
+        if (!await _main.ConfirmAsync($"{Format.Count(rows.Count)} program kaldırılsın mı?", body, "Sırayla kaldır"))
+            return;
+        foreach (var row in rows)
+            row.IsChecked = false;
+        _main.Navigation.Push(new BulkUninstallViewModel(_main, this, rows));
     }
 }

@@ -1,0 +1,71 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:DustyBytes.App.ViewModels"
+             xmlns:v="using:DustyBytes.App.Views"
+             x:Class="DustyBytes.App.Views.BulkUninstallView"
+             x:DataType="vm:BulkUninstallViewModel">
+  <DockPanel>
+    <StackPanel DockPanel.Dock="Top" Margin="24,24,24,12" Spacing="{StaticResource FieldGap}">
+      <TextBlock Theme="{StaticResource H2}" Text="{Binding Heading}" TextTrimming="CharacterEllipsis"/>
+      <TextBlock Theme="{StaticResource Body}" Text="{Binding StatusText}" TextWrapping="Wrap"/>
+    </StackPanel>
+
+    <Border DockPanel.Dock="Bottom" Background="{StaticResource Surface}" BorderBrush="{StaticResource BorderDecorative}"
+            BorderThickness="0,1,0,0" Padding="{StaticResource PanelPadding}">
+      <Grid ColumnDefinitions="*,Auto">
+        <TextBlock Theme="{StaticResource Hint}" VerticalAlignment="Center" TextWrapping="Wrap" IsVisible="{Binding IsRunning}"
+                   Text="İptal ederseniz şu anki program bitince sıra durur; kalanlara dokunulmaz."/>
+        <Button Name="BulkCancel" Grid.Column="1" Classes="ghost" Content="Kalanları iptal et"
+                IsVisible="{Binding IsRunning}" Command="{Binding CancelCommand}"
+                ToolTip.Tip="Şu anki program bitince sıra durur" ToolTip.ShowOnDisabled="True"/>
+        <Button Name="BulkBack" Grid.Column="1" Classes="primary" Content="Programlara dön"
+                IsVisible="{Binding Finished}" Command="{Binding BackCommand}"/>
+      </Grid>
+    </Border>
+
+    <Panel DockPanel.Dock="Top" Margin="24,0,24,12" IsVisible="{Binding IsRunning}">
+      <v:TaskProgressView DataContext="{Binding Progress}"/>
+    </Panel>
+
+    <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+      <StackPanel Margin="24,0,24,24" Spacing="{StaticResource SectionGap}">
+        <Border Name="WizardCard" Theme="{StaticResource Panel}" IsVisible="{Binding WizardVisible}">
+          <StackPanel Spacing="{StaticResource FieldGap}">
+            <TextBlock Theme="{StaticResource H3}" Text="Kaldırma sihirbazını siz bitirin"/>
+            <TextBlock Theme="{StaticResource Body}" Text="{Binding WizardText}" TextWrapping="Wrap"/>
+            <TextBlock Theme="{StaticResource Hint}" Text="Açılan pencere programın kendi kaldırıcısıdır; biz ona tıklamayız." TextWrapping="Wrap"/>
+          </StackPanel>
+        </Border>
+
+        <Border Name="BulkSummary" Theme="{StaticResource Panel}" IsVisible="{Binding Finished}">
+          <StackPanel Spacing="{StaticResource FieldGap}">
+            <TextBlock Theme="{StaticResource H3}" Text="Özet"/>
+            <TextBlock Theme="{StaticResource Body}" Text="{Binding Summary}" TextWrapping="Wrap"/>
+            <TextBlock Theme="{StaticResource Hint}" Text="{Binding FreedText}" TextWrapping="Wrap"/>
+          </StackPanel>
+        </Border>
+
+        <Border Theme="{StaticResource Panel}">
+          <StackPanel Spacing="{StaticResource FieldGap}">
+            <TextBlock Theme="{StaticResource H3}" Text="Sıra"/>
+            <ItemsControl ItemsSource="{Binding Items}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:BulkItem">
+                  <Grid ColumnDefinitions="*,Auto,Auto" Margin="0,4">
+                    <StackPanel>
+                      <TextBlock Theme="{StaticResource Body}" Text="{Binding Name}" TextTrimming="CharacterEllipsis"/>
+                      <TextBlock Theme="{StaticResource Hint}" Text="{Binding Detail}" TextWrapping="Wrap"
+                                 IsVisible="{Binding Detail, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                    </StackPanel>
+                    <TextBlock Grid.Column="1" Theme="{StaticResource MonoValue}" Classes="data" Text="{Binding SizeText}" VerticalAlignment="Center" Margin="12,0"/>
+                    <TextBlock Grid.Column="2" Theme="{StaticResource Label}" Text="{Binding StateText}" VerticalAlignment="Center"/>
+                  </Grid>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </StackPanel>
+        </Border>
+      </StackPanel>
+    </ScrollViewer>
+  </DockPanel>
+</UserControl>

@@ -88,6 +88,7 @@ public sealed partial class UninstallViewModel : ViewModelBase
     readonly List<LeftoverRow> _hidden = [];
     LeftoverSnapshot? _snapshot;
     bool _started;
+    bool _forced;
 
     public UninstallViewModel(MainViewModel main, ProgramsViewModel owner, ProgramRow row)
     {
@@ -147,6 +148,19 @@ public sealed partial class UninstallViewModel : ViewModelBase
 
     [ObservableProperty]
     private bool _hasMore;
+
+    [ObservableProperty]
+    private bool _vendorFailed;
+
+    public bool ForceOffered => !IsDryRun && !_forced && _row.CanForceAfter(VendorFailed, Uninstalled);
+    public bool ShowUninstallRun => IsPreview && !ForceOffered;
+    public bool ShowRemoveLeftovers => IsAfter && !ForceOffered;
+    public bool ShowBottomTip => IsAfter || ForceOffered;
+    public string BottomTip => ForceOffered ? "Onay sorulur; kaldırıcı çalıştırılmaz, yalnız kesin izler karantinaya alınır" : RemoveTip;
+
+    public string ForceReason => VendorFailed
+        ? "Programın kendi kaldırıcısı işini bitiremedi; program hâlâ kurulu görünüyor."
+        : "Programın kendi kaldırıcısı bulunamadı ya da bozuk; normal kaldırma çalışmaz.";
 
     public bool IsPreview => !Uninstalled;
     public bool IsAfter => Uninstalled;
@@ -228,8 +242,15 @@ public sealed partial class UninstallViewModel : ViewModelBase
         OnPropertyChanged(nameof(LeftoverHint));
         OnPropertyChanged(nameof(HasError));
         OnPropertyChanged(nameof(RemoveTip));
+        OnPropertyChanged(nameof(ForceOffered));
+        OnPropertyChanged(nameof(ShowUninstallRun));
+        OnPropertyChanged(nameof(ShowRemoveLeftovers));
+        OnPropertyChanged(nameof(ShowBottomTip));
+        OnPropertyChanged(nameof(BottomTip));
+        OnPropertyChanged(nameof(ForceReason));
         UninstallCommand.NotifyCanExecuteChanged();
         RemoveLeftoversCommand.NotifyCanExecuteChanged();
+        ForceCommand.NotifyCanExecuteChanged();
     }
 
     [RelayCommand]
@@ -242,7 +263,7 @@ public sealed partial class UninstallViewModel : ViewModelBase
         Raise();
     }
 
-    bool CanUninstall() => !Uninstalled && !Progress.IsRunning && _row.CanUninstall;
+    bool CanUninstall() => !Uninstalled && !Progress.IsRunning && _row.CanUninstall && !ForceOffered;
 
     [RelayCommand(CanExecute = nameof(CanUninstall))]
     private async Task Uninstall()
@@ -323,6 +344,7 @@ public sealed partial class UninstallViewModel : ViewModelBase
         if (response.Payload is { Length: > 0 } payload && JsonSerializer.Deserialize(payload, UninstallJson.Default.LeftoverSnapshot) is { } after)
         {
             Uninstalled = true;
+            VendorFailed = !response.DryRun && (response.Items.FirstOrDefault(i => i.Path == "vendor") is { Ok: false } || after.ProgramStillInstalled);
             Steps[3].State = after.IsDiff ? StepState.Done : StepState.Skipped;
             Steps[3].Detail = after.IsDiff ? $"{after.Candidates.Count + after.AutoRemoved.Count(i => i.Ok)} kalıntı bulundu" : "Karşılaştırma yapılmadı";
             var auto = response.Items.FirstOrDefault(i => i.Path == UninstallHandlers.AutoClean);
@@ -351,6 +373,100 @@ public sealed partial class UninstallViewModel : ViewModelBase
         }
         else
         {
+            _main.Fail($"{Name}: {response.Message}");
+        }
+        Raise();
+    }
+
+    bool CanForce() => ForceOffered && !Progress.IsRunning;
+
+    [RelayCommand(CanExecute = nameof(CanForce))]
+    private async Task Force()
+    {
+        var body = "Programın kendi kaldırıcısı çalıştırılmaz. Önce geri yükleme noktası oluşturulur. "
+            + "Kurulum klasörü ve iki bağımsız kanıtla bu programa bağlanan yüksek güvenli izler 7 gün karantinaya alınır; kayıt anahtarları önce .reg dosyasına yedeklenir. "
+            + "Programın listedeki kaydı ancak dosyaları gittikten sonra silinir. "
+            + (KeepSettings ? "Ayar klasörleri korunur. " : "")
+            + "Emin olunamayan izlere dokunulmaz.";
+        if (!await _main.ConfirmAsync($"{Name} zorla kaldırılsın mı?", body, "Zorla kaldır"))
+            return;
+        await RunForceAsync(KeepSettings ? [UninstallHandlers.KeepSettings] : []);
+    }
+
+    public async Task RunForceAsync(List<string> flags)
+    {
+        Steps.Clear();
+        Steps.Add(new UninstallStep("restore-point", "Geri yükleme noktası oluşturma"));
+        Steps.Add(new UninstallStep("snapshot", "İzleri bulma"));
+        Steps.Add(new UninstallStep(ForceUninstall.FilesStep, "Kesin izleri karantinaya alma"));
+        Steps.Add(new UninstallStep(ForceUninstall.EntryStep, "Program kaydını silme"));
+        Steps[0].State = StepState.Running;
+        Raise();
+        WorkerResponse response;
+        try
+        {
+            response = await Progress.RunAsync($"{Name} zorla kaldırılıyor", (p, ct) => _main.Backend.SendAsync(new WorkerRequest
+            {
+                Op = Ops.ForceUninstall,
+                Target = _row.Info.Program.Id,
+                UserApproved = true,
+                Items = flags,
+            }, p, ct), cancellable: false);
+        }
+        catch (Exception e) when (e is IOException or InvalidOperationException or TimeoutException or Worker.WorkerStartException)
+        {
+            Steps[0].State = StepState.Failed;
+            _main.Fail("Zorla kaldırma başlatılamadı: " + e.Message);
+            Raise();
+            return;
+        }
+
+        foreach (var item in response.Items)
+            if (Steps.FirstOrDefault(s => s.Key == item.Path) is { } step)
+            {
+                step.State = item.Ok ? StepState.Done : StepState.Failed;
+                step.Detail = item.Message;
+            }
+        foreach (var step in Steps.Where(s => s.State is StepState.Waiting or StepState.Running))
+            step.State = StepState.Skipped;
+
+        var restore = response.Items.FirstOrDefault(i => i.Path == "restore-point");
+        if (!response.Ok && restore is { Ok: false } && response.Items.Count == 1 && !flags.Contains(UninstallHandlers.ContinueWithoutRestorePoint))
+        {
+            Raise();
+            if (await _main.ConfirmAsync(
+                    "Geri yükleme noktası oluşturulamadı",
+                    restore.Message + ". Geri yükleme noktası olmadan devam edilirse kaldırma geri alınamaz; karantina ve .reg yedeği yine de alınır.",
+                    "Noktasız devam et"))
+                await RunForceAsync([.. flags, UninstallHandlers.ContinueWithoutRestorePoint]);
+            return;
+        }
+
+        if (response.Payload is { Length: > 0 } payload && JsonSerializer.Deserialize(payload, UninstallJson.Default.LeftoverSnapshot) is { } after)
+        {
+            _forced = true;
+            Uninstalled = true;
+            Cleaned.Clear();
+            foreach (var item in after.AutoRemoved)
+                Cleaned.Add(item);
+            CleanedText = Cleaned.Count == 0 ? "" : response.Items.FirstOrDefault(i => i.Path == ForceUninstall.FilesStep)?.Message ?? "";
+            OnPropertyChanged(nameof(HasCleaned));
+            Show(after, check: false);
+            Summary = response.DryRun
+                ? "Prova kipi: hiçbir şey taşınmadı, liste önizlemedir"
+                : response.Message;
+            if (Cleaned.Count > 0)
+                _ = _main.Session.RefreshQuarantineAsync(_main);
+            if (response.Ok)
+                _main.Notify($"{Name}: {response.Message}");
+            else
+                _main.Fail($"{Name}: {response.Message}");
+            if (response.Ok && !response.DryRun && !after.ProgramStillInstalled)
+                _owner.Removed(_row);
+        }
+        else
+        {
+            Error = response.Message;
             _main.Fail($"{Name}: {response.Message}");
         }
         Raise();

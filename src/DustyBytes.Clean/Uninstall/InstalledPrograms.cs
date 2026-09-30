@@ -110,7 +110,7 @@ public static class InstalledPrograms
         var perUser = key.Hive != RegHive.LocalMachine;
         var id = $"reg:{(perUser ? "HKCU" : "HKLM")}{(key.View == RegView.Registry32 ? "32" : "64")}:{keyName}";
 
-        return new InstalledProgram
+        var program = new InstalledProgram
         {
             Id = id,
             DisplayName = name,
@@ -133,6 +133,7 @@ public static class InstalledPrograms
             PerUser = perUser,
             NoRemove = reg.GetNumber(key, "NoRemove") == 1,
         };
+        return probe is null ? program : program with { UninstallerMissing = ForceUninstall.BrokenReason(program, reg, probe) is not null };
     }
 
     public static string? MsiInstallLocation(IRegistryView reg, string productCode)

@@ -44,6 +44,7 @@ public sealed record InstalledProgram
     public string? PackageFamilyName { get; init; }
     public bool IsFramework { get; init; }
     public bool NoRemove { get; init; }
+    public bool UninstallerMissing { get; init; }
 
     public bool CanUninstall =>
         !NoRemove && (Source == ProgramSource.Msix
