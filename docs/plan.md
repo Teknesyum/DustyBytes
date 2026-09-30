@@ -416,3 +416,31 @@ Sahibin sözü: "hiç teknik bilgisi olmayan bir kullanıcı bile ai ın en öne
 
 Güvenlik değişmez: her silme worker'da SafetyGate'ten geçer; otomatik adım yalnız zaten
 sorusuz temizlenen kategorilere dokunur.
+
+## A15 Piyasanın En Pratiği — 2026-09-30
+
+Sahibin sözü: "piyasadaki en iyi olacaz en pratik olacaz ... ne ararsan bizde kullanıcı dostu olacaz".
+Kaynak: `docs/danisma/2026-09-30-piyasa-karsilastirmasi.md` (20 eksik, sıralı).
+
+**Dalga 1**, dört ayrı çalışma ağacında paralel:
+
+1. **Bütün sürücüler** (eksik 1): sabit ve çıkarılabilir her NTFS/exFAT birimi taranır; sürücü başına
+   dizin ve USN imleci; Genel bakışta sürücü seçici, "Tümü" varsayılan. Karantina birim başına kalır.
+2. **Yeni öneri kaynakları** (eksik 4, 5, 10): Geri Dönüşüm Kutusu (30 günden eskiler işaretli),
+   İndirilenler'de 90 günden uzun açılmamış dosyalar (karantinayla), hazırda bekletme kartı
+   (yalnız masaüstünde önerilir, dizüstünde uyarıyla; geri alınabilir).
+3. **Silmeden yer aç** (eksik 6, 7): oyun ve program kartında "Küçült" (WOF saydam sıkıştırma, geri
+   alınabilir, yalnız NTFS); OneDrive'da indirilmiş ve uzun süre açılmamış dosyalar "yalnız çevrimiçi".
+4. **Kendiliğinden hatırlatma** (eksik 2, 9, 11, 12): kullanıcı düzeyinde haftalık görev
+   `--check` boş alanı ölçer, azsa Windows bildirimi gösterir, silmez; disk %10'un altındaysa
+   "Bekleyenleri şimdi kalıcı sil" iki basışlı düğme; açılan yer geçmişi ve önce/sonra çubuğu;
+   Explorer sağ tık "DustyBytes ile incele" (HKCU, yönetici gerekmez).
+
+**Dalga 2**: yinelenen dosya (eksik 8, yalnız karantina, işlem anında yeniden doğrulama), zorla
+kaldırma (14), toplu kaldırma (15).
+
+**Sonra**: başlangıç programları (13, disk dışı), başka sürücüye taşı (16), gölge kopya alanı (18),
+tarayıcı kapanınca temizle (19, sürekli süreç ister), paket yazılım tespiti (20).
+
+Güvenlik değişmez: her silme, taşıma, sıkıştırma ve bulut çözme isteği worker'da SafetyGate'ten
+geçer; arayüz dosyaya dokunmaz; kullanıcı verisi hiçbir zaman sorulmadan gitmez.

@@ -28,7 +28,7 @@
       <Setter Property="BorderBrush" Value="{StaticResource Renk1}"/>
     </Style>
     <Style Selector="Border.chip">
-      <Setter Property="BorderThickness" Value="{StaticResource BorderWidth}"/>
+      <Setter Property="Background" Value="{StaticResource Renk1x10}"/>
       <Setter Property="CornerRadius" Value="{StaticResource Radius}"/>
       <Setter Property="Padding" Value="{StaticResource InputPadding}"/>
       <Setter Property="VerticalAlignment" Value="Center"/>
@@ -177,10 +177,10 @@
                   <TextBlock Grid.Column="1" Theme="{StaticResource Body}" FontWeight="{StaticResource WeightSemi}" Text="{Binding Name}"
                              TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
                   <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="{StaticResource Space2}" Margin="{StaticResource InputPadding}" VerticalAlignment="Center">
-                    <Border Classes="chip" BorderBrush="{StaticResource BorderDefault}">
+                    <Border Classes="chip">
                       <TextBlock Theme="{StaticResource Label}" Text="{Binding KindLabel}"/>
                     </Border>
-                    <Border Classes="chip" IsVisible="{Binding HasUserData}" BorderBrush="{StaticResource Warning50}">
+                    <Border Classes="chip" IsVisible="{Binding HasUserData}">
                       <TextBlock Theme="{StaticResource WarningBody}" FontSize="{StaticResource FontSize2}" Text="Kullanıcı verisi"/>
                     </Border>
                   </StackPanel>

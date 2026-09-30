@@ -64,18 +64,24 @@
       "file": "src/DustyBytes.App/Assets/AppStyles.axaml",
       "line": 352,
       "reason": "Yanlış eşleşme: NeonBlue zeminli kutunun içindeki işaret OnBlue ile çizilir (satır 279); TextBody yalnız kutunun dışındaki etikete uygulanır. KontrastTests altı ekranda ve üç ölçekte geçiyor."
+    },
+    {
+      "rule": "forms/no-ui-string-literal",
+      "file": "src/DustyBytes.App/Views/TourView.axaml",
+      "reason": "Tek dilli Türkçe uygulama; docs/plan.md yerelleştirme içermiyor. Metinler locale/*.json'a taşınırsa en.json eşliği de gerekir — ürün kararı, arayüz dalgasının dışında."
     }
   ],
-  "duzen": "a0eaf97ec84216aa",
+  "duzen": "920c61ba2837ca0d",
   "denetim": {
     "tarih": "2026-09-27T21:45:18.576Z",
     "duzen": "a0eaf97ec84216aa"
   },
-  "plugin": "0.26.0",
+  "plugin": "0.32.0",
   "uc": {
     "surum": "0.26.0",
     "duzen": "a0eaf97ec84216aa",
     "commit": "57b653f9f40124ed9c6b4140e908ae5d416c987e",
     "tarih": "2026-09-27"
-  }
+  },
+  "pencere": "maximize"
 }
