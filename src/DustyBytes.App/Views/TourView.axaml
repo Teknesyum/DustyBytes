@@ -25,7 +25,7 @@
           <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="{StaticResource Space3}">
             <Button Name="TourKeep" Classes="ghost" Content="Kalsın" Command="{Binding KeepCommand}"/>
             <Button Name="TourPurge" Classes="purge" Classes.ghost="{Binding !IsPurgeArmed}" Classes.danger="{Binding IsPurgeArmed}"
-                    Content="{Binding PurgeText}" Command="{Binding PurgeOneCommand}"
+                    Content="{Binding PurgeText}" Command="{Binding PurgeOneCommand}" IsVisible="{Binding CanPurgeCurrent}"
                     ToolTip.Tip="Karantinaya almadan siler; geri alınamaz"/>
             <Button Name="TourQuarantine" Classes="primary" Content="Karantinaya al" Command="{Binding QuarantineCommand}"
                     ToolTip.Tip="Hemen yer açılır; karantinadan istediğiniz an geri alırsınız"/>

@@ -15,7 +15,7 @@ public sealed record ProgramInfo(InstalledProgram Program, UsageSignal Usage);
 
 public sealed record CleanRuleInfo(CleanerRule Rule, bool Running, string? RunningReason);
 
-public sealed record SystemTaskInfo(string Id, string Name, long Bytes, bool Recommended, string Detail, bool Available, string? Note);
+public sealed record SystemTaskInfo(string Id, string Name, long Bytes, bool Recommended, string Detail, bool Available, string? Note, string? Warning = null, bool Silent = true, string? RestoreId = null);
 
 public sealed record QuarantineSnapshot(IReadOnlyList<QuarantineEntry> Entries, IReadOnlyList<VolumeUsage> Usage, bool Complete, string? Note);
 

@@ -2,7 +2,7 @@
   "roots": [
     { "path": "%WINDIR%", "reason": "Windows sistem klasörü" },
     { "path": "%SYSTEMDRIVE%/System Volume Information", "reason": "Sistem geri yükleme alanı" },
-    { "path": "%SYSTEMDRIVE%/$Recycle.Bin", "reason": "Geri Dönüşüm Kutusu" },
+    { "path": "%SYSTEMDRIVE%/$Recycle.Bin", "reason": "Geri Dönüşüm Kutusu", "via": "recycle-empty" },
     { "path": "%SYSTEMDRIVE%/Recovery", "reason": "Kurtarma bölümü" },
     { "path": "%PROGRAMDATA%/Package Cache", "reason": "Kurulum önbelleği, onarım ve kaldırma için gerekli" },
     { "path": "%PROGRAMDATA%/Microsoft", "reason": "Windows ortak verisi" },
@@ -24,11 +24,11 @@
     { "name": "Common Files", "reason": "Paylaşılan bileşen" },
     { "name": "WinSxS", "reason": "Bileşen deposu, yalnız DISM ile" },
     { "name": "System Volume Information", "reason": "Sistem geri yükleme alanı" },
-    { "name": "$Recycle.Bin", "reason": "Geri Dönüşüm Kutusu" },
+    { "name": "$Recycle.Bin", "reason": "Geri Dönüşüm Kutusu", "via": "recycle-empty" },
     { "name": ".git", "reason": "Kaynak denetimi deposu" }
   ],
   "files": [
-    { "name": "hiberfil.sys", "reason": "Sistem, ayarlardan: hazırda bekletme" },
+    { "name": "hiberfil.sys", "reason": "Sistem, ayarlardan: hazırda bekletme", "via": "hibernate" },
     { "name": "pagefile.sys", "reason": "Sistem, ayarlardan: sanal bellek" },
     { "name": "swapfile.sys", "reason": "Sistem, ayarlardan: sanal bellek" },
     { "name": "bootmgr", "reason": "Önyükleme" },

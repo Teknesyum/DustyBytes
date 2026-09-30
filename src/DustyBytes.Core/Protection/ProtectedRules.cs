@@ -28,12 +28,14 @@ public sealed class PathRule
 {
     public string Path { get; set; } = "";
     public string Reason { get; set; } = "";
+    public string? Via { get; set; }
 }
 
 public sealed class NameRule
 {
     public string Name { get; set; } = "";
     public string Reason { get; set; } = "";
+    public string? Via { get; set; }
 }
 
 public sealed class PrefixRule

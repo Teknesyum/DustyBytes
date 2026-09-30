@@ -37,6 +37,7 @@ public sealed class WorkerServices
         {
             Ops.Ping => Task.FromResult(new WorkerResponse { Id = request.Id, Ok = true, Message = "pong", DryRun = DryRun.Enabled, Payload = Environment.ProcessId.ToString() }),
             Ops.Quarantine => Task.Run(() => PerPath(request, progress, ct, p => Quarantine.Quarantine(p, request.UnitId, request.IncludeUserData)), ct),
+            Ops.Delete when QuarantineOnly(request) => Task.FromResult(new WorkerResponse { Id = request.Id, Ok = false, Message = "Eski indirmeler yalnız karantinaya alınır; kalıcı silinmez" }),
             Ops.Delete => Task.Run(() => PerPath(request, progress, ct, p => Delete.Delete(p, request.IncludeUserData, request.Target == TargetOnReboot)), ct),
             Ops.Restore => Task.Run(() => PerId(request, progress, ct, Quarantine.Restore), ct),
             Ops.Purge => Task.Run(() => PurgeAsync(request, progress, ct), ct),
@@ -45,6 +46,9 @@ public sealed class WorkerServices
             Ops.Shutdown => Task.FromResult(new WorkerResponse { Id = request.Id, Ok = true, Message = "Worker kapanıyor" }),
             _ => throw new InvalidOperationException("Yerleşik olmayan işlem: " + request.Op),
         };
+
+    public static bool QuarantineOnly(WorkerRequest request) =>
+        request.UnitId?.StartsWith(nameof(Core.Model.UnitKind.OldDownload) + "-", StringComparison.Ordinal) == true;
 
     static WorkerResponse Collect(WorkerRequest request, List<OpResult> results)
     {

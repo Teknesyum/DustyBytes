@@ -27,9 +27,11 @@ public sealed class ProtectedList
     const FileAttributes RecallOnDataAccess = (FileAttributes)0x400000;
     const FileAttributes CloudMask = FileAttributes.Offline | RecallOnOpen | RecallOnDataAccess;
 
-    readonly List<(string Root, string Reason, Badge Badge)> _roots = [];
+    readonly List<(string Root, string Reason, Badge Badge, string? Via)> _roots = [];
     readonly Dictionary<string, string> _segments = new(StringComparer.OrdinalIgnoreCase);
     readonly Dictionary<string, string> _files = new(StringComparer.OrdinalIgnoreCase);
+    readonly Dictionary<string, string> _via = new(StringComparer.OrdinalIgnoreCase);
+    readonly HashSet<string> _systemOps = new(StringComparer.OrdinalIgnoreCase);
     readonly List<string> _neverLeftover = [];
     readonly List<(string Prefix, string Reason)> _runtimePrefixes = [];
     readonly HashSet<string> _appx = new(StringComparer.OrdinalIgnoreCase);
@@ -38,11 +40,19 @@ public sealed class ProtectedList
     public ProtectedList(ProtectedRules rules)
     {
         foreach (var r in rules.Roots)
-            AddRoot(Paths.Expand(r.Path), r.Reason, BadgeFor(r.Reason));
+            AddRoot(Paths.Expand(r.Path), r.Reason, BadgeFor(r.Reason), Clean(r.Via));
         foreach (var s in rules.Segments)
+        {
             _segments[s.Name] = s.Reason;
+            if (Clean(s.Via) is { } via)
+                _via["segment:" + s.Name] = via;
+        }
         foreach (var f in rules.Files)
+        {
             _files[f.Name] = f.Reason;
+            if (Clean(f.Via) is { } via)
+                _via["file:" + f.Name] = via;
+        }
         foreach (var c in rules.Cloud)
         {
             var path = c.Env is { } env ? Environment.GetEnvironmentVariable(env) : c.Path is { } p ? Paths.Expand(p) : null;
@@ -63,6 +73,17 @@ public sealed class ProtectedList
 
     public static ProtectedList LoadDefault() => new(ProtectedRules.LoadDefault());
 
+    string? Clean(string? via)
+    {
+        if (string.IsNullOrWhiteSpace(via))
+            return null;
+        var trimmed = via.Trim();
+        _systemOps.Add(trimmed);
+        return trimmed;
+    }
+
+    public bool SystemOpAllowed(string op) => _systemOps.Contains(op);
+
     public IReadOnlyList<string> NeverLeftoverRoots => _neverLeftover;
 
     static Badge BadgeFor(string reason) =>
@@ -70,12 +91,14 @@ public sealed class ProtectedList
             ? Badge.Shared
             : Badge.System;
 
-    public void AddRoot(string path, string reason, Badge badge)
+    public void AddRoot(string path, string reason, Badge badge) => AddRoot(path, reason, badge, null);
+
+    void AddRoot(string path, string reason, Badge badge, string? via)
     {
         if (string.IsNullOrWhiteSpace(path) || path.Contains('%'))
             return;
         lock (_gate)
-            _roots.Add((Paths.Normalize(path), reason, badge));
+            _roots.Add((Paths.Normalize(path), reason, badge, via));
     }
 
     public void AddLauncherLibrary(string path, string launcher) =>
@@ -111,11 +134,24 @@ public sealed class ProtectedList
     public bool IsNeverLeftover(string path) =>
         _neverLeftover.Any(root => Paths.IsUnder(path, root) || Paths.IsUnder(root, path));
 
-    public Verdict CheckPath(string path) => CheckPath(path, false);
+    public Verdict CheckPath(string path) => CheckPath(path, false, null);
 
-    public Verdict CheckGamePath(string path) => CheckPath(path, true);
+    public Verdict CheckGamePath(string path) => CheckPath(path, true, null);
 
-    Verdict CheckPath(string path, bool insideLibrary)
+    public Verdict CheckPathVia(string path, string via) => CheckPath(path, false, via);
+
+    public Verdict CheckVia(string path, string via)
+    {
+        var byPath = CheckPathVia(path, via);
+        if (!byPath.Allowed)
+            return byPath;
+        return CheckFileSystem(path, AttributeProvider);
+    }
+
+    bool Waived(string key, string? via) =>
+        via is not null && _via.TryGetValue(key, out var ruleVia) && ruleVia.Equals(via, StringComparison.OrdinalIgnoreCase);
+
+    Verdict CheckPath(string path, bool insideLibrary, string? via)
     {
         var normalized = Paths.Normalize(path);
         if (normalized.Length <= 3)
@@ -123,8 +159,10 @@ public sealed class ProtectedList
 
         lock (_gate)
         {
-            foreach (var (root, reason, badge) in _roots)
+            foreach (var (root, reason, badge, ruleVia) in _roots)
             {
+                if (via is not null && via.Equals(ruleVia, StringComparison.OrdinalIgnoreCase) && !Paths.IsUnder(root, normalized) && Paths.IsUnder(normalized, root))
+                    continue;
                 if (Paths.IsUnder(root, normalized))
                     return Verdict.Deny(reason, badge);
                 if (Paths.IsUnder(normalized, root) && !(insideLibrary && badge == Badge.Launcher))
@@ -134,10 +172,10 @@ public sealed class ProtectedList
 
         var parts = normalized.Split('\\', StringSplitOptions.RemoveEmptyEntries);
         foreach (var part in parts)
-            if (_segments.TryGetValue(part, out var reason))
+            if (_segments.TryGetValue(part, out var reason) && !Waived("segment:" + part, via))
                 return Verdict.Deny(reason, Badge.Shared);
 
-        if (_files.TryGetValue(parts[^1], out var fileReason))
+        if (_files.TryGetValue(parts[^1], out var fileReason) && !Waived("file:" + parts[^1], via))
             return Verdict.Deny(fileReason, Badge.System);
 
         return Verdict.Ok;

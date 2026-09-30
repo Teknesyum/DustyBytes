@@ -65,11 +65,16 @@ public sealed partial class SystemTaskRow(SystemTaskInfo info, Action changed) :
     public bool HasNote => !string.IsNullOrWhiteSpace(Info.Note);
     public string SizeText => Info.Available ? Format.Bytes(Info.Bytes) : "";
     public string Tip => Info.Available ? Info.Detail : Info.Note ?? "Kullanılamıyor";
+    public string Warning => Info.Warning ?? "";
+    public bool HasWarning => !string.IsNullOrWhiteSpace(Info.Warning);
+    public bool CanRestore => !string.IsNullOrWhiteSpace(Info.RestoreId);
 
     [ObservableProperty]
     private bool _isChecked = Safe(info);
 
     public static bool Safe(SystemTaskInfo info) => info.Available && info.Recommended;
+
+    public static bool SilentSafe(SystemTaskInfo info) => Safe(info) && info.Silent;
 
     partial void OnIsCheckedChanged(bool value) => changed();
 }
@@ -141,9 +146,7 @@ public sealed partial class CleanupViewModel : ViewModelBase
             Rules.Clear();
             foreach (var rule in rules)
                 Rules.Add(new CleanRuleRow(rule, Changed));
-            SystemTasks.Clear();
-            foreach (var task in tasks)
-                SystemTasks.Add(new SystemTaskRow(task, Changed));
+            FillTasks(tasks);
             _loaded = true;
             Changed();
             await MeasureAsync();
@@ -157,6 +160,64 @@ public sealed partial class CleanupViewModel : ViewModelBase
             Error = "Kurallar okunamadı: " + e.Message;
         }
         Raise();
+    }
+
+    void FillTasks(IReadOnlyList<SystemTaskInfo> tasks)
+    {
+        SystemTasks.Clear();
+        foreach (var task in tasks)
+            SystemTasks.Add(new SystemTaskRow(task, Changed));
+    }
+
+    async Task ReloadTasksAsync()
+    {
+        try
+        {
+            FillTasks(await _main.Backend.SystemTasksAsync(CancellationToken.None));
+            Changed();
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException or InvalidOperationException)
+        {
+            _main.Fail("Sistem görevleri yeniden ölçülemedi: " + e.Message);
+        }
+    }
+
+    bool CanRestore(SystemTaskRow? row) => row is { CanRestore: true } && !Progress.IsRunning;
+
+    [RelayCommand(CanExecute = nameof(CanRestore))]
+    private async Task Restore(SystemTaskRow? row)
+    {
+        if (row?.Info.RestoreId is not { Length: > 0 } restoreId)
+            return;
+        var outcome = new CleanOutcome();
+        try
+        {
+            await Progress.RunAsync("Geri açılıyor", async (p, ct) =>
+            {
+                await SendAsync(_main.Backend, [], [restoreId], outcome, p, ct);
+                return true;
+            });
+        }
+        catch (OperationCanceledException)
+        {
+            _main.Notify("İşlem iptal edildi");
+            return;
+        }
+        catch (Exception e) when (e is IOException or InvalidOperationException or TimeoutException or Worker.WorkerStartException)
+        {
+            _main.Fail("Geri açılamadı: " + e.Message);
+            return;
+        }
+        if (outcome.Failures.Count > 0)
+        {
+            foreach (var failure in outcome.Failures.Take(MainViewModel.toastMax))
+                _main.Fail(failure);
+        }
+        else
+        {
+            _main.Notify(outcome.DryRun ? "Prova: ayar değiştirilmedi" : $"{row.Name} yeniden açıldı");
+        }
+        await ReloadTasksAsync();
     }
 
     async Task MeasureAsync()
@@ -202,7 +263,7 @@ public sealed partial class CleanupViewModel : ViewModelBase
             return;
         if (!await _main.ConfirmAsync(
                 "Seçilenler temizlensin mi?",
-                "Önbellek ve sistem artıkları karantinaya alınmadan silinir; bu işlem geri alınamaz. Açık programların dosyaları atlanır.",
+                ConfirmText(tasks),
                 "Temizle"))
             return;
         var outcome = new CleanOutcome();
@@ -235,9 +296,19 @@ public sealed partial class CleanupViewModel : ViewModelBase
                 _main.Session.AddFreed(freed);
             _main.Notify($"Temizlik bitti, {Format.Bytes(freed)} açıldı");
             _ = MeasureAsync();
+            if (tasks.Count > 0)
+                _ = ReloadTasksAsync();
         }
         foreach (var failure in failures.Take(MainViewModel.toastMax))
             _main.Fail(failure);
+    }
+
+    static string ConfirmText(IReadOnlyList<SystemTaskRow> tasks)
+    {
+        var text = "Önbellek ve sistem artıkları karantinaya alınmadan silinir; bu işlem geri alınamaz. Açık programların dosyaları atlanır.";
+        if (tasks.Any(t => t.CanRestore || t.Id == global::DustyBytes.Clean.SystemCleanup.HibernationTask.OffId))
+            text += " Hazırda bekletme ise geri alınabilir, satırındaki düğmeyle yeniden açılır.";
+        return text;
     }
 
     public static async Task<(List<string> Options, List<string> Tasks)> SafeDefaultsAsync(IAppBackend backend, CancellationToken ct)
@@ -245,7 +316,7 @@ public sealed partial class CleanupViewModel : ViewModelBase
         var rules = await backend.CleanRulesAsync(ct);
         var tasks = await backend.SystemTasksAsync(ct);
         return ([.. rules.SelectMany(r => r.Rule.Options.Where(o => CleanRuleRow.Safe(r, o)).Select(o => CleanOptionRow.KeyOf(r.Rule.Id, o.Id)))],
-            [.. tasks.Where(SystemTaskRow.Safe).Select(t => t.Id)]);
+            [.. tasks.Where(SystemTaskRow.SilentSafe).Select(t => t.Id)]);
     }
 
     public static async Task SendAsync(IAppBackend backend, IReadOnlyList<string> options, IReadOnlyList<string> tasks, CleanOutcome outcome, IProgress<TaskStep> p, CancellationToken ct)

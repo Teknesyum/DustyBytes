@@ -76,4 +76,46 @@ public sealed class SafetyGate
 
         return Verdict.Ok;
     }
+
+    public const string RecycleEmptyOp = "recycle-empty";
+    public const string HibernateOp = "hibernate";
+
+    public bool SystemOpAllowed(string op) => List.SystemOpAllowed(op);
+
+    public Verdict CheckRecycleEntry(string path, string userSid)
+    {
+        if (!List.SystemOpAllowed(RecycleEmptyOp))
+            return Verdict.Deny("Korumalı liste Geri Dönüşüm Kutusu boşaltmaya izin vermiyor", Badge.System);
+        if (string.IsNullOrWhiteSpace(path) || string.IsNullOrWhiteSpace(userSid) || !userSid.StartsWith("S-1-", StringComparison.OrdinalIgnoreCase))
+            return Verdict.Deny("Kullanıcı kimliği yok", Badge.System);
+
+        string normalized;
+        try
+        {
+            var plain = Paths.FromLong(path);
+            if (!Path.IsPathFullyQualified(plain))
+                return Verdict.Deny("Yol tam değil; göreli yol kabul edilmez", Badge.System);
+            normalized = Paths.Normalize(plain);
+        }
+        catch (Exception e) when (e is ArgumentException or NotSupportedException or PathTooLongException)
+        {
+            return Verdict.Deny("Geçersiz yol", Badge.System);
+        }
+
+        var parts = normalized.Split('\\', StringSplitOptions.RemoveEmptyEntries);
+        var shaped = parts.Length == 4
+            && parts[0].Length == 2 && parts[0][1] == ':'
+            && parts[1].Equals("$Recycle.Bin", StringComparison.OrdinalIgnoreCase)
+            && parts[2].Equals(userSid, StringComparison.OrdinalIgnoreCase)
+            && parts[3].Length > 2
+            && (parts[3].StartsWith("$I", StringComparison.OrdinalIgnoreCase) || parts[3].StartsWith("$R", StringComparison.OrdinalIgnoreCase));
+        if (!shaped)
+            return Verdict.Deny("Yalnız kullanıcının kendi Geri Dönüşüm Kutusu girdisi boşaltılır", Badge.System);
+
+        var verdict = List.CheckVia(normalized, RecycleEmptyOp);
+        if (!verdict.Allowed)
+            return verdict;
+
+        return Verdict.Ok;
+    }
 }
