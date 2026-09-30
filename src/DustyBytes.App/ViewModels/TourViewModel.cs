@@ -67,7 +67,7 @@ public sealed partial class TourViewModel : ViewModelBase
     private TourStage _stage;
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(HasUserData))]
+    [NotifyPropertyChangedFor(nameof(HasUserData), nameof(CanPurgeCurrent))]
     private UnitCard? _current;
 
     [ObservableProperty]
@@ -80,6 +80,7 @@ public sealed partial class TourViewModel : ViewModelBase
     public bool IsAsking => Stage == TourStage.Asking;
     public bool IsDone => Stage == TourStage.Done;
     public bool HasUserData => Current?.HasUserData == true;
+    public bool CanPurgeCurrent => Current?.NeverPurge != true;
     public bool IsPurgeArmed => Purge.IsArmed;
     public string PurgeText => IsPurgeArmed ? TwoStep.ArmedText : "Kalıcı sil";
     public string StepText => _items.Count == 0 ? "" : $"{Math.Min(_index + 1, _items.Count)} / {_items.Count}";
@@ -196,6 +197,8 @@ public sealed partial class TourViewModel : ViewModelBase
 
     bool CanAct() => IsAsking && Current is not null && !Progress.IsRunning;
 
+    bool CanPurgeNow() => CanAct() && CanPurgeCurrent;
+
     [RelayCommand(CanExecute = nameof(CanAct))]
     private async Task Quarantine()
     {
@@ -207,10 +210,10 @@ public sealed partial class TourViewModel : ViewModelBase
         Next();
     }
 
-    [RelayCommand(CanExecute = nameof(CanAct))]
+    [RelayCommand(CanExecute = nameof(CanPurgeNow))]
     private async Task PurgeOne()
     {
-        if (Current is not { } card || !Purge.Press(card))
+        if (Current is not { } card || card.NeverPurge || !Purge.Press(card))
             return;
         var outcome = await _main.Offers.RemoveCoreAsync([card], true, Progress, TitleOf(card, true));
         Count(outcome, card, true);

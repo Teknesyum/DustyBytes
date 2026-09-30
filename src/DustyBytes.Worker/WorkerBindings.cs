@@ -31,13 +31,20 @@ public static class WorkerBindings
         }
     }
 
-    public static IReadOnlyList<ISystemCleanupTask> SystemTasks(ProtectedList protection) =>
-    [
-        new WindowsUpdateCache(new WindowsSystemService(), protection),
-        new DeliveryOptimizationCleanup(),
-        new DiskCleanup(),
-        new ComponentStoreCleanup(),
-    ];
+    public static IReadOnlyList<ISystemCleanupTask> SystemTasks(ProtectedList protection, string? userSid = null)
+    {
+        var gate = new SafetyGate(protection);
+        return
+        [
+            new WindowsUpdateCache(new WindowsSystemService(), protection),
+            new DeliveryOptimizationCleanup(),
+            new DiskCleanup(),
+            new ComponentStoreCleanup(),
+            new RecycleBinCleanup(gate, userSid, old: true),
+            new RecycleBinCleanup(gate, userSid, old: false),
+            new HibernationTask(gate),
+        ];
+    }
 
     public static IReadOnlyList<string> ShortcutPlaces() =>
         ScanContext.Clean(
@@ -86,7 +93,7 @@ public static class WorkerBindings
             Task.Run(() => WorkerCleanHandlers.HandleClean(req, LoadCatalog(protection), new RealFileDeleter(), progress, ct), ct));
 
         WorkerHandlers.Register(Ops.SystemClean, (req, progress, ct) =>
-            WorkerCleanHandlers.HandleSystemClean(req, SystemTasks(protection), progress, ct));
+            WorkerCleanHandlers.HandleSystemClean(req, SystemTasks(protection, user.Sid), progress, ct));
 
         WorkerHandlers.Register(Ops.FastScan, FastScan);
         WorkerHandlers.Register(Ops.UsnRefresh, UsnRefresh);

@@ -96,6 +96,12 @@
                       <TextBlock Theme="{StaticResource Body}" Text="{Binding Name}"/>
                       <TextBlock Theme="{StaticResource Hint}" Text="{Binding Detail}" TextWrapping="Wrap"/>
                       <TextBlock Theme="{StaticResource Hint}" Text="{Binding Note}" IsVisible="{Binding HasNote}" TextWrapping="Wrap"/>
+                      <TextBlock Theme="{StaticResource WarningBody}" Text="{Binding Warning}" IsVisible="{Binding HasWarning}" TextWrapping="Wrap"/>
+                      <Button Classes="ghost" Content="Geri aç" HorizontalAlignment="Left" IsVisible="{Binding CanRestore}"
+                              AutomationProperties.Name="Geri aç"
+                              ToolTip.Tip="Kapatılan ayarı yeniden açar"
+                              Command="{Binding $parent[ItemsControl].((vm:CleanupViewModel)DataContext).RestoreCommand}"
+                              CommandParameter="{Binding}"/>
                     </StackPanel>
                     <TextBlock Grid.Column="2" Theme="{StaticResource MonoValue}" Classes="data" Text="{Binding SizeText}" VerticalAlignment="Center"/>
                   </Grid>

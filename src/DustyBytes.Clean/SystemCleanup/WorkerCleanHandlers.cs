@@ -102,19 +102,24 @@ public static class WorkerCleanHandlers
             return new WorkerResponse { Id = request.Id, Ok = false, Message = "Kullanıcı onayı yok" };
 
         var targets = request.Items.Count == 0
-            ? tasks
-            : [.. tasks.Where(t => request.Items.Contains(t.Id))];
+            ? tasks.Where(t => !t.ExplicitOnly).Select(t => (Task: t, Id: t.Id)).ToList()
+            : tasks
+                .SelectMany(t => new[] { t.Id }.Concat(t.ExtraIds).Select(id => (Task: t, Id: id)))
+                .Where(p => request.Items.Contains(p.Id))
+                .ToList();
 
         var items = new List<ItemResult>();
         long freed = 0;
 
-        foreach (var task in targets)
+        foreach (var (task, id) in targets)
         {
             var lineProgress = new Progress<string>(line =>
                 progress?.Report(new WorkerProgress(request.Id, task.Name, 0, line)));
 
-            var result = await task.RunAsync(lineProgress, ct);
-            items.Add(new ItemResult(task.Id, result.Ok, result.Message, result.FreedBytes));
+            var result = id == task.Id
+                ? await task.RunAsync(lineProgress, ct)
+                : await task.RunAsync(id, lineProgress, ct);
+            items.Add(new ItemResult(id, result.Ok, result.Message, result.FreedBytes));
             freed += result.FreedBytes;
         }
 

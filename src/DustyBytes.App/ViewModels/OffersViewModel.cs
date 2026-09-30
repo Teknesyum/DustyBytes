@@ -86,7 +86,8 @@ public sealed partial class UnitCard : ObservableObject
     public bool IsBatch => IsRemovable && IsSettled;
     public bool IsExternal => !IsRemovable;
     public bool IsDirect => Unit.Removal == RemovalMethod.DirectDelete;
-    public bool CanPurge => IsBatch && !IsDirect;
+    public bool NeverPurge => Unit.Kind == UnitKind.OldDownload;
+    public bool CanPurge => IsBatch && !IsDirect && !NeverPurge;
     public string PurgeHint => "Karantinaya almadan siler; geri alınamaz";
 
     [ObservableProperty]
@@ -145,6 +146,7 @@ public sealed partial class OffersViewModel : ViewModelBase
             new OfferFilter("Uygulama içeriği", UnitKind.AppContent),
             new OfferFilter("Geliştirici", UnitKind.DevArtifact),
             new OfferFilter("Önbellek", UnitKind.Cache, UnitKind.BrowserCache),
+            new OfferFilter("İndirilenler", UnitKind.Installer, UnitKind.OldDownload),
         ];
         _selectedFilter = Filters[0];
         main.Session.SnapshotChanged += (_, _) => Invalidate();
@@ -434,12 +436,17 @@ public sealed partial class OffersViewModel : ViewModelBase
     private Task RemoveOne(UnitCard card) => card.IsBatch && !Progress.IsRunning ? RemoveAsync([card]) : Task.CompletedTask;
 
     [RelayCommand(CanExecute = nameof(CanQuarantine))]
-    private Task PurgeSelected()
+    private async Task PurgeSelected()
     {
         var chosen = Chosen;
         if (chosen.Count == 0 || !Purge.Press(BarKey))
-            return Task.CompletedTask;
-        return RemoveAsync(chosen, purge: true);
+            return;
+        var hard = chosen.Where(c => !c.NeverPurge).ToList();
+        var soft = chosen.Where(c => c.NeverPurge).ToList();
+        if (hard.Count > 0)
+            await RemoveAsync(hard, purge: true);
+        if (soft.Count > 0)
+            await RemoveAsync(soft);
     }
 
     [RelayCommand]
@@ -508,7 +515,7 @@ public sealed partial class OffersViewModel : ViewModelBase
                     var unit = card.Unit;
                     var response = await _main.Backend.SendAsync(new WorkerRequest
                     {
-                        Op = purge || card.IsDirect ? Ops.Delete : Ops.Quarantine,
+                        Op = (purge && !card.NeverPurge) || card.IsDirect ? Ops.Delete : Ops.Quarantine,
                         Paths = [.. unit.Paths],
                         UnitId = unit.Id,
                         UserApproved = true,

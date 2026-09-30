@@ -23,6 +23,7 @@ public static class KindText
         UnitKind.BrowserCache => "Tarayıcı önbelleği",
         UnitKind.Installer => "Kurulum dosyası",
         UnitKind.SystemArtifact => "Sistem artığı",
+        UnitKind.OldDownload => "Eski indirme",
         _ => "Klasör",
     };
 
@@ -38,6 +39,7 @@ public static class KindText
         UnitKind.Cache or UnitKind.BrowserCache => "Hiçbir şey kaybolmaz; uygulamalar ihtiyaç duydukça yeniden oluşturur.",
         UnitKind.Installer => "Program zaten kuruluysa etkisi yok. Yeniden kurmak isterseniz dosyayı tekrar indirirsiniz.",
         UnitKind.SystemArtifact => "Windows'un eski güncelleme ve kurulum artıkları temizlenir. Bilgisayar olduğu gibi çalışır.",
+        UnitKind.OldDownload => "Dosyalar karantinaya taşınır, kalıcı silinmez. Lazım olan varsa 7 gün içinde karantinadan geri alırsınız.",
         _ => "Uzun süredir açılmamış bir klasör. İçinde lazım olan bir şey varsa 7 gün içinde karantinadan geri alırsınız.",
     };
 

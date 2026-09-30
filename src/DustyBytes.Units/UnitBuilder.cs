@@ -16,6 +16,7 @@ public static class UnitBuilder
         new BrowserCacheExtractor(),
         new CacheExtractor(),
         new InstallerExtractor(),
+        new OldDownloadsExtractor(),
         new SeriesExtractor(),
         new FilmExtractor(),
         new SystemArtifactExtractor(),
@@ -31,10 +32,11 @@ public static class UnitBuilder
         [UnitKind.BrowserCache] = 4,
         [UnitKind.Cache] = 5,
         [UnitKind.Installer] = 6,
-        [UnitKind.Series] = 7,
-        [UnitKind.Film] = 8,
-        [UnitKind.SystemArtifact] = 9,
-        [UnitKind.Folder] = 10,
+        [UnitKind.OldDownload] = 7,
+        [UnitKind.Series] = 8,
+        [UnitKind.Film] = 9,
+        [UnitKind.SystemArtifact] = 10,
+        [UnitKind.Folder] = 11,
     };
 
     public static IReadOnlyList<Unit> Build(UnitContext ctx, Action<int, int>? stage = null) => Build(ctx, DefaultExtractors, stage);
@@ -56,10 +58,28 @@ public static class UnitBuilder
         var above = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var result = new List<Unit>();
 
-        foreach (var unit in ordered)
+        foreach (var candidate in ordered)
         {
+            var unit = candidate;
+            if (unit.Kind == UnitKind.OldDownload)
+            {
+                var kept = unit.Paths
+                    .Where(p => !Conflicts(Paths.Normalize(p), claimed, above))
+                    .Where(p => !Blocks(unit, Check(ctx.Protected, unit, p)) && !IsExcludedByFlags(ctx.Root, p))
+                    .ToList();
+                if (kept.Count == 0)
+                    continue;
+                if (kept.Count != unit.Paths.Count)
+                    unit = unit with
+                    {
+                        Paths = kept,
+                        SizeBytes = kept.Sum(p => ctx.Root.Find(p)?.Size ?? 0),
+                        Reason = OldDownloadsExtractor.ReasonFor(kept.Count),
+                    };
+            }
+
             var normalized = unit.Paths.Select(Paths.Normalize).ToList();
-            if (normalized.Any(p => above.Contains(p) || Ancestors(p).Prepend(p).Any(claimed.Contains)))
+            if (normalized.Any(p => Conflicts(p, claimed, above)))
                 continue;
 
             if (unit.Kind != UnitKind.SystemArtifact && unit.Paths.Any(p => Blocks(unit, Check(ctx.Protected, unit, p))))
@@ -135,6 +155,9 @@ public static class UnitBuilder
             return false;
         }
     }
+
+    static bool Conflicts(string normalized, HashSet<string> claimed, HashSet<string> above) =>
+        above.Contains(normalized) || Ancestors(normalized).Prepend(normalized).Any(claimed.Contains);
 
     static IEnumerable<string> Ancestors(string path)
     {

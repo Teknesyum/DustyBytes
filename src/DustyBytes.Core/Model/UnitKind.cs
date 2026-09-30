@@ -13,6 +13,7 @@ public enum UnitKind
     Installer,
     SystemArtifact,
     Folder,
+    OldDownload,
 }
 
 public enum RemovalMethod

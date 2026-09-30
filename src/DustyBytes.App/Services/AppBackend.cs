@@ -120,6 +120,7 @@ public sealed class AppBackend : IAppBackend, IAsyncDisposable
                 Protected = protection,
                 Now = DateTimeOffset.Now,
                 Programs = ProgramsForUnits(protection),
+                Opened = OldDownloadsExtractor.FileTimes,
             }, results, (done, total) => progress?.Report(new TaskStep("Birimler toplanıyor", start + (99 - start) * done / total, $"{done} / {total} tür tarandı")));
         }, ct).ConfigureAwait(false);
         var first = results[0];
@@ -244,6 +245,7 @@ public sealed class AppBackend : IAppBackend, IAsyncDisposable
                 Protected = protection,
                 Now = DateTimeOffset.Now,
                 Programs = programs,
+                Opened = OldDownloadsExtractor.FileTimes,
             };
             var early = drives.Select(d => EarlyUnits.For(d.Root, usage, programs)).ToList();
             return new ScanDrafts([.. drives.Select(d => d.Root)], early, context, drafts, TimeSpan.FromMilliseconds(250));
@@ -460,7 +462,7 @@ public sealed class AppBackend : IAppBackend, IAsyncDisposable
     public async Task<IReadOnlyList<SystemTaskInfo>> SystemTasksAsync(CancellationToken ct)
     {
         var list = new List<SystemTaskInfo>();
-        foreach (var task in WorkerBindings.SystemTasks(Protection(null)))
+        foreach (var task in WorkerBindings.SystemTasks(Protection(null), System.Security.Principal.WindowsIdentity.GetCurrent().User?.Value))
         {
             if (task.Id == "component-store")
             {
@@ -470,11 +472,11 @@ public sealed class AppBackend : IAppBackend, IAsyncDisposable
             try
             {
                 var estimate = await Task.Run(() => task.EstimateAsync(ct), ct).ConfigureAwait(false);
-                list.Add(new SystemTaskInfo(task.Id, task.Name, estimate.RecoverableBytes, estimate.Recommended, estimate.Detail, true, null));
+                list.Add(new SystemTaskInfo(task.Id, task.Name, estimate.RecoverableBytes, estimate.Recommended, estimate.Detail, estimate.Available, estimate.Note, estimate.Warning, estimate.Silent, estimate.RestoreId));
             }
             catch (Exception e) when (e is IOException or UnauthorizedAccessException or InvalidOperationException)
             {
-                list.Add(new SystemTaskInfo(task.Id, task.Name, 0, false, "", true, "Boyut ölçülemedi: " + e.Message));
+                list.Add(new SystemTaskInfo(task.Id, task.Name, 0, false, "", true, "Boyut ölçülemedi: " + e.Message, Silent: !task.ExplicitOnly));
             }
         }
         return list;

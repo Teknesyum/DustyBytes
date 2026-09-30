@@ -15,6 +15,7 @@ public sealed class EarlyUnits
         new BrowserCacheExtractor(),
         new CacheExtractor(),
         new InstallerExtractor(),
+        new OldDownloadsExtractor(),
         new SystemArtifactExtractor(),
     ];
 
@@ -27,6 +28,7 @@ public sealed class EarlyUnits
         UnitKind.BrowserCache,
         UnitKind.Cache,
         UnitKind.Installer,
+        UnitKind.OldDownload,
         UnitKind.SystemArtifact,
     ];
 
