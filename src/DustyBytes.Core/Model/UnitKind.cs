@@ -14,6 +14,7 @@ public enum UnitKind
     SystemArtifact,
     Folder,
     OldDownload,
+    Duplicate,
 }
 
 public enum RemovalMethod

@@ -230,6 +230,21 @@ public sealed class FakeBackend : IAppBackend
         return Task.FromResult(Fresh ?? Snapshot());
     }
 
+    public List<Unit> Duplicates { get; set; } = [];
+    public TaskCompletionSource? HoldDuplicates { get; set; }
+    public int DuplicateCalls { get; private set; }
+
+    public async Task<IReadOnlyList<Unit>> FindDuplicatesAsync(ScanSnapshot snapshot, IProgress<TaskStep> progress, Action<Unit> found, CancellationToken ct)
+    {
+        DuplicateCalls++;
+        progress.Report(new TaskStep("Kopyalar aranıyor", 10, null));
+        foreach (var unit in Duplicates)
+            found(unit);
+        if (HoldDuplicates is { } hold)
+            await hold.Task.WaitAsync(ct);
+        return Duplicates;
+    }
+
     public async Task<ScanSnapshot?> RefreshAsync(ScanSnapshot cached, IProgress<TaskStep> progress, CancellationToken ct)
     {
         ScanCalls.Add("refresh");

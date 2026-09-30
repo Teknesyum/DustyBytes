@@ -24,6 +24,7 @@ public static class KindText
         UnitKind.Installer => "Kurulum dosyası",
         UnitKind.SystemArtifact => "Sistem artığı",
         UnitKind.OldDownload => "Eski indirme",
+        UnitKind.Duplicate => "Kopya",
         _ => "Klasör",
     };
 
@@ -40,6 +41,7 @@ public static class KindText
         UnitKind.Installer => "Program zaten kuruluysa etkisi yok. Yeniden kurmak isterseniz dosyayı tekrar indirirsiniz.",
         UnitKind.SystemArtifact => "Windows'un eski güncelleme ve kurulum artıkları temizlenir. Bilgisayar olduğu gibi çalışır.",
         UnitKind.OldDownload => "Dosyalar karantinaya taşınır, kalıcı silinmez. Lazım olan varsa 7 gün içinde karantinadan geri alırsınız.",
+        UnitKind.Duplicate => DustyBytes.Units.DuplicateUnits.Effect,
         _ => "Uzun süredir açılmamış bir klasör. İçinde lazım olan bir şey varsa 7 gün içinde karantinadan geri alırsınız.",
     };
 
