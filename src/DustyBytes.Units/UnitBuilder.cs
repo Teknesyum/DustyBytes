@@ -21,6 +21,7 @@ public static class UnitBuilder
         new FilmExtractor(),
         new SystemArtifactExtractor(),
         new LargeOldFolderExtractor(),
+        new CloudCopyExtractor(),
     ];
 
     static readonly Dictionary<UnitKind, int> Priority = new()
@@ -37,6 +38,7 @@ public static class UnitBuilder
         [UnitKind.Film] = 9,
         [UnitKind.SystemArtifact] = 10,
         [UnitKind.Folder] = 11,
+        [UnitKind.CloudCopy] = 12,
     };
 
     public static IReadOnlyList<Unit> Build(UnitContext ctx, Action<int, int>? stage = null) => Build(ctx, DefaultExtractors, stage);
@@ -82,11 +84,19 @@ public static class UnitBuilder
             if (normalized.Any(p => Conflicts(p, claimed, above)))
                 continue;
 
-            if (unit.Kind != UnitKind.SystemArtifact && unit.Paths.Any(p => Blocks(unit, Check(ctx.Protected, unit, p))))
-                continue;
+            if (unit.Removal == RemovalMethod.CloudOnly)
+            {
+                if (unit.Paths.Any(p => !ctx.Protected.CheckSyncPath(p).Allowed))
+                    continue;
+            }
+            else
+            {
+                if (unit.Kind != UnitKind.SystemArtifact && unit.Paths.Any(p => Blocks(unit, Check(ctx.Protected, unit, p))))
+                    continue;
 
-            if (unit.Paths.Any(p => IsExcludedByFlags(ctx.Root, p)))
-                continue;
+                if (unit.Paths.Any(p => IsExcludedByFlags(ctx.Root, p)))
+                    continue;
+            }
 
             foreach (var p in normalized)
             {
@@ -99,6 +109,7 @@ public static class UnitBuilder
         }
 
         return result
+            .Select(u => WithCompressed(ctx.Root, u))
             .Select(u => Scoring.WithScore(u, ctx.Now))
             .OrderByDescending(u => u.Score)
             .ToList();
@@ -158,6 +169,22 @@ public static class UnitBuilder
 
     static bool Conflicts(string normalized, HashSet<string> claimed, HashSet<string> above) =>
         above.Contains(normalized) || Ancestors(normalized).Prepend(normalized).Any(claimed.Contains);
+
+    static readonly HashSet<UnitKind> Compressible = [UnitKind.Game, UnitKind.Program, UnitKind.Folder];
+
+    public static bool CanCompress(Unit unit) =>
+        Compressible.Contains(unit.Kind) && unit.Removal != RemovalMethod.CloudOnly;
+
+    static Unit WithCompressed(ScanNode root, Unit unit)
+    {
+        if (!CanCompress(unit))
+            return unit;
+        long bytes = 0;
+        foreach (var path in unit.Paths)
+            if (root.Find(path) is { } node)
+                bytes += node.Descendants().Where(n => !n.IsDirectory && (n.Flags & NodeFlags.Compressed) != 0).Sum(n => n.Size);
+        return bytes > 0 ? unit with { CompressedBytes = bytes } : unit;
+    }
 
     static IEnumerable<string> Ancestors(string path)
     {

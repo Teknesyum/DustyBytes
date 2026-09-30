@@ -1,5 +1,6 @@
 using DustyBytes.Clean.Quarantine;
 using DustyBytes.Clean.Rules;
+using DustyBytes.Clean.SpaceSaver;
 using DustyBytes.Clean.Uninstall;
 using DustyBytes.Core;
 using DustyBytes.Core.Ipc;
@@ -121,6 +122,7 @@ public sealed class AppBackend : IAppBackend, IAsyncDisposable
                 Now = DateTimeOffset.Now,
                 Programs = ProgramsForUnits(protection),
                 Opened = OldDownloadsExtractor.FileTimes,
+                CloudEligible = CloudEligible,
             }, results, (done, total) => progress?.Report(new TaskStep("Birimler toplanıyor", start + (99 - start) * done / total, $"{done} / {total} tür tarandı")));
         }, ct).ConfigureAwait(false);
         var first = results[0];
@@ -133,6 +135,28 @@ public sealed class AppBackend : IAppBackend, IAsyncDisposable
 
     static bool SameRoot(string a, string b) =>
         a.TrimEnd('\\').Equals(b.TrimEnd('\\'), StringComparison.OrdinalIgnoreCase);
+
+    static bool CloudEligible(string path)
+    {
+        try
+        {
+            var info = new FileInfo(Paths.ToLong(path));
+            return info.Exists
+                && CloudFiles.IsOldEnough(info.LastWriteTimeUtc, info.LastAccessTimeUtc, DateTime.UtcNow)
+                && CloudFiles.IsEligible(CloudFiles.Probe(path), info.Length, info.Attributes);
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException or ArgumentException or DllNotFoundException or EntryPointNotFoundException)
+        {
+            return false;
+        }
+    }
+
+    public Task<CompressionEstimate> EstimateCompressionAsync(Unit unit, CancellationToken ct) =>
+        Task.Run(() =>
+        {
+            var files = CompressPlan.Candidates(unit.Paths, Protection(null).CheckGamePath, ct);
+            return CompressEstimator.Estimate(files, ct);
+        }, ct);
 
     IReadOnlyList<ProgramInstall> ProgramsForUnits(ProtectedList protection)
     {

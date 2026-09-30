@@ -37,6 +37,7 @@ public sealed class ProtectedList
     readonly List<(string Prefix, string Reason)> _runtimePrefixes = [];
     readonly HashSet<string> _appx = new(StringComparer.OrdinalIgnoreCase);
     readonly object _gate = new();
+    readonly List<string> _syncRoots = [];
 
     public ProtectedList(ProtectedRules rules)
     {
@@ -61,7 +62,11 @@ public sealed class ProtectedList
         {
             var path = c.Env is { } env ? Environment.GetEnvironmentVariable(env) : c.Path is { } p ? Paths.Expand(p) : null;
             if (!string.IsNullOrWhiteSpace(path) && !path.Contains('%'))
+            {
                 AddRoot(path, c.Reason, Badge.Cloud);
+                if (c.Env is not null)
+                    AddSyncRoot(path);
+            }
         }
         foreach (var n in rules.NeverLeftover)
         {
@@ -103,6 +108,57 @@ public sealed class ProtectedList
             return;
         lock (_gate)
             _roots.Add((Paths.Normalize(path), reason, badge, via));
+    }
+
+    public void AddSyncRoot(string path)
+    {
+        if (string.IsNullOrWhiteSpace(path) || !Path.IsPathFullyQualified(path))
+            return;
+        lock (_gate)
+            _syncRoots.Add(Paths.Normalize(path));
+    }
+
+    public IReadOnlyList<string> SyncRoots
+    {
+        get
+        {
+            lock (_gate)
+                return [.. _syncRoots];
+        }
+    }
+
+    public Verdict CheckSyncPath(string path)
+    {
+        var normalized = Paths.Normalize(path);
+        if (normalized.Length <= 3)
+            return Verdict.Deny("Sürücü kökü silinemez", Badge.System);
+
+        lock (_gate)
+        {
+            var sync = _syncRoots.FirstOrDefault(r => Paths.IsUnder(normalized, r));
+            if (sync is null)
+                return Verdict.Deny("Yalnız OneDrive klasörünün içindeki dosyalar çevrimiçiye alınır", Badge.Cloud);
+            if (normalized.Equals(sync, StringComparison.OrdinalIgnoreCase))
+                return Verdict.Deny("OneDrive kökü bütün olarak çevrimiçiye alınmaz", Badge.Cloud);
+
+            foreach (var (root, reason, badge, _) in _roots)
+            {
+                if (badge == Badge.Cloud && Paths.IsUnder(sync, root))
+                    continue;
+                if (Paths.IsUnder(root, normalized) || Paths.IsUnder(normalized, root))
+                    return Verdict.Deny(reason, badge);
+            }
+        }
+
+        var parts = normalized.Split('\\', StringSplitOptions.RemoveEmptyEntries);
+        foreach (var part in parts)
+            if (_segments.TryGetValue(part, out var reason))
+                return Verdict.Deny(reason, Badge.Shared);
+
+        if (_files.TryGetValue(parts[^1], out var fileReason))
+            return Verdict.Deny(fileReason, Badge.System);
+
+        return Verdict.Ok;
     }
 
     public void AddLauncherLibrary(string path, string launcher) =>
@@ -208,6 +264,14 @@ public sealed class ProtectedList
     public Verdict Check(string path)
     {
         var byPath = CheckPath(path);
+        if (!byPath.Allowed)
+            return byPath;
+        return CheckFileSystem(path, AttributeProvider);
+    }
+
+    public Verdict CheckInLibrary(string path)
+    {
+        var byPath = CheckGamePath(path);
         if (!byPath.Allowed)
             return byPath;
         return CheckFileSystem(path, AttributeProvider);

@@ -18,4 +18,5 @@ public sealed record Unit
     public double Score { get; init; }
 
     public string Drive => Paths.Count > 0 && System.IO.Path.GetPathRoot(Paths[0]) is { Length: > 0 } root ? root.ToUpperInvariant() : "";
+    public long CompressedBytes { get; init; }
 }

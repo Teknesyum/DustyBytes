@@ -1,7 +1,16 @@
 using DustyBytes.Core;
 using DustyBytes.Core.Protection;
+using DustyBytes.Clean.SpaceSaver;
 
 namespace DustyBytes.Clean.Safety;
+
+public enum GateOp
+{
+    Remove,
+    Compress,
+    CloudFree,
+    CloudKeep,
+}
 
 public sealed class SafetyGate
 {
@@ -45,7 +54,11 @@ public sealed class SafetyGate
             return _userData.Any(root => Paths.IsUnder(path, root) || Paths.IsUnder(root, path));
     }
 
-    public Verdict Check(string path, bool includeUserData)
+    public Func<string, uint?> ReparseTagProvider { get; set; } = CloudFiles.ReparseTag;
+
+    public Verdict Check(string path, bool includeUserData) => Check(path, GateOp.Remove, includeUserData);
+
+    public Verdict Check(string path, GateOp op, bool includeUserData)
     {
         if (string.IsNullOrWhiteSpace(path))
             return Verdict.Deny("Yol boş", Badge.System);
@@ -63,7 +76,16 @@ public sealed class SafetyGate
             return Verdict.Deny("Geçersiz yol", Badge.System);
         }
 
-        var verdict = List.Check(normalized);
+        var cloud = op is GateOp.CloudFree or GateOp.CloudKeep;
+        if (cloud && !includeUserData)
+            return Verdict.Deny("Kullanıcı verisi: ayrı açık onay gerekir", Badge.UserData);
+
+        var verdict = op switch
+        {
+            GateOp.CloudFree or GateOp.CloudKeep => CheckCloud(normalized, op == GateOp.CloudKeep),
+            GateOp.Compress => List.CheckInLibrary(normalized),
+            _ => List.Check(normalized),
+        };
         if (!verdict.Allowed)
             return verdict;
 
@@ -116,6 +138,42 @@ public sealed class SafetyGate
         if (!verdict.Allowed)
             return verdict;
 
+        return Verdict.Ok;
+    }
+
+    Verdict CheckCloud(string normalized, bool keep)
+    {
+        var byPath = List.CheckSyncPath(normalized);
+        if (!byPath.Allowed)
+            return byPath;
+
+        var current = normalized;
+        var isTarget = true;
+        while (!string.IsNullOrEmpty(current) && current.Length > 3)
+        {
+            if (List.AttributeProvider(current) is not { } attrs)
+            {
+                if (isTarget)
+                    return Verdict.Deny("Dosya bulunamadı", Badge.System);
+                current = Path.GetDirectoryName(current);
+                continue;
+            }
+
+            if ((attrs & FileAttributes.ReparsePoint) != 0 && !CloudFiles.IsCloudTag(ReparseTagProvider(current)))
+                return Verdict.Deny("Yol bir bağlantı noktasının içinden geçiyor", Badge.Link);
+            if (isTarget)
+            {
+                if ((attrs & FileAttributes.Directory) != 0)
+                    return Verdict.Deny("Yalnız tek tek dosyalar çevrimiçiye alınır", Badge.Cloud);
+                if ((attrs & FileAttributes.ReparsePoint) == 0)
+                    return Verdict.Deny("OneDrive bu dosyayı yönetmiyor", Badge.Cloud);
+                if (!keep && (attrs & CloudFiles.RecallMask) != 0)
+                    return Verdict.Deny("Dosya zaten yalnız çevrimiçi", Badge.Cloud);
+            }
+
+            current = Path.GetDirectoryName(current);
+            isTarget = false;
+        }
         return Verdict.Ok;
     }
 }

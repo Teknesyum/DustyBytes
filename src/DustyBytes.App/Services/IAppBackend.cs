@@ -1,5 +1,6 @@
 using DustyBytes.Clean.Quarantine;
 using DustyBytes.Clean.Rules;
+using DustyBytes.Clean.SpaceSaver;
 using DustyBytes.Clean.Uninstall;
 using DustyBytes.Core.Ipc;
 using DustyBytes.Core.Model;
@@ -54,6 +55,7 @@ public interface IAppBackend
     Task<IReadOnlyList<SystemTaskInfo>> SystemTasksAsync(CancellationToken ct);
 
     Task<QuarantineSnapshot> ReadQuarantineAsync(CancellationToken ct);
+    Task<CompressionEstimate> EstimateCompressionAsync(Unit unit, CancellationToken ct);
     Task<WorkerResponse> SendAsync(WorkerRequest request, IProgress<TaskStep> progress, CancellationToken ct);
 
     LedgerData ReadLedger();

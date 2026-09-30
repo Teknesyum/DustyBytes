@@ -176,6 +176,14 @@ public sealed partial class SessionState(IAppBackend backend) : ObservableObject
         SnapshotChanged?.Invoke(this, EventArgs.Empty);
     }
 
+    public void UpdateUnit(Unit unit)
+    {
+        if (Snapshot is null || !Snapshot.Units.Any(u => u.Id == unit.Id))
+            return;
+        Snapshot = Snapshot with { Units = [.. Snapshot.Units.Select(u => u.Id == unit.Id ? unit : u)] };
+        SnapshotChanged?.Invoke(this, EventArgs.Empty);
+    }
+
     public void RestoreUnits(IEnumerable<Unit> units)
     {
         _removedDuringScan.ExceptWith(units.Select(u => u.Id));

@@ -14,6 +14,7 @@ public enum UnitKind
     SystemArtifact,
     Folder,
     OldDownload,
+    CloudCopy,
 }
 
 public enum RemovalMethod
@@ -23,6 +24,7 @@ public enum RemovalMethod
     Launcher,
     Uninstaller,
     SystemTool,
+    CloudOnly,
 }
 
 public enum Confidence

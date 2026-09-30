@@ -13,6 +13,7 @@ public sealed record UnitContext
     public IReadOnlyList<ProgramInstall> Programs { get; init; } = [];
     public bool SystemDrive { get; init; } = true;
     public Func<string, DateTimeOffset?>? Opened { get; init; }
+    public Func<string, bool>? CloudEligible { get; init; }
 
     public ScanNode Root => ScanResult.Root;
 }

@@ -6,6 +6,8 @@ using CommunityToolkit.Mvvm.Input;
 using DustyBytes.Core;
 using DustyBytes.Core.Ipc;
 using DustyBytes.Core.Model;
+using DustyBytes.Clean.SpaceSaver;
+using DustyBytes.Units;
 
 namespace DustyBytes.App.ViewModels;
 
@@ -33,9 +35,10 @@ public sealed partial class UnitCard : ObservableObject
 {
     readonly Action _changed;
 
-    public UnitCard(Unit unit, DateTimeOffset now, Action changed, bool selected = false, bool settled = true)
+    public UnitCard(Unit unit, DateTimeOffset now, Action changed, bool selected = false, bool settled = true, bool cloudFreed = false)
     {
         _unit = unit;
+        _isCloudFreed = cloudFreed;
         _changed = changed;
         _isSettled = settled;
         _isSelected = selected && settled;
@@ -48,11 +51,11 @@ public sealed partial class UnitCard : ObservableObject
     static string Describe(Unit unit) => unit.Paths.Count == 1 ? unit.Paths[0] : $"{unit.Paths[0]} ve {unit.Paths.Count - 1} yol daha";
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(SizeText))]
+    [NotifyPropertyChangedFor(nameof(SizeText), nameof(CanCompress), nameof(CanUncompress), nameof(CompressText))]
     private Unit _unit;
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(SizeText), nameof(IsPending), nameof(IsBatch), nameof(CanPurge))]
+    [NotifyPropertyChangedFor(nameof(SizeText), nameof(IsPending), nameof(IsBatch), nameof(CanPurge), nameof(CanCompress), nameof(CanUncompress), nameof(CanCloudFree), nameof(CanCloudKeep))]
     private bool _isSettled;
 
     public bool IsPending => !IsSettled;
@@ -84,7 +87,31 @@ public sealed partial class UnitCard : ObservableObject
     public bool HasUserData => Unit.ContainsUserData;
     public bool IsRemovable => Unit.Removal is RemovalMethod.Quarantine or RemovalMethod.DirectDelete;
     public bool IsBatch => IsRemovable && IsSettled;
-    public bool IsExternal => !IsRemovable;
+    public bool IsExternal => !IsRemovable && !IsCloudCopy;
+    public bool IsSingle => !IsRemovable;
+    public bool IsCloudCopy => Unit.Removal == RemovalMethod.CloudOnly;
+    public bool CanCompress => IsSettled && UnitBuilder.CanCompress(Unit) && Unit.CompressedBytes == 0;
+    public bool CanUncompress => IsSettled && UnitBuilder.CanCompress(Unit) && Unit.CompressedBytes > 0;
+    public bool CanCloudFree => IsSettled && IsCloudCopy && !IsCloudFreed;
+    public bool CanCloudKeep => IsSettled && IsCloudCopy && IsCloudFreed;
+    public string CompressHint => "Dosyalar Windows sıkıştırmasıyla küçülür, oyun ve program olduğu gibi çalışır; istediğin an geri alırsın";
+    public string UncompressHint => "Dosyalar eski boyutuna döner ve yeniden yer kaplar";
+    public string CloudFreeHint => "Dosyalar bulutta kalır, silinmez; yalnız bu bilgisayardaki kopyası kalkar. Açtığında yeniden iner";
+    public string CloudKeepHint => "Dosyalar yeniden bu bilgisayara iner ve internetsiz de açılır";
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CompressText))]
+    private CompressionEstimate? _estimate;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CompressText))]
+    private bool _isCompressArmed;
+
+    public string CompressText => IsCompressArmed && Estimate is { } e ? $"≈{Format.Bytes(e.GainBytes)} kazanç, onayla" : "Küçült";
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CanCloudFree), nameof(CanCloudKeep))]
+    private bool _isCloudFreed;
     public bool IsDirect => Unit.Removal == RemovalMethod.DirectDelete;
     public bool NeverPurge => Unit.Kind == UnitKind.OldDownload;
     public bool CanPurge => IsBatch && !IsDirect && !NeverPurge;
@@ -147,6 +174,7 @@ public sealed partial class OffersViewModel : ViewModelBase
             new OfferFilter("Geliştirici", UnitKind.DevArtifact),
             new OfferFilter("Önbellek", UnitKind.Cache, UnitKind.BrowserCache),
             new OfferFilter("İndirilenler", UnitKind.Installer, UnitKind.OldDownload),
+            new OfferFilter("Bulut kopyası", UnitKind.CloudCopy),
         ];
         _selectedFilter = Filters[0];
         main.Session.SnapshotChanged += (_, _) => Invalidate();
@@ -342,7 +370,7 @@ public sealed partial class OffersViewModel : ViewModelBase
         foreach (var unit in units.OrderByDescending(u => u.Score).ThenByDescending(u => u.SizeBytes))
         {
             var batch = unit.Removal is RemovalMethod.Quarantine or RemovalMethod.DirectDelete;
-            cards.Add(new UnitCard(unit, now, Selected, batch && keep.Contains(unit.Id)));
+            cards.Add(new UnitCard(unit, now, Selected, batch && keep.Contains(unit.Id), cloudFreed: _cloudFreed.Contains(unit.Id)));
         }
         return cards;
     }
@@ -593,6 +621,191 @@ public sealed partial class OffersViewModel : ViewModelBase
                 _main.GoTo(_main.Cleanup);
                 break;
         }
+    }
+
+    readonly HashSet<string> _cloudFreed = new(StringComparer.Ordinal);
+    UnitCard? _compressArmed;
+    public const long MinCompressGain = 50L * 1024 * 1024;
+
+    void ArmCompress(UnitCard? card)
+    {
+        if (_compressArmed is not null && !ReferenceEquals(_compressArmed, card))
+            _compressArmed.IsCompressArmed = false;
+        _compressArmed = card;
+        if (card is not null)
+            card.IsCompressArmed = true;
+    }
+
+    async Task<WorkerResponse?> SendSpaceAsync(string title, WorkerRequest request, string failPrefix)
+    {
+        try
+        {
+            return await Progress.RunAsync(title, (progress, ct) => _main.Backend.SendAsync(request, progress, ct));
+        }
+        catch (OperationCanceledException)
+        {
+            _main.Notify("İşlem iptal edildi");
+        }
+        catch (Exception e) when (e is IOException or InvalidOperationException or TimeoutException or UnauthorizedAccessException or Worker.WorkerStartException)
+        {
+            _main.Fail(failPrefix + e.Message);
+        }
+        return null;
+    }
+
+    [RelayCommand]
+    private async Task CompressOne(UnitCard card)
+    {
+        if (!card.CanCompress || Progress.IsRunning)
+            return;
+        if (!card.IsCompressArmed)
+        {
+            CompressionEstimate estimate;
+            try
+            {
+                estimate = await Progress.RunAsync(card.Name + " için kazanç hesaplanıyor", (_, ct) => _main.Backend.EstimateCompressionAsync(card.Unit, ct));
+            }
+            catch (OperationCanceledException)
+            {
+                return;
+            }
+            catch (Exception e) when (e is IOException or UnauthorizedAccessException or InvalidOperationException)
+            {
+                _main.Fail("Kazanç hesaplanamadı: " + e.Message);
+                return;
+            }
+            if (estimate.GainBytes < MinCompressGain)
+            {
+                _main.Notify($"{card.Name} küçültmeye değmez; dosyaları zaten sıkışık");
+                return;
+            }
+            card.Estimate = estimate;
+            ArmCompress(card);
+            return;
+        }
+
+        ArmCompress(null);
+        card.IsCompressArmed = false;
+        var unit = card.Unit;
+        var response = await SendSpaceAsync(card.Name + " küçültülüyor", new WorkerRequest
+        {
+            Op = Ops.Compress,
+            Paths = [.. unit.Paths],
+            UnitId = unit.Id,
+            UserApproved = true,
+            IncludeUserData = unit.ContainsUserData,
+        }, "Küçültme yapılamadı: ");
+        if (response is null)
+            return;
+        if (!response.Ok)
+        {
+            _main.Fail($"{unit.Name}: {response.Message}");
+            return;
+        }
+        if (response.DryRun)
+        {
+            _main.Notify(response.Message);
+            return;
+        }
+        var freed = response.FreedBytes;
+        if (freed > 0)
+            _main.Session.AddFreed(freed);
+        var updated = unit with { SizeBytes = Math.Max(0, unit.SizeBytes - freed), CompressedBytes = Math.Max(1, unit.SizeBytes - freed) };
+        _main.Session.UpdateUnit(updated);
+        _main.Notify($"{unit.Name} küçültüldü, {Format.Bytes(freed)} yer açıldı", "Küçültmeyi geri al", () => UncompressAsync(updated));
+    }
+
+    [RelayCommand]
+    private Task UncompressOne(UnitCard card) =>
+        card.CanUncompress && !Progress.IsRunning ? UncompressAsync(card.Unit) : Task.CompletedTask;
+
+    async Task UncompressAsync(Unit unit)
+    {
+        var response = await SendSpaceAsync(unit.Name + " eski haline dönüyor", new WorkerRequest
+        {
+            Op = Ops.Uncompress,
+            Paths = [.. unit.Paths],
+            UnitId = unit.Id,
+            UserApproved = true,
+            IncludeUserData = unit.ContainsUserData,
+        }, "Küçültme geri alınamadı: ");
+        if (response is null)
+            return;
+        if (!response.Ok)
+        {
+            _main.Fail($"{unit.Name}: {response.Message}");
+            return;
+        }
+        if (!response.DryRun)
+        {
+            var current = _main.Session.Snapshot?.Units.FirstOrDefault(u => u.Id == unit.Id) ?? unit;
+            _main.Session.UpdateUnit(current with { SizeBytes = current.SizeBytes + response.PendingBytes, CompressedBytes = 0 });
+        }
+        _main.Notify(response.DryRun ? response.Message : $"{unit.Name} eski haline döndü, {Format.Bytes(response.PendingBytes)} yer kullanıldı");
+    }
+
+    [RelayCommand]
+    private async Task CloudFreeOne(UnitCard card)
+    {
+        if (!card.CanCloudFree || Progress.IsRunning)
+            return;
+        var unit = card.Unit;
+        var response = await SendSpaceAsync(unit.Name + " yalnız çevrimiçi yapılıyor", new WorkerRequest
+        {
+            Op = Ops.CloudFree,
+            Paths = [.. unit.Paths],
+            UnitId = unit.Id,
+            UserApproved = true,
+            IncludeUserData = true,
+        }, "Yalnız çevrimiçi yapılamadı: ");
+        if (response is null)
+            return;
+        if (!response.Ok)
+        {
+            _main.Fail($"{unit.Name}: {response.Message}");
+            return;
+        }
+        if (response.DryRun)
+        {
+            _main.Notify(response.Message);
+            return;
+        }
+        if (response.FreedBytes > 0)
+            _main.Session.AddFreed(response.FreedBytes);
+        _cloudFreed.Add(unit.Id);
+        card.IsCloudFreed = true;
+        var bytes = response.FreedBytes + response.PendingBytes;
+        _main.Notify($"{unit.Name} yalnız çevrimiçi, {Format.Bytes(bytes)} yer açıldı. Dosyalar bulutta duruyor; açtığında yeniden iner.", "Bu cihazda tut", () => CloudKeepAsync(unit));
+    }
+
+    [RelayCommand]
+    private Task CloudKeepOne(UnitCard card) =>
+        card.CanCloudKeep && !Progress.IsRunning ? CloudKeepAsync(card.Unit) : Task.CompletedTask;
+
+    async Task CloudKeepAsync(Unit unit)
+    {
+        var response = await SendSpaceAsync(unit.Name + " bu cihaza indiriliyor", new WorkerRequest
+        {
+            Op = Ops.CloudKeep,
+            Paths = [.. unit.Paths],
+            UnitId = unit.Id,
+            UserApproved = true,
+            IncludeUserData = true,
+        }, "Bu cihazda tutulamadı: ");
+        if (response is null)
+            return;
+        if (!response.Ok)
+        {
+            _main.Fail($"{unit.Name}: {response.Message}");
+            return;
+        }
+        if (!response.DryRun)
+        {
+            _cloudFreed.Remove(unit.Id);
+            foreach (var card in _all.Where(c => c.Unit.Id == unit.Id))
+                card.IsCloudFreed = false;
+        }
+        _main.Notify(response.DryRun ? response.Message : $"{unit.Name} bu cihazda tutulacak; dosyalar geri iniyor");
     }
 
     [RelayCommand]

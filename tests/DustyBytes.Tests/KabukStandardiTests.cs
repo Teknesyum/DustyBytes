@@ -253,7 +253,7 @@ public class KabukStandardiTests
 
     static readonly string[] ProperWords =
     [
-        "DustyBytes", "Windows", "Winapp2", "CC-BY-SA-4.0", "Teknesyum", "Destek", "Chrome", "Edge", "DISM", "GitHub",
+        "DustyBytes", "Windows", "Winapp2", "CC-BY-SA-4.0", "Teknesyum", "Destek", "Chrome", "Edge", "DISM", "GitHub", "OneDrive",
     ];
 
     [Fact]
