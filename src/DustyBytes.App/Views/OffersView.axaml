@@ -172,7 +172,7 @@
                     <ColumnDefinition Width="Auto" SharedSizeGroup="actions"/>
                   </Grid.ColumnDefinitions>
                   <CheckBox Classes="wide" IsChecked="{Binding IsSelected}"
-                            Classes.placeholder="{Binding IsExternal}" IsEnabled="{Binding IsBatch}"
+                            Classes.placeholder="{Binding IsSingle}" IsEnabled="{Binding IsBatch}"
                             AutomationProperties.Name="{Binding Name}"/>
                   <TextBlock Grid.Column="1" Theme="{StaticResource Body}" FontWeight="{StaticResource WeightSemi}" Text="{Binding Name}"
                              TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
@@ -191,6 +191,22 @@
                     <TextBlock Theme="{StaticResource Hint}" Text="hesaplanıyor" HorizontalAlignment="Right" IsVisible="{Binding IsPending}"/>
                   </Panel>
                   <StackPanel Grid.Column="5" Orientation="Horizontal" Spacing="{StaticResource Space2}" HorizontalAlignment="Right" VerticalAlignment="Center">
+                    <Button Classes="ghost" IsVisible="{Binding CanCompress}" Content="{Binding CompressText}"
+                            ToolTip.Tip="{Binding CompressHint}" AutomationProperties.Name="Küçült"
+                            Command="{Binding $parent[ItemsControl].((vm:OffersViewModel)DataContext).CompressOneCommand}"
+                            CommandParameter="{Binding}"/>
+                    <Button Classes="ghost" IsVisible="{Binding CanUncompress}" Content="Küçültmeyi geri al"
+                            ToolTip.Tip="{Binding UncompressHint}"
+                            Command="{Binding $parent[ItemsControl].((vm:OffersViewModel)DataContext).UncompressOneCommand}"
+                            CommandParameter="{Binding}"/>
+                    <Button Classes="ghost" IsVisible="{Binding CanCloudFree}" Content="Yalnız çevrimiçi yap"
+                            ToolTip.Tip="{Binding CloudFreeHint}"
+                            Command="{Binding $parent[ItemsControl].((vm:OffersViewModel)DataContext).CloudFreeOneCommand}"
+                            CommandParameter="{Binding}"/>
+                    <Button Classes="ghost" IsVisible="{Binding CanCloudKeep}" Content="Bu cihazda tut"
+                            ToolTip.Tip="{Binding CloudKeepHint}"
+                            Command="{Binding $parent[ItemsControl].((vm:OffersViewModel)DataContext).CloudKeepOneCommand}"
+                            CommandParameter="{Binding}"/>
                     <Button Classes="ghost" IsVisible="{Binding IsBatch}" Content="{Binding ActionText}"
                             ToolTip.Tip="{Binding ActionHint}" AutomationProperties.Name="{Binding ActionText}"
                             Command="{Binding $parent[ItemsControl].((vm:OffersViewModel)DataContext).RemoveOneCommand}"

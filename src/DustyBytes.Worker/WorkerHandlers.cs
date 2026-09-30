@@ -16,6 +16,7 @@ public static class WorkerHandlers
     public static readonly IReadOnlySet<string> Destructive = new HashSet<string>(StringComparer.Ordinal)
     {
         Ops.Quarantine, Ops.Delete, Ops.Purge, Ops.Uninstall, Ops.RemoveLeftovers, Ops.Clean, Ops.SystemClean,
+        Ops.Compress, Ops.Uncompress, Ops.CloudFree, Ops.CloudKeep,
     };
 
     public static void Register(string op, Func<WorkerRequest, IProgress<WorkerProgress>, CancellationToken, Task<WorkerResponse>> handler)

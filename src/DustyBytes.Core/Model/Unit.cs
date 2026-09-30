@@ -16,4 +16,5 @@ public sealed record Unit
     public string Effect { get; init; } = "";
     public string? Label { get; init; }
     public double Score { get; init; }
+    public long CompressedBytes { get; init; }
 }

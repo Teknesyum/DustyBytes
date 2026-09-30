@@ -17,6 +17,10 @@ public static class Ops
     public const string FastScan = "fast-scan";
     public const string UsnRefresh = "usn-refresh";
     public const string LockInfo = "lock-info";
+    public const string Compress = "compress";
+    public const string Uncompress = "uncompress";
+    public const string CloudFree = "cloud-free";
+    public const string CloudKeep = "cloud-keep";
     public const string Shutdown = "shutdown";
 }
 

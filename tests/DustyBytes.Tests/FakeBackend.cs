@@ -4,6 +4,7 @@ using DustyBytes.App.Services;
 using DustyBytes.App.ViewModels;
 using DustyBytes.Clean.Quarantine;
 using DustyBytes.Clean.Rules;
+using DustyBytes.Clean.SpaceSaver;
 using DustyBytes.Clean.Uninstall;
 using DustyBytes.Core.Ipc;
 using DustyBytes.Core.Model;
@@ -229,6 +230,10 @@ public sealed class FakeBackend : IAppBackend
     public Task<IReadOnlyList<SystemTaskInfo>> SystemTasksAsync(CancellationToken ct) => Task.FromResult<IReadOnlyList<SystemTaskInfo>>(Tasks);
 
     public Task<QuarantineSnapshot> ReadQuarantineAsync(CancellationToken ct) => Task.FromResult(Quarantine);
+
+    public CompressionEstimate Estimate { get; set; } = new(8L << 30, 3L << 30, 1200, 48);
+
+    public Task<CompressionEstimate> EstimateCompressionAsync(Unit unit, CancellationToken ct) => Task.FromResult(Estimate);
 
     public Task<WorkerResponse> SendAsync(WorkerRequest request, IProgress<TaskStep> progress, CancellationToken ct)
     {

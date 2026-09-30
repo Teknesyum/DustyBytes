@@ -11,6 +11,7 @@ public sealed record UnitContext
     public required ProtectedList Protected { get; init; }
     public required DateTimeOffset Now { get; init; }
     public IReadOnlyList<ProgramInstall> Programs { get; init; } = [];
+    public Func<string, bool>? CloudEligible { get; init; }
 
     public ScanNode Root => ScanResult.Root;
 }

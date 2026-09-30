@@ -88,6 +88,12 @@ public static class WorkerBindings
         WorkerHandlers.Register(Ops.SystemClean, (req, progress, ct) =>
             WorkerCleanHandlers.HandleSystemClean(req, SystemTasks(protection), progress, ct));
 
+        var space = new SpaceHandlers(services.Gate);
+        WorkerHandlers.Register(Ops.Compress, space.HandleCompress);
+        WorkerHandlers.Register(Ops.Uncompress, space.HandleUncompress);
+        WorkerHandlers.Register(Ops.CloudFree, space.HandleCloudFree);
+        WorkerHandlers.Register(Ops.CloudKeep, space.HandleCloudKeep);
+
         WorkerHandlers.Register(Ops.FastScan, FastScan);
         WorkerHandlers.Register(Ops.UsnRefresh, UsnRefresh);
     }
