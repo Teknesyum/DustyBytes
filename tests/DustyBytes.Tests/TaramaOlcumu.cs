@@ -129,7 +129,7 @@ public sealed class TaramaOlcumu
         {
             await Task.Delay(TimeSpan.FromSeconds(15));
             watch.Restart();
-            var refreshed = await backend.RefreshAsync(previous.Result, sink, default);
+            var refreshed = await backend.RefreshAsync(previous, sink, default);
             var refreshMs = watch.ElapsedMilliseconds;
             lines.Add(refreshed is null ? $"yenileme_ms={refreshMs} sonuç=yok" : $"yenileme_ms={refreshMs} dosya={refreshed.Result.Files} birim={refreshed.Units.Count}");
             await Task.Delay(TimeSpan.FromSeconds(15));
@@ -142,7 +142,7 @@ public sealed class TaramaOlcumu
                 lines.Add(diff[0]);
                 Write(output, "yenileme-farki.txt", diff);
                 watch.Restart();
-                var again = await backend.RefreshAsync(previous.Result, sink, default);
+                var again = await backend.RefreshAsync(previous, sink, default);
                 lines.Add($"ikinci_yenileme_ms={watch.ElapsedMilliseconds}");
                 if (again is not null)
                 {

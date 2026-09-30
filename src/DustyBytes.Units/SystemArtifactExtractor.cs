@@ -17,6 +17,8 @@ public sealed class SystemArtifactExtractor : IUnitExtractor
     public IEnumerable<Unit> Extract(UnitContext ctx)
     {
         var units = new List<Unit>();
+        if (!ctx.SystemDrive)
+            return units;
 
         foreach (var (pattern, name) in Targets)
         {

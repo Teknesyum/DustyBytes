@@ -29,6 +29,7 @@ public sealed class ProtectedList
 
     readonly List<(string Root, string Reason, Badge Badge)> _roots = [];
     readonly Dictionary<string, string> _segments = new(StringComparer.OrdinalIgnoreCase);
+    readonly List<(string[] Parts, string Reason)> _driveRoots = [];
     readonly Dictionary<string, string> _files = new(StringComparer.OrdinalIgnoreCase);
     readonly List<string> _neverLeftover = [];
     readonly List<(string Prefix, string Reason)> _runtimePrefixes = [];
@@ -43,6 +44,9 @@ public sealed class ProtectedList
             _segments[s.Name] = s.Reason;
         foreach (var f in rules.Files)
             _files[f.Name] = f.Reason;
+        foreach (var d in rules.DriveRoots)
+            if (d.Name.Split(['/', '\\'], StringSplitOptions.RemoveEmptyEntries) is { Length: > 0 } driveParts)
+                _driveRoots.Add((driveParts, d.Reason));
         foreach (var c in rules.Cloud)
         {
             var path = c.Env is { } env ? Environment.GetEnvironmentVariable(env) : c.Path is { } p ? Paths.Expand(p) : null;
@@ -133,6 +137,8 @@ public sealed class ProtectedList
         }
 
         var parts = normalized.Split('\\', StringSplitOptions.RemoveEmptyEntries);
+        if (DriveRootReason(parts) is { } driveReason)
+            return Verdict.Deny(driveReason, Badge.System);
         foreach (var part in parts)
             if (_segments.TryGetValue(part, out var reason))
                 return Verdict.Deny(reason, Badge.Shared);
@@ -141,6 +147,22 @@ public sealed class ProtectedList
             return Verdict.Deny(fileReason, Badge.System);
 
         return Verdict.Ok;
+    }
+
+    string? DriveRootReason(string[] parts)
+    {
+        if (parts.Length < 2 || parts[0].Length != 2 || parts[0][1] != ':')
+            return null;
+        foreach (var (rule, reason) in _driveRoots)
+        {
+            var shared = Math.Min(rule.Length, parts.Length - 1);
+            var match = true;
+            for (var i = 0; i < shared && match; i++)
+                match = rule[i].Equals(parts[i + 1], StringComparison.OrdinalIgnoreCase);
+            if (match)
+                return reason;
+        }
+        return null;
     }
 
     public Func<string, FileAttributes?> AttributeProvider { get; set; } = DefaultAttributes;

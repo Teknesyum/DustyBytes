@@ -9,7 +9,18 @@ namespace DustyBytes.App.Services;
 
 public sealed record TaskStep(string Step, double Percent, string? Line);
 
-public sealed record ScanSnapshot(ScanResult Result, IReadOnlyList<Unit> Units, DateTimeOffset FinishedAt, string Method);
+public sealed record ScanSnapshot(ScanResult Result, IReadOnlyList<Unit> Units, DateTimeOffset FinishedAt, string Method)
+{
+    public IReadOnlyList<ScanResult> Drives { get; init; } = [];
+    public IReadOnlyList<DriveEntry> Volumes { get; init; } = [];
+
+    public IReadOnlyList<ScanResult> Results => Drives.Count > 0 ? Drives : [Result];
+
+    public long Files => Results.Sum(r => r.Files);
+
+    public ScanResult? For(string root) =>
+        Results.FirstOrDefault(r => r.Root.Name.TrimEnd('\\').Equals(root.TrimEnd('\\'), StringComparison.OrdinalIgnoreCase));
+}
 
 public sealed record ProgramInfo(InstalledProgram Program, UsageSignal Usage);
 
@@ -27,10 +38,11 @@ public interface IAppBackend
     bool DryRun { get; }
     bool WorkerRunning { get; }
     bool Winapp2Present { get; }
+    bool ScanRemovable { get; set; }
 
     Task<ScanSnapshot?> LoadCachedAsync(IProgress<TaskStep>? progress, CancellationToken ct);
     Task<ScanSnapshot> ScanAsync(IProgress<TaskStep> progress, CancellationToken ct, IProgress<ScanDraft>? drafts = null);
-    Task<ScanSnapshot?> RefreshAsync(ScanResult cached, IProgress<TaskStep> progress, CancellationToken ct);
+    Task<ScanSnapshot?> RefreshAsync(ScanSnapshot cached, IProgress<TaskStep> progress, CancellationToken ct);
     Availability FastScanAvailability();
     Task<ScanSnapshot> FastScanAsync(IProgress<TaskStep> progress, CancellationToken ct);
 

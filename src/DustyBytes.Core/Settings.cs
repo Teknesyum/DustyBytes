@@ -9,6 +9,8 @@ public sealed record AppSettings
 
     public bool AutoPurge { get; init; } = true;
 
+    public bool ScanRemovable { get; init; }
+
     public static string DefaultPath => Path.Combine(Paths.AppData, "settings.json");
 
     public static AppSettings Load(string? path = null)

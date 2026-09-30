@@ -33,6 +33,24 @@ public sealed class AppBackend : IAppBackend, IAsyncDisposable
     public bool WorkerRunning => _worker is { IsConnected: true };
     public bool Winapp2Present => File.Exists(WorkerBindings.Winapp2Path);
 
+    bool? _removable;
+
+    public bool ScanRemovable
+    {
+        get => _removable ??= AppSettings.Load().ScanRemovable;
+        set
+        {
+            _removable = value;
+            try
+            {
+                (AppSettings.Load() with { ScanRemovable = value }).Save();
+            }
+            catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+            {
+            }
+        }
+    }
+
     ProtectedList Protection(UsageIndex? usage)
     {
         var list = ProtectedList.LoadDefault();
@@ -71,26 +89,49 @@ public sealed class AppBackend : IAppBackend, IAsyncDisposable
     static Action<long, long>? Rows(IProgress<TaskStep>? progress, string step, double from, double to) =>
         progress is null ? null : (read, total) => progress.Report(new TaskStep(step, from + (to - from) * Math.Min(1, read / (double)Math.Max(1, total)), $"{Format.Count(read)} / {Format.Count(total)} kayıt"));
 
-    async Task<ScanSnapshot> Build(ScanResult result, IProgress<TaskStep>? progress, CancellationToken ct, double from = 90)
+    IReadOnlyList<DriveEntry> ListDrives()
+    {
+        IReadOnlyList<DriveEntry> list;
+        try
+        {
+            list = DriveCatalog.List(ScanRemovable);
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException or System.Security.SecurityException)
+        {
+            list = [];
+        }
+        return list.Count > 0 && list[0].Kind == DriveKind.System ? list : [new DriveEntry(ScanRoot, "", "", DriveKind.System, 0, 0), .. list];
+    }
+
+    async Task<ScanSnapshot> Build(IReadOnlyList<ScanResult> results, IReadOnlyList<DriveEntry> drives, IProgress<TaskStep>? progress, CancellationToken ct, double from = 90)
     {
         progress?.Report(new TaskStep("Kullanım izleri okunuyor", from, "Steam, Epic ve Windows kayıtları"));
         var usage = await _usage.Value.WaitAsync(ct).ConfigureAwait(false);
         var start = from + (100 - from) / 4;
-        progress?.Report(new TaskStep("Birimler toplanıyor", start, $"{Format.Count(result.Files)} dosya gruplanıyor"));
+        var files = results.Sum(r => r.Files);
+        progress?.Report(new TaskStep("Birimler toplanıyor", start, $"{Format.Count(files)} dosya gruplanıyor"));
         var units = await Task.Run(() =>
         {
             var protection = Protection(usage);
-            return UnitBuilder.Build(new UnitContext
+            return UnitBuilder.BuildDrives(new UnitContext
             {
-                ScanResult = result,
+                ScanResult = results[0],
                 UsageIndex = usage,
                 Protected = protection,
                 Now = DateTimeOffset.Now,
                 Programs = ProgramsForUnits(protection),
-            }, (done, total) => progress?.Report(new TaskStep("Birimler toplanıyor", start + (99 - start) * done / total, $"{done} / {total} tür tarandı")));
+            }, results, (done, total) => progress?.Report(new TaskStep("Birimler toplanıyor", start + (99 - start) * done / total, $"{done} / {total} tür tarandı")));
         }, ct).ConfigureAwait(false);
-        return new ScanSnapshot(result, units, result.FinishedAt, result.Method);
+        var first = results[0];
+        return new ScanSnapshot(first, units, results.Min(r => r.FinishedAt), first.Method)
+        {
+            Drives = results,
+            Volumes = [.. drives.Where(d => results.Any(r => SameRoot(r.Root.Name, d.Root)))],
+        };
     }
+
+    static bool SameRoot(string a, string b) =>
+        a.TrimEnd('\\').Equals(b.TrimEnd('\\'), StringComparison.OrdinalIgnoreCase);
 
     IReadOnlyList<ProgramInstall> ProgramsForUnits(ProtectedList protection)
     {
@@ -108,34 +149,48 @@ public sealed class AppBackend : IAppBackend, IAsyncDisposable
 
     public async Task<ScanSnapshot?> LoadCachedAsync(IProgress<TaskStep>? progress, CancellationToken ct)
     {
-        var rows = Rows(progress, "Önceki tarama okunuyor", 0, 80);
         _ = _usage.Value;
-        var result = await Task.Run(() =>
+        var drives = await Task.Run(ListDrives, ct).ConfigureAwait(false);
+        var loaded = await Task.Run<(IReadOnlyList<ScanResult> Found, IReadOnlyList<DriveEntry> Kept)?>(() =>
         {
+            var found = new List<ScanResult>();
+            var kept = new List<DriveEntry>();
             try
             {
-                return new ScanIndex().Load(ScanRoot, rows);
+                var index = new ScanIndex();
+                for (var i = 0; i < drives.Count; i++)
+                {
+                    var rows = Rows(progress, "Önceki tarama okunuyor", 80.0 * i / drives.Count, 80.0 * (i + 1) / drives.Count);
+                    if (index.Load(drives[i].Root, rows) is { } result)
+                    {
+                        found.Add(result);
+                        kept.Add(drives[i]);
+                    }
+                    else if (i == 0)
+                        return null;
+                }
             }
             catch (Exception e) when (e is IOException or UnauthorizedAccessException or InvalidOperationException or Microsoft.Data.Sqlite.SqliteException)
             {
                 return null;
             }
+            return (found, kept);
         }, ct).ConfigureAwait(false);
-        return result is null ? null : await Build(result, progress, ct, 80).ConfigureAwait(false);
+        return loaded is not { } l || l.Found.Count == 0 ? null : await Build(l.Found, l.Kept, progress, ct, 80).ConfigureAwait(false);
     }
 
     public async Task<ScanSnapshot> ScanAsync(IProgress<TaskStep> progress, CancellationToken ct, IProgress<ScanDraft>? drafts = null)
     {
-        var scan = Span(progress, 0, 85)!;
-        var sink = new Relay<ScanProgress>(p => scan.Report(new TaskStep(p.Step, p.Percent, p.CurrentPath)));
+        var drives = await Task.Run(ListDrives, ct).ConfigureAwait(false);
+        var tracker = new DriveProgress(Span(progress, 0, 85)!, drives);
         var options = new ScanOptions();
-        var drafting = drafts is null ? null : await StartDraftsAsync(drafts, ct).ConfigureAwait(false);
+        var drafting = drafts is null ? null : await StartDraftsAsync(drives, drafts, ct).ConfigureAwait(false);
         if (drafting is not null)
             options = options with { Priority = drafting.Priority, SubtreeDone = drafting.Done };
-        ScanResult result;
+        ScanResult?[] results;
         try
         {
-            result = await new FileScanner().ScanAsync(ScanRoot, options, sink, ct).ConfigureAwait(false);
+            results = await Task.WhenAll(drives.Select((d, i) => ScanDriveAsync(d, options, tracker.For(i), ct))).ConfigureAwait(false);
         }
         finally
         {
@@ -143,12 +198,39 @@ public sealed class AppBackend : IAppBackend, IAsyncDisposable
                 await drafting.StopAsync().ConfigureAwait(false);
         }
         ct.ThrowIfCancellationRequested();
-        var snapshot = await Build(result, progress, ct).ConfigureAwait(false);
-        _ = SaveAsync(result);
+        return await Finish(drives, results, progress, ct).ConfigureAwait(false);
+    }
+
+    async Task<ScanSnapshot> Finish(IReadOnlyList<DriveEntry> drives, IReadOnlyList<ScanResult?> results, IProgress<TaskStep> progress, CancellationToken ct)
+    {
+        var found = new List<ScanResult>();
+        var kept = new List<DriveEntry>();
+        for (var i = 0; i < drives.Count; i++)
+            if (results[i] is { } r)
+            {
+                found.Add(r);
+                kept.Add(drives[i]);
+            }
+        if (found.Count == 0 || !SameRoot(found[0].Root.Name, drives[0].Root))
+            throw new InvalidOperationException($"{drives[0].Root} sürücüsü taranamadı");
+        var snapshot = await Build(found, kept, progress, ct).ConfigureAwait(false);
+        _ = SaveAsync(found);
         return snapshot;
     }
 
-    async Task<ScanDrafts> StartDraftsAsync(IProgress<ScanDraft> drafts, CancellationToken ct)
+    static async Task<ScanResult?> ScanDriveAsync(DriveEntry drive, ScanOptions options, IProgress<ScanProgress> sink, CancellationToken ct)
+    {
+        try
+        {
+            return await new FileScanner().ScanAsync(drive.Root, options, sink, ct).ConfigureAwait(false);
+        }
+        catch (Exception e) when (drive.Kind != DriveKind.System && e is IOException or UnauthorizedAccessException or System.ComponentModel.Win32Exception or ArgumentException)
+        {
+            return null;
+        }
+    }
+
+    async Task<ScanDrafts> StartDraftsAsync(IReadOnlyList<DriveEntry> drives, IProgress<ScanDraft> drafts, CancellationToken ct)
     {
         var usage = await _usage.Value.WaitAsync(ct).ConfigureAwait(false);
         return await Task.Run(() =>
@@ -157,24 +239,30 @@ public sealed class AppBackend : IAppBackend, IAsyncDisposable
             var programs = ProgramsForUnits(protection);
             var context = new UnitContext
             {
-                ScanResult = new ScanResult { Root = new ScanNode { Name = ScanRoot, IsDirectory = true } },
+                ScanResult = new ScanResult { Root = new ScanNode { Name = drives[0].Root, IsDirectory = true } },
                 UsageIndex = usage,
                 Protected = protection,
                 Now = DateTimeOffset.Now,
                 Programs = programs,
             };
-            return new ScanDrafts(EarlyUnits.For(ScanRoot, usage, programs), context, drafts, TimeSpan.FromMilliseconds(250));
+            var early = drives.Select(d => EarlyUnits.For(d.Root, usage, programs)).ToList();
+            return new ScanDrafts([.. drives.Select(d => d.Root)], early, context, drafts, TimeSpan.FromMilliseconds(250));
         }, ct).ConfigureAwait(false);
     }
 
     readonly SemaphoreSlim _saveGate = new(1, 1);
 
-    async Task SaveAsync(ScanResult result)
+    async Task SaveAsync(IReadOnlyList<ScanResult> results)
     {
         await _saveGate.WaitAsync().ConfigureAwait(false);
         try
         {
-            await Task.Run(() => new ScanIndex().Save(result)).ConfigureAwait(false);
+            await Task.Run(() =>
+            {
+                var index = new ScanIndex();
+                foreach (var result in results)
+                    index.Save(result);
+            }).ConfigureAwait(false);
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException or Microsoft.Data.Sqlite.SqliteException)
         {
@@ -191,19 +279,43 @@ public sealed class AppBackend : IAppBackend, IAsyncDisposable
             return new(false, "Yönetici yardımcısı başlatılamıyor: uygulama yolu okunamadı");
         if (!FastScanner.IsSupported(ScanRoot))
             return new(false, $"{ScanRoot} sürücüsü NTFS değil; hızlı tarama yalnız NTFS'te çalışır");
-        return new(true, "Yönetici izniyle MFT'den okur; bir kez izin ister");
+        return new(true, "Yönetici izniyle NTFS sürücülerini MFT'den okur; bir kez izin ister");
     }
 
     public async Task<ScanSnapshot> FastScanAsync(IProgress<TaskStep> progress, CancellationToken ct)
     {
-        var response = await SendAsync(new WorkerRequest { Op = Ops.FastScan, Target = ScanRoot }, Span(progress, 0, 75)!, ct).ConfigureAwait(false);
+        var drives = await Task.Run(ListDrives, ct).ConfigureAwait(false);
+        var tracker = new DriveProgress(Span(progress, 0, 85)!, drives);
+        var ntfs = drives.Select(d => d.Kind == DriveKind.System || d.Format.Equals("NTFS", StringComparison.OrdinalIgnoreCase)).ToArray();
+        var local = drives.Select((d, i) => ntfs[i] ? Task.FromResult<ScanResult?>(null) : ScanDriveAsync(d, new ScanOptions(), tracker.For(i), ct)).ToArray();
+        var results = new ScanResult?[drives.Count];
+        for (var i = 0; i < drives.Count; i++)
+        {
+            if (!ntfs[i])
+                continue;
+            try
+            {
+                results[i] = await FastScanDriveAsync(drives[i], tracker.Steps(i), ct).ConfigureAwait(false);
+            }
+            catch (InvalidOperationException) when (i > 0)
+            {
+                results[i] = await ScanDriveAsync(drives[i], new ScanOptions(), tracker.For(i), ct).ConfigureAwait(false);
+            }
+        }
+        var rest = await Task.WhenAll(local).ConfigureAwait(false);
+        for (var i = 0; i < drives.Count; i++)
+            results[i] ??= rest[i];
+        ct.ThrowIfCancellationRequested();
+        progress.Report(new TaskStep("Hızlı tarama sonucu okunuyor", 85, null));
+        return await Finish(drives, results, progress, ct).ConfigureAwait(false);
+    }
+
+    async Task<ScanResult> FastScanDriveAsync(DriveEntry drive, IProgress<TaskStep> progress, CancellationToken ct)
+    {
+        var response = await SendAsync(new WorkerRequest { Op = Ops.FastScan, Target = drive.Root }, progress, ct).ConfigureAwait(false);
         if (!response.Ok)
             throw new InvalidOperationException(response.Message);
-        progress.Report(new TaskStep("Hızlı tarama sonucu okunuyor", 75, null));
-        var result = await Task.Run(() => ReadTree(response.Payload), ct).ConfigureAwait(false);
-        var snapshot = await Build(result, progress, ct).ConfigureAwait(false);
-        _ = SaveAsync(result);
-        return snapshot;
+        return await Task.Run(() => ReadTree(response.Payload), ct).ConfigureAwait(false);
     }
 
     static ScanResult ReadTree(string? path)
@@ -235,11 +347,32 @@ public sealed class AppBackend : IAppBackend, IAsyncDisposable
         }
     }
 
-    public async Task<ScanSnapshot?> RefreshAsync(ScanResult cached, IProgress<TaskStep> progress, CancellationToken ct)
+    public async Task<ScanSnapshot?> RefreshAsync(ScanSnapshot cached, IProgress<TaskStep> progress, CancellationToken ct)
     {
-        if (cached.Usn is null || cached.Cancelled || !string.Equals(cached.Root.Name, ScanRoot, StringComparison.OrdinalIgnoreCase))
+        var drives = await Task.Run(ListDrives, ct).ConfigureAwait(false);
+        if (cached.For(drives[0].Root) is not { Usn: not null, Cancelled: false })
             return null;
         progress.Report(new TaskStep("Değişiklikler okunuyor", -1, "Son taramadan bu yana USN günlüğü"));
+        var tracker = new DriveProgress(Span(progress, 0, 85)!, drives);
+        var results = new ScanResult?[drives.Count];
+        results[0] = await RefreshOneAsync(cached.For(drives[0].Root)!, progress, ct).ConfigureAwait(false);
+        if (results[0] is null)
+            return null;
+        var rest = await Task.WhenAll(drives.Skip(1).Select((d, i) => RefreshDriveAsync(d, cached.For(d.Root), tracker, i + 1, progress, ct))).ConfigureAwait(false);
+        rest.CopyTo(results, 1);
+        ct.ThrowIfCancellationRequested();
+        return await Finish(drives, results, progress, ct).ConfigureAwait(false);
+    }
+
+    async Task<ScanResult?> RefreshDriveAsync(DriveEntry drive, ScanResult? cached, DriveProgress tracker, int index, IProgress<TaskStep> progress, CancellationToken ct)
+    {
+        if (cached is { Usn: not null, Cancelled: false } && await RefreshOneAsync(cached, progress, ct).ConfigureAwait(false) is { } fresh)
+            return fresh;
+        return await ScanDriveAsync(drive, new ScanOptions(), tracker.For(index), ct).ConfigureAwait(false);
+    }
+
+    async Task<ScanResult?> RefreshOneAsync(ScanResult cached, IProgress<TaskStep> progress, CancellationToken ct)
+    {
         var copy = await Task.Run(() => new ScanResult
         {
             Root = ScanTree.Clone(cached.Root),
@@ -252,11 +385,10 @@ public sealed class AppBackend : IAppBackend, IAsyncDisposable
             Method = cached.Method,
             Usn = cached.Usn,
         }, ct).ConfigureAwait(false);
-        ScanResult? result;
         try
         {
             var update = await Task.Run(() => UsnUpdater.ApplyAsync(copy, ct), ct).ConfigureAwait(false);
-            result = update.Result;
+            return update.Result;
         }
         catch (UsnJournalResetException)
         {
@@ -264,13 +396,8 @@ public sealed class AppBackend : IAppBackend, IAsyncDisposable
         }
         catch (Exception e) when (e is System.ComponentModel.Win32Exception or IOException or UnauthorizedAccessException)
         {
-            result = WorkerRunning ? await RefreshInWorkerAsync(copy, progress, ct).ConfigureAwait(false) : null;
+            return WorkerRunning ? await RefreshInWorkerAsync(copy, progress, ct).ConfigureAwait(false) : null;
         }
-        if (result is null)
-            return null;
-        var snapshot = await Build(result, progress, ct).ConfigureAwait(false);
-        _ = SaveAsync(result);
-        return snapshot;
     }
 
     async Task<ScanResult?> RefreshInWorkerAsync(ScanResult copy, IProgress<TaskStep> progress, CancellationToken ct)
@@ -279,7 +406,7 @@ public sealed class AppBackend : IAppBackend, IAsyncDisposable
         try
         {
             await Task.Run(() => ScanTreeCodec.Write(copy, input), ct).ConfigureAwait(false);
-            var response = await SendAsync(new WorkerRequest { Op = Ops.UsnRefresh, Target = ScanRoot, Items = [input] }, Span(progress, 0, 85)!, ct).ConfigureAwait(false);
+            var response = await SendAsync(new WorkerRequest { Op = Ops.UsnRefresh, Target = copy.Root.Name, Items = [input] }, Span(progress, 0, 85)!, ct).ConfigureAwait(false);
             return response.Ok ? await Task.Run(() => ReadTree(response.Payload), ct).ConfigureAwait(false) : null;
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException or InvalidOperationException)
@@ -419,5 +546,36 @@ public sealed class AppBackend : IAppBackend, IAsyncDisposable
     sealed class Relay<T>(Action<T> report) : IProgress<T>
     {
         public void Report(T value) => report(value);
+    }
+
+    sealed class DriveProgress
+    {
+        readonly IProgress<TaskStep> _target;
+        readonly double[] _weight;
+        readonly double[] _percent;
+
+        public DriveProgress(IProgress<TaskStep> target, IReadOnlyList<DriveEntry> drives)
+        {
+            _target = target;
+            var used = drives.Select(d => (double)Math.Max(1, d.UsedBytes)).ToArray();
+            var total = used.Sum();
+            _weight = [.. used.Select(u => u / total)];
+            _percent = new double[drives.Count];
+        }
+
+        void Report(int index, string step, double percent, string? line)
+        {
+            var known = percent is >= 0 and <= 100;
+            if (known)
+                Volatile.Write(ref _percent[index], percent);
+            double sum = 0;
+            for (var i = 0; i < _percent.Length; i++)
+                sum += _weight[i] * Volatile.Read(ref _percent[i]);
+            _target.Report(new TaskStep(step, known ? sum : -1, line));
+        }
+
+        public IProgress<ScanProgress> For(int index) => new Relay<ScanProgress>(p => Report(index, p.Step, p.Percent, p.CurrentPath));
+
+        public IProgress<TaskStep> Steps(int index) => new Relay<TaskStep>(p => Report(index, p.Step, p.Percent, p.Line));
     }
 }

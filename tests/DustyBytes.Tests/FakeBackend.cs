@@ -60,6 +60,34 @@ public sealed class FakeBackend : IAppBackend
     public bool DryRun { get; set; }
     public bool WorkerRunning { get; set; }
     public bool Winapp2Present { get; set; }
+    public bool ScanRemovable { get; set; }
+    public ScanSnapshot? RefreshedFrom { get; private set; }
+
+    public static ScanSnapshot TwoDrives()
+    {
+        var c = Snapshot();
+        var root = new ScanNode { Name = @"D:\", IsDirectory = true, Children = [] };
+        var games = new ScanNode { Name = "Oyunlar", IsDirectory = true, Parent = root, Size = 70_000_000_000, Children = [] };
+        root.Children!.Add(games);
+        games.Children!.Add(new ScanNode { Name = "Büyük Oyun", IsDirectory = true, Parent = games, Size = games.Size, Children = [] });
+        root.Size = games.Size;
+        var d = new ScanResult { Root = root, Files = 500, Directories = 10 };
+        IReadOnlyList<Unit> units =
+        [
+            .. c.Units,
+            new Unit { Id = "d1", Kind = UnitKind.Game, Name = "Büyük Oyun", Paths = [@"D:\Oyunlar\Büyük Oyun"], SizeBytes = 70_000_000_000, Score = 10 },
+        ];
+        return c with
+        {
+            Units = units,
+            Drives = [c.Result, d],
+            Volumes =
+            [
+                new DriveEntry(@"C:\", "Sistem", "NTFS", DriveKind.System, 500_000_000_000, 100_000_000_000),
+                new DriveEntry(@"D:\", "Oyun", "NTFS", DriveKind.Fixed, 1_000_000_000_000, 600_000_000_000),
+            ],
+        };
+    }
 
     public static FakeBackend Rich()
     {
@@ -202,9 +230,10 @@ public sealed class FakeBackend : IAppBackend
         return Task.FromResult(Fresh ?? Snapshot());
     }
 
-    public async Task<ScanSnapshot?> RefreshAsync(ScanResult cached, IProgress<TaskStep> progress, CancellationToken ct)
+    public async Task<ScanSnapshot?> RefreshAsync(ScanSnapshot cached, IProgress<TaskStep> progress, CancellationToken ct)
     {
         ScanCalls.Add("refresh");
+        RefreshedFrom = cached;
         await Task.Yield();
         return Refreshed;
     }

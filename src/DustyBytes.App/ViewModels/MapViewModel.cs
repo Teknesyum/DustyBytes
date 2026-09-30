@@ -32,6 +32,11 @@ public sealed partial class MapViewModel : ViewModelBase
     {
         _main = main;
         main.Session.SnapshotChanged += (_, _) => Load();
+        main.Session.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(SessionState.SelectedDrive))
+                Load();
+        };
         Load();
     }
 
@@ -90,12 +95,16 @@ public sealed partial class MapViewModel : ViewModelBase
             Entries = [];
             return;
         }
+        var result = (_main.Session.SelectedDrive is { } drive ? snapshot.For(drive) : null) ?? snapshot.Result;
+        var root = result.Root.Name.TrimEnd('\\') + "\\";
         foreach (var unit in snapshot.Units)
             foreach (var path in unit.Paths)
             {
+                if (!path.StartsWith(root, StringComparison.OrdinalIgnoreCase))
+                    continue;
                 if (!_kinds.TryAdd(path.TrimEnd('\\'), unit.Kind))
                     continue;
-                var found = snapshot.Result.Root.Find(path);
+                var found = result.Root.Find(path);
                 if (found is null)
                     continue;
                 var kind = Group(unit.Kind);
@@ -106,7 +115,7 @@ public sealed partial class MapViewModel : ViewModelBase
                     sums[kind] = sums.GetValueOrDefault(kind) + found.Size;
                 }
             }
-        Show(snapshot.Result.Root);
+        Show(result.Root);
     }
 
     public UnitKind? KindOf(ScanNode node)

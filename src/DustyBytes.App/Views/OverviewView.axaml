@@ -53,6 +53,38 @@
 
       <StackPanel Spacing="{StaticResource SectionGap}" IsVisible="{Binding ShowContent}">
         <Border Theme="{StaticResource Panel}">
+          <StackPanel Spacing="{StaticResource RowGap}">
+            <TextBlock Theme="{StaticResource H3}" Text="Sürücüler"/>
+            <ListBox Name="DriveFilter" Theme="{StaticResource NavList}" ItemContainerTheme="{StaticResource ChipItem}"
+                     ItemsSource="{Binding Drives}" SelectedItem="{Binding SelectedDrive}" IsVisible="{Binding HasDrives}"
+                     KeyboardNavigation.TabNavigation="Once"
+                     AutomationProperties.Name="Sürücü süzgeci">
+              <ListBox.ItemsPanel>
+                <ItemsPanelTemplate>
+                  <WrapPanel Orientation="Horizontal"/>
+                </ItemsPanelTemplate>
+              </ListBox.ItemsPanel>
+              <ListBox.ItemTemplate>
+                <DataTemplate x:DataType="vm:DriveChip">
+                  <StackPanel Spacing="{StaticResource Space1}" Margin="{StaticResource InputPadding}">
+                    <TextBlock Text="{Binding Label}" HorizontalAlignment="Center"/>
+                    <Border Height="{StaticResource Space2}" CornerRadius="{StaticResource Radius}"
+                            Background="{StaticResource Renk1x10}" ClipToBounds="True">
+                      <Border Classes="bar" CornerRadius="{StaticResource Radius}" Background="{StaticResource Renk1}"
+                              RenderTransform="{Binding Share, Converter={x:Static v:UiConvert.ScaleX}}"/>
+                    </Border>
+                    <TextBlock Theme="{StaticResource Hint}" Classes="data" Text="{Binding Detail}" HorizontalAlignment="Center"/>
+                  </StackPanel>
+                </DataTemplate>
+              </ListBox.ItemTemplate>
+            </ListBox>
+            <CheckBox Name="RemovableToggle" IsChecked="{Binding ScanRemovable}"
+                      ToolTip.Tip="USB bellek ve harici diskler de taranır; çıkarıldığında listeden düşer">
+              <TextBlock Theme="{StaticResource Hint}" Text="Çıkarılabilir sürücüleri de tara"/>
+            </CheckBox>
+          </StackPanel>
+        </Border>
+        <Border Theme="{StaticResource Panel}">
           <Grid ColumnDefinitions="*,Auto,Auto" RowDefinitions="Auto,Auto,Auto">
             <TextBlock Theme="{StaticResource Label}" Text="Açılabilir alan"/>
             <TextBlock Grid.Row="1" Theme="{StaticResource Hero}" Classes="data" Text="{Binding HeroText}" Margin="0,8"/>

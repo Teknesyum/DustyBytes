@@ -4,6 +4,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using DustyBytes.App.Services;
 using DustyBytes.Core.Model;
+using DustyBytes.Scan;
 
 namespace DustyBytes.App.ViewModels;
 
@@ -47,6 +48,8 @@ public sealed record KindBar(string Label, string SizeText, double Share, UnitKi
 
 public sealed record TopUnit(string Name, string KindLabel, string SizeText, string UsageText);
 
+public sealed record DriveChip(string? Root, string Label, string Detail, double Share);
+
 public sealed partial class OverviewViewModel : ViewModelBase
 {
     readonly MainViewModel _main;
@@ -67,6 +70,78 @@ public sealed partial class OverviewViewModel : ViewModelBase
 
     public ObservableCollection<KindBar> Bars { get; } = [];
     public ObservableCollection<TopUnit> Top { get; } = [];
+    public ObservableCollection<DriveChip> Drives { get; } = [];
+
+    public bool HasDrives => Drives.Count > 0;
+
+    [ObservableProperty]
+    private DriveChip? _selectedDrive;
+
+    bool _syncing;
+
+    partial void OnSelectedDriveChanged(DriveChip? value)
+    {
+        if (!_syncing)
+            Session.SelectedDrive = value?.Root;
+    }
+
+    void Chips()
+    {
+        var volumes = Session.Snapshot?.Volumes ?? [];
+        var list = new List<DriveChip>();
+        if (volumes.Count > 1)
+        {
+            var total = volumes.Sum(v => v.TotalBytes);
+            var free = volumes.Sum(v => v.FreeBytes);
+            list.Add(new DriveChip(null, "Tümü", Space(free, total), total <= 0 ? 0 : Math.Clamp((double)(total - free) / total, 0, 1)));
+        }
+        foreach (var v in volumes)
+            list.Add(new DriveChip(volumes.Count > 1 ? v.Root : null, v.Label.Length > 0 ? $"{v.Letter} {v.Label}" : v.Letter, Space(v.FreeBytes, v.TotalBytes), v.UsedShare));
+        _syncing = true;
+        try
+        {
+            Drives.Clear();
+            foreach (var chip in list)
+                Drives.Add(chip);
+        }
+        finally
+        {
+            _syncing = false;
+        }
+        OnPropertyChanged(nameof(HasDrives));
+        SyncSelection();
+    }
+
+    static string Space(long free, long total) => $"{Format.Bytes(free)} boş / {Format.Bytes(total)}";
+
+    void SyncSelection()
+    {
+        var root = Session.SelectedDrive;
+        var chip = Drives.FirstOrDefault(d => string.Equals(d.Root, root, StringComparison.OrdinalIgnoreCase)) ?? Drives.FirstOrDefault();
+        _syncing = true;
+        try
+        {
+            SelectedDrive = chip;
+        }
+        finally
+        {
+            _syncing = false;
+        }
+    }
+
+    public bool ScanRemovable
+    {
+        get => _main.Backend.ScanRemovable;
+        set
+        {
+            if (_main.Backend.ScanRemovable == value)
+                return;
+            _main.Backend.ScanRemovable = value;
+            OnPropertyChanged();
+            if (Session.HasSnapshot && CanScan())
+                _ = Run(ScanMode.Refresh);
+        }
+    }
 
     [ObservableProperty]
     private string _heroText = "";
@@ -102,14 +177,19 @@ public sealed partial class OverviewViewModel : ViewModelBase
     public string FastScanTip => Session.IsRestoring ? RestoringTip : FastScanState.Reason;
     public string ScanTip => Session.IsRestoring ? RestoringTip
         : Session.HasSnapshot ? "Son taramadan bu yana değişenleri okur; tam taramadan çok daha kısa sürer"
-        : "Sistem sürücüsü yönetici izni istemeden taranır";
-    public string RescanTip => Session.IsRestoring ? RestoringTip : "Sürücüyü baştan tarar; yenileme şüpheli görünürse kullanın";
+        : "Sabit sürücülerin hepsi yönetici izni istemeden taranır";
+    public string RescanTip => Session.IsRestoring ? RestoringTip : "Sürücüleri baştan tarar; yenileme şüpheli görünürse kullanın";
 
     void OnSession(object? sender, PropertyChangedEventArgs e)
     {
         switch (e.PropertyName)
         {
             case nameof(SessionState.Snapshot):
+                Chips();
+                Rebuild();
+                break;
+            case nameof(SessionState.SelectedDrive):
+                SyncSelection();
                 Rebuild();
                 break;
             case nameof(SessionState.Quarantine):
@@ -153,19 +233,23 @@ public sealed partial class OverviewViewModel : ViewModelBase
             ScannedText = "";
             return;
         }
-        var units = snapshot.Units;
+        (string Root, ScanResult? Result) drive = Session.SelectedDrive is { } d && snapshot.For(d) is { } picked ? (d, picked) : ("", null);
+        IReadOnlyList<Unit> units = drive.Result is null
+            ? snapshot.Units
+            : [.. snapshot.Units.Where(u => u.Drive.Equals(drive.Root, StringComparison.OrdinalIgnoreCase))];
+        var multi = snapshot.Results.Count > 1;
         var total = units.Sum(u => u.SizeBytes);
         HeroText = Format.Bytes(total);
         UnitCountText = $"{Format.Count(units.Count)} birim";
         var now = DateTimeOffset.Now;
         LastScanText = $"Son tarama {Format.Ago(snapshot.FinishedAt, now)}, {snapshot.FinishedAt.ToLocalTime():HH:mm}";
-        ScannedText = $"{Format.Count(snapshot.Result.Files)} dosya tarandı";
+        ScannedText = $"{Format.Count(drive.Result?.Files ?? snapshot.Files)} dosya tarandı";
         var groups = units.GroupBy(u => Group(u.Kind)).Select(g => (Kind: g.Key, Bytes: g.Sum(u => u.SizeBytes))).OrderByDescending(g => g.Bytes).ToList();
         var max = groups.Count == 0 ? 1 : Math.Max(1, groups[0].Bytes);
         foreach (var g in groups)
             Bars.Add(new KindBar(KindText.Label(g.Kind), Format.Bytes(g.Bytes), (double)g.Bytes / max, g.Kind));
         foreach (var u in units.OrderByDescending(u => u.Score).ThenByDescending(u => u.SizeBytes).Take(5))
-            Top.Add(new TopUnit(u.Name, KindText.Label(u.Kind), Format.Bytes(u.SizeBytes), KindText.Usage(u.Usage, now)));
+            Top.Add(new TopUnit(u.Name, multi && drive.Result is null && u.Drive.Length > 0 ? $"{KindText.Label(u.Kind)} · {u.Drive.TrimEnd('\\')}" : KindText.Label(u.Kind), Format.Bytes(u.SizeBytes), KindText.Usage(u.Usage, now)));
         Counters();
     }
 
