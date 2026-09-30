@@ -245,5 +245,30 @@ public sealed class FakeBackend : IAppBackend
 
     public LedgerData ReadLedger() => Ledger;
 
-    public LedgerData AddFreed(long bytes) => Ledger = new(Ledger.FreedBytes + bytes, Ledger.Actions + 1);
+    public List<string?> FreedRoots { get; } = [];
+
+    public LedgerData AddFreed(long bytes, string? root = null)
+    {
+        FreedRoots.Add(root);
+        return Ledger = new(Ledger.FreedBytes + bytes, Ledger.Actions + 1, [.. Ledger.Entries, new FreedEntry(DateTimeOffset.Now, bytes, root ?? @"C:\", DriveTotal, DriveFree)]);
+    }
+
+    public long DriveTotal { get; set; } = 500_000_000_000;
+    public long DriveFree { get; set; } = 200_000_000_000;
+
+    public List<DriveSpace>? DriveList { get; set; }
+
+    public IReadOnlyList<DriveSpace> Drives() => DriveList ?? [new DriveSpace(@"C:\", DriveTotal, DriveFree)];
+
+    public bool WeeklyCheck { get; set; } = true;
+    public List<bool> WeeklyCalls { get; } = [];
+
+    public Task<IntegrationResult> SetWeeklyCheckAsync(bool enabled)
+    {
+        WeeklyCalls.Add(enabled);
+        WeeklyCheck = enabled;
+        return Task.FromResult(new IntegrationResult(true, true, null));
+    }
+
+    public void SetLedger(LedgerData ledger) => Ledger = ledger;
 }

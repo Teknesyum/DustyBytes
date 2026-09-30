@@ -26,16 +26,23 @@ public sealed class Ledger(string? path = null)
         }
     }
 
-    public LedgerData Add(long freedBytes)
+    public const int HistoryMax = 500;
+
+    public LedgerData Add(long freedBytes, DriveSpace? after = null, DateTimeOffset? at = null)
     {
         lock (_lock)
         {
             var current = Read();
-            var next = new LedgerData(current.FreedBytes + Math.Max(0, freedBytes), current.Actions + 1);
+            var bytes = Math.Max(0, freedBytes);
+            var entry = new FreedEntry(at ?? DateTimeOffset.Now, bytes, after?.Root, after?.TotalBytes ?? 0, after?.FreeBytes ?? 0);
+            var history = current.Entries.Append(entry).TakeLast(HistoryMax).ToList();
+            var next = new LedgerData(current.FreedBytes + bytes, current.Actions + 1, history);
             try
             {
                 Directory.CreateDirectory(System.IO.Path.GetDirectoryName(Path)!);
-                File.WriteAllText(Path, JsonSerializer.Serialize(next, AppJson.Default.LedgerData));
+                var temp = Path + ".tmp";
+                File.WriteAllText(temp, JsonSerializer.Serialize(next, AppJson.Default.LedgerData));
+                File.Move(temp, Path, overwrite: true);
             }
             catch (Exception e) when (e is IOException or UnauthorizedAccessException)
             {

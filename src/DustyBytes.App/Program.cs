@@ -1,14 +1,26 @@
 using Avalonia;
+using DustyBytes.App.Services;
 
 namespace DustyBytes.App;
 
 public static class Program
 {
+    public static LaunchArgs Launch { get; private set; } = new(LaunchMode.Normal);
+
     [STAThread]
     public static int Main(string[] args)
     {
-        if (args.Length > 0 && args[0] == "--worker")
-            return Worker.WorkerHost.Run(args[1..]);
+        Launch = LaunchArgs.Parse(args);
+        switch (Launch.Mode)
+        {
+            case LaunchMode.Worker:
+                return Worker.WorkerHost.Run(args[1..]);
+            case LaunchMode.Check:
+                var integration = SystemIntegration.ForCurrentUser();
+                return DiskCheck.Run(DiskCheck.FixedDrives(), new WindowsToast(integration.Shell));
+            case LaunchMode.Unregister:
+                return SystemIntegration.ForCurrentUser().Unregister().Error is null ? 0 : 1;
+        }
 
         var instance = Worker.SingleInstance.Acquire("DustyBytes");
         if (!instance.IsFirst)

@@ -168,5 +168,11 @@ public sealed partial class MainViewModel : ObservableObject
 
     public async Task StartAsync() => await Session.StartAsync(this);
 
+    public void Inspect(string path)
+    {
+        GoTo(Map);
+        Map.Focus(path);
+    }
+
     public static string Size(long bytes) => Format.Bytes(bytes);
 }

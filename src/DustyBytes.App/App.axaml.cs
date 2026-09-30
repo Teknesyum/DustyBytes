@@ -29,13 +29,21 @@ public partial class App : Application
             desktop.MainWindow = window;
 
             if (Instance is not null)
-                Instance.Activated += (_, _) => Dispatcher.UIThread.Post(window.BringForward);
+                Instance.Activated += (_, args) => Dispatcher.UIThread.Post(() =>
+                {
+                    window.BringForward();
+                    if (LaunchArgs.Parse(args) is { Mode: LaunchMode.Inspect, Path: { } path })
+                        vm.Inspect(path);
+                });
 
             vm.Update.Exit = () => desktop.Shutdown();
             window.Opened += async (_, _) =>
             {
                 UpdateService.CleanupOld(AppContext.BaseDirectory);
                 vm.Update.Start();
+                _ = Task.Run(() => SystemIntegration.ForCurrentUser().Apply(Core.AppSettings.Load().WeeklyCheck));
+                if (Program.Launch is { Mode: LaunchMode.Inspect, Path: { } path })
+                    vm.Inspect(path);
                 await vm.StartAsync();
             };
             desktop.Exit += (_, _) =>

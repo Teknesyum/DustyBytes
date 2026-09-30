@@ -3,6 +3,7 @@ using System.ComponentModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using DustyBytes.App.Services;
+using DustyBytes.Core.Ipc;
 using DustyBytes.Core.Model;
 
 namespace DustyBytes.App.ViewModels;
@@ -54,6 +55,17 @@ public sealed partial class OverviewViewModel : ViewModelBase
     public OverviewViewModel(MainViewModel main)
     {
         _main = main;
+        FreeProgress = main.NewProgress();
+        _weeklyCheck = main.Backend.WeeklyCheck;
+        Purge.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(TwoStep.Target))
+            {
+                OnPropertyChanged(nameof(IsFreeNowArmed));
+                OnPropertyChanged(nameof(FreeNowButtonText));
+            }
+        };
+        main.Ticked += Purge.Elapse;
         Session.PropertyChanged += OnSession;
         Session.Scan.PropertyChanged += (_, e) =>
         {
@@ -85,6 +97,51 @@ public sealed partial class OverviewViewModel : ViewModelBase
 
     [ObservableProperty]
     private string _scannedText = "";
+
+    public TaskProgressViewModel FreeProgress { get; }
+    public TwoStep Purge { get; } = new();
+    public ObservableCollection<KindBar> Compare { get; } = [];
+
+    [ObservableProperty]
+    private string _monthText = "";
+
+    [ObservableProperty]
+    private string _lastCleanupText = "";
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasCompare))]
+    private bool _hasLastCleanup;
+
+    public bool HasCompare => HasLastCleanup && Compare.Count > 0;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasFreeNow), nameof(FreeNowTitle), nameof(FreeNowHint), nameof(FreeNowButtonText))]
+    [NotifyCanExecuteChangedFor(nameof(FreeNowCommand))]
+    private FreeNowOffer? _freeNowOffer;
+
+    public bool HasFreeNow => FreeNowOffer is not null;
+    public bool IsFreeNowArmed => Purge.IsArmed;
+    public string FreeNowTitle => FreeNowOffer is { } o ? $"{o.Drive.Letter} sürücüsünde yer azaldı" : "";
+    public string FreeNowHint => FreeNowOffer is { } o
+        ? $"Disk %{o.Drive.UsedPercent} dolu. Karantinada bu sürücüden {Format.Bytes(o.Bytes)} bekliyor; süresini beklemeden kalıcı silerseniz yer hemen açılır. Geri alınamaz."
+        : "";
+    public string FreeNowButtonText => IsFreeNowArmed ? TwoStep.ArmedText : FreeNowOffer is { } o ? $"Bekleyen {Format.Bytes(o.Bytes)}'ı şimdi kalıcı sil" : "";
+
+    [ObservableProperty]
+    private bool _weeklyCheck;
+
+    public string WeeklyCheckTip => "Haftada bir boş alanı ölçer; disk dolmak üzereyse Windows bildirimi gösterir. Hiçbir dosyayı silmez.";
+
+    partial void OnWeeklyCheckChanged(bool value) => _ = SaveWeeklyCheck(value);
+
+    async Task SaveWeeklyCheck(bool value)
+    {
+        var result = await _main.Backend.SetWeeklyCheckAsync(value);
+        if (result.Error is { } error)
+            _main.Fail("Haftalık disk kontrolü ayarlanamadı: " + error);
+        else
+            _main.Notify(value ? "Haftalık disk kontrolü açıldı" : "Haftalık disk kontrolü kapatıldı");
+    }
 
     public bool HasSnapshot => Session.HasSnapshot;
     public bool IsRefreshing => Session.IsRefreshing;
@@ -180,7 +237,85 @@ public sealed partial class OverviewViewModel : ViewModelBase
     {
         PendingText = Session.PendingText;
         FreedText = Format.Bytes(Session.Ledger.FreedBytes);
+        History();
+        CheckSpace();
     }
+
+    void History()
+    {
+        var ledger = Session.Ledger;
+        var now = DateTimeOffset.Now;
+        var month = ledger.FreedInMonth(now);
+        MonthText = month > 0 ? $"Bu ay {Format.Bytes(month)} açtınız" : "Bu ay henüz yer açılmadı";
+        Compare.Clear();
+        if (ledger.Last is not { } last)
+        {
+            LastCleanupText = "";
+            HasLastCleanup = false;
+            OnPropertyChanged(nameof(HasCompare));
+            return;
+        }
+        var where = last.Root is { Length: > 0 } root ? $" · {root.TrimEnd('\\')}" : "";
+        LastCleanupText = $"Son temizlik {Format.Ago(last.At, now)}: {Format.Bytes(last.Bytes)} açıldı{where}";
+        if (last.HasDisk)
+        {
+            Compare.Add(new KindBar("Önce", $"%{(int)Math.Floor(last.UsedBefore * 100)} dolu", last.UsedBefore, UnitKind.Folder));
+            Compare.Add(new KindBar("Sonra", $"%{(int)Math.Floor(last.UsedAfter * 100)} dolu", last.UsedAfter, UnitKind.Game));
+        }
+        HasLastCleanup = true;
+        OnPropertyChanged(nameof(HasCompare));
+    }
+
+    void CheckSpace()
+    {
+        var entries = Session.Quarantine?.Entries ?? [];
+        var offer = entries.Count == 0 ? null : DiskCheck.FreeNow(_main.Backend.Drives(), entries);
+        if (offer is null || FreeNowOffer is null || offer.Drive.Root != FreeNowOffer.Drive.Root || offer.Bytes != FreeNowOffer.Bytes)
+            Purge.Reset();
+        FreeNowOffer = offer;
+    }
+
+    bool CanFreeNow() => FreeNowOffer is not null && !FreeProgress.IsRunning;
+
+    [RelayCommand(CanExecute = nameof(CanFreeNow))]
+    private async Task FreeNow()
+    {
+        if (FreeNowOffer is not { } offer || !Purge.Press(offer))
+            return;
+        WorkerResponse response;
+        try
+        {
+            response = await FreeProgress.RunAsync($"{offer.Drive.Letter} karantinası kalıcı siliniyor", (p, ct) => _main.Backend.SendAsync(new WorkerRequest
+            {
+                Op = Ops.Purge,
+                UserApproved = true,
+                Items = [.. offer.Ids],
+            }, p, ct), cancellable: false);
+        }
+        catch (Exception e) when (e is IOException or InvalidOperationException or TimeoutException or Worker.WorkerStartException)
+        {
+            _main.Fail("İşlem yapılamadı: " + e.Message);
+            return;
+        }
+        finally
+        {
+            FreeNowCommand.NotifyCanExecuteChanged();
+        }
+        if (response.DryRun)
+            _main.Notify("Prova: hiçbir öğe silinmedi");
+        else
+        {
+            if (response.FreedBytes > 0)
+                Session.AddFreed(response.FreedBytes, offer.Drive.Root);
+            if (response.Ok)
+                _main.Notify($"{offer.Drive.Letter} sürücüsünde {Format.Bytes(response.FreedBytes)} açıldı");
+            else
+                _main.Fail("Silme tamamlanamadı: " + response.Message);
+        }
+        await Session.RefreshQuarantineAsync(_main);
+    }
+
+    protected override void OnNavigatedFrom() => Purge.Reset();
 
     protected override void OnNavigatedTo()
     {
