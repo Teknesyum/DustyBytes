@@ -7,6 +7,7 @@ public sealed class ProtectedRules
 {
     public List<PathRule> Roots { get; set; } = [];
     public List<NameRule> Segments { get; set; } = [];
+    public List<NameRule> DriveRoots { get; set; } = [];
     public List<NameRule> Files { get; set; } = [];
     public List<PrefixRule> RuntimePrefixes { get; set; } = [];
     public List<CloudRule> Cloud { get; set; } = [];

@@ -40,6 +40,9 @@ public sealed partial class SessionState(IAppBackend backend) : ObservableObject
     private bool _isRefreshing;
 
     [ObservableProperty]
+    private string? _selectedDrive;
+
+    [ObservableProperty]
     private bool _isRestoring;
 
     [ObservableProperty]
@@ -87,7 +90,7 @@ public sealed partial class SessionState(IAppBackend backend) : ObservableObject
         Attach(shell);
         if (Scan.IsRunning)
             return;
-        var cached = Snapshot?.Result;
+        var cached = Snapshot;
         if (mode == ScanMode.Refresh && cached is null)
             mode = ScanMode.Full;
         IsRefreshing = Snapshot is not null;
@@ -104,7 +107,7 @@ public sealed partial class SessionState(IAppBackend backend) : ObservableObject
             {
                 ScanMode.Fast => "Hızlı tarama yönetici izniyle yapılıyor",
                 ScanMode.Refresh => "Son taramadan bu yana değişenler okunuyor",
-                _ => $"{backend.ScanRoot} sürücüsü taranıyor",
+                _ => "Sürücüler taranıyor",
             };
             var refreshed = false;
             var result = await Scan.RunAsync(title, async (p, ct) =>
@@ -155,6 +158,8 @@ public sealed partial class SessionState(IAppBackend backend) : ObservableObject
     public void SetSnapshot(ScanSnapshot snapshot)
     {
         Snapshot = snapshot;
+        if (SelectedDrive is { } drive && (snapshot.Results.Count < 2 || snapshot.For(drive) is null))
+            SelectedDrive = null;
         SnapshotChanged?.Invoke(this, EventArgs.Empty);
     }
 

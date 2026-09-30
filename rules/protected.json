@@ -27,6 +27,19 @@
     { "name": "$Recycle.Bin", "reason": "Geri Dönüşüm Kutusu" },
     { "name": ".git", "reason": "Kaynak denetimi deposu" }
   ],
+  "driveRoots": [
+    { "name": "Windows", "reason": "Windows sistem klasörü" },
+    { "name": "Recovery", "reason": "Kurtarma bölümü" },
+    { "name": "Boot", "reason": "Önyükleme dosyaları" },
+    { "name": "EFI", "reason": "Önyükleme dosyaları" },
+    { "name": "Config.Msi", "reason": "Windows Installer geri alma alanı" },
+    { "name": "$WinREAgent", "reason": "Windows kurtarma güncellemesi" },
+    { "name": "$SysReset", "reason": "Windows sıfırlama kaydı" },
+    { "name": "WindowsApps", "reason": "Store paketleri, PackageManager ile kaldırılır" },
+    { "name": "WpSystem", "reason": "Store uygulama verisi, uygulamayla kaldırılır" },
+    { "name": "Program Files/WindowsApps", "reason": "Store paketleri, PackageManager ile kaldırılır" },
+    { "name": "Program Files/ModifiableWindowsApps", "reason": "Store oyunları, mağaza üzerinden kaldırılır" }
+  ],
   "files": [
     { "name": "hiberfil.sys", "reason": "Sistem, ayarlardan: hazırda bekletme" },
     { "name": "pagefile.sys", "reason": "Sistem, ayarlardan: sanal bellek" },

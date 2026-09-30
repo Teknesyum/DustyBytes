@@ -10,6 +10,7 @@ public sealed record AppSettings
     public bool AutoPurge { get; init; } = true;
 
     public bool WeeklyCheck { get; init; } = true;
+    public bool ScanRemovable { get; init; }
 
     public static string DefaultPath => Path.Combine(Paths.AppData, "settings.json");
 

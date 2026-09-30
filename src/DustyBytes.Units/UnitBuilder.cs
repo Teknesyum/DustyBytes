@@ -84,6 +84,58 @@ public static class UnitBuilder
             .ToList();
     }
 
+    public static IReadOnlyList<Unit> BuildDrives(UnitContext ctx, IReadOnlyList<ScanResult> drives, Action<int, int>? stage = null)
+    {
+        var total = Math.Max(1, drives.Count) * DefaultExtractors.Count;
+        var parts = new List<IReadOnlyList<Unit>>();
+        for (var i = 0; i < drives.Count; i++)
+        {
+            var offset = i * DefaultExtractors.Count;
+            var drive = ctx with { ScanResult = drives[i], SystemDrive = i == 0 };
+            parts.Add(Build(drive, stage is null ? null : (done, _) => stage(offset + done, total)));
+        }
+        return Merge([.. drives.Select(d => d.Root.Name)], parts);
+    }
+
+    public static IReadOnlyList<Unit> Merge(IReadOnlyList<string> roots, IReadOnlyList<IReadOnlyList<Unit>> parts)
+    {
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        var result = new List<Unit>();
+        for (var i = 0; i < parts.Count; i++)
+            foreach (var unit in parts[i])
+            {
+                var owner = Owner(roots, unit);
+                if (owner != i && !(owner < 0 && i == 0))
+                    continue;
+                if (seen.Add(unit.Id))
+                    result.Add(unit);
+            }
+        return [.. result.OrderByDescending(u => u.Score)];
+    }
+
+    public static int Owner(IReadOnlyList<string> roots, Unit unit)
+    {
+        if (unit.Paths.Count == 0)
+            return -1;
+        var best = -1;
+        for (var i = 0; i < roots.Count; i++)
+            if (SafeUnder(unit.Paths[0], roots[i]) && (best < 0 || roots[i].Length > roots[best].Length))
+                best = i;
+        return best;
+    }
+
+    static bool SafeUnder(string path, string root)
+    {
+        try
+        {
+            return Paths.IsUnder(path, root);
+        }
+        catch (Exception e) when (e is ArgumentException or NotSupportedException or PathTooLongException)
+        {
+            return false;
+        }
+    }
+
     static IEnumerable<string> Ancestors(string path)
     {
         for (var parent = Path.GetDirectoryName(path); !string.IsNullOrEmpty(parent); parent = Path.GetDirectoryName(parent))
