@@ -11,6 +11,7 @@ public sealed record AppSettings
 
     public bool WeeklyCheck { get; init; } = true;
     public bool ScanRemovable { get; init; }
+    public long DuplicateMinBytes { get; init; } = 10L * 1024 * 1024;
 
     public static string DefaultPath => Path.Combine(Paths.AppData, "settings.json");
 

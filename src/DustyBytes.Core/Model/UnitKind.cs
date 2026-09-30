@@ -15,6 +15,7 @@ public enum UnitKind
     Folder,
     OldDownload,
     CloudCopy,
+    Duplicate,
 }
 
 public enum RemovalMethod

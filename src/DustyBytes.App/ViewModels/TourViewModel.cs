@@ -94,6 +94,7 @@ public sealed partial class TourViewModel : ViewModelBase
     public static List<Unit> Pick(IEnumerable<Unit> units, DateTimeOffset now) =>
     [
         .. units.Where(u => u.Removal == RemovalMethod.Quarantine
+                && u.Kind != UnitKind.Duplicate
                 && u.SizeBytes >= OffersViewModel.SmallBytes
                 && (u.Usage.LastUsed is not { } last || now - last >= LongUnused))
             .OrderByDescending(u => u.Score).ThenByDescending(u => u.SizeBytes),

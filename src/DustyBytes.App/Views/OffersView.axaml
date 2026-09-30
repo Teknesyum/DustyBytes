@@ -72,6 +72,12 @@
         <TextBlock Theme="{StaticResource Hint}" Text="{Binding SmallText}"/>
       </CheckBox>
       <TextBlock Name="StreamNotice" Theme="{StaticResource Hint}" Text="{Binding Notice}" IsVisible="{Binding HasNotice}" TextWrapping="Wrap"/>
+      <Grid Name="DuplicateSearch" ColumnDefinitions="*,Auto" IsVisible="{Binding Session.HasDuplicateStatus}">
+        <TextBlock Name="DuplicateStatus" Theme="{StaticResource Hint}" Text="{Binding Session.DuplicateStatus}" TextWrapping="Wrap" VerticalAlignment="Center"/>
+        <Button Name="DuplicateCancel" Grid.Column="1" Classes="ghost" Content="Aramayı durdur" Margin="{StaticResource InputPadding}"
+                Command="{Binding Session.CancelDuplicatesCommand}" IsVisible="{Binding Session.IsFindingDuplicates}"
+                ToolTip.Tip="Kopya aramasını durdurur; bulunan gruplar kalır"/>
+      </Grid>
       <CheckBox Name="SelectAll" Classes="wide" Margin="{StaticResource InputPadding}"
                 IsChecked="{Binding AllSelected, Mode=OneWay}" Command="{Binding ToggleAllCommand}"
                 IsVisible="{Binding HasBatch}" Content="Tümünü seç"/>
@@ -223,7 +229,36 @@
                   </StackPanel>
                 </Grid>
               </Border>
-              <Panel/>
+              <StackPanel Name="CopyList" Spacing="{StaticResource Space1}" Margin="{StaticResource InputPadding}" IsVisible="{Binding IsDuplicate}">
+                <TextBlock Theme="{StaticResource Hint}" Text="{Binding KeepRule}" TextWrapping="Wrap"/>
+                <ItemsControl ItemsSource="{Binding Copies}" Grid.IsSharedSizeScope="True">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:CopyRow">
+                      <Grid>
+                        <Grid.ColumnDefinitions>
+                          <ColumnDefinition Width="Auto" SharedSizeGroup="copyState"/>
+                          <ColumnDefinition Width="*"/>
+                          <ColumnDefinition Width="Auto" SharedSizeGroup="copyAction"/>
+                        </Grid.ColumnDefinitions>
+                        <Border Classes="chip" IsVisible="{Binding IsKept}" Margin="{StaticResource InputPadding}">
+                          <TextBlock Theme="{StaticResource Label}" Text="Kalacak"/>
+                        </Border>
+                        <TextBlock Theme="{StaticResource Hint}" Text="Karantinaya" IsVisible="{Binding IsOffered}"
+                                   Margin="{StaticResource InputPadding}" VerticalAlignment="Center"/>
+                        <TextBlock Grid.Column="1" Theme="{StaticResource Body}" FontWeight="{StaticResource WeightSemi}" FontFamily="{StaticResource FontMono}"
+                                   Text="{Binding Path}" IsVisible="{Binding IsKept}" TextTrimming="LeadingCharacterEllipsis" VerticalAlignment="Center"
+                                   ToolTip.Tip="{Binding Path}"/>
+                        <TextBlock Grid.Column="1" Theme="{StaticResource Hint}" FontFamily="{StaticResource FontMono}"
+                                   Text="{Binding Path}" IsVisible="{Binding IsOffered}" TextTrimming="LeadingCharacterEllipsis" VerticalAlignment="Center"
+                                   ToolTip.Tip="{Binding Path}"/>
+                        <Button Grid.Column="2" Classes="ghost" Content="Bunu tut" IsVisible="{Binding IsOffered}"
+                                Command="{Binding KeepCommand}" AutomationProperties.Name="Bunu tut"
+                                ToolTip.Tip="Bu kopya kalır, diğerleri karantinaya önerilir"/>
+                      </Grid>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </StackPanel>
               </StackPanel>
             </DataTemplate>
           </ItemsControl.ItemTemplate>

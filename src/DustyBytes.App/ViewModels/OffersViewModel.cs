@@ -15,7 +15,20 @@ public sealed class OfferFilter(string label, params UnitKind[] kinds)
 {
     public string Label { get; } = label;
     public IReadOnlyList<UnitKind> Kinds { get; } = kinds;
+    public bool AllSizes { get; init; }
     public bool Matches(UnitKind kind) => Kinds.Count == 0 || Kinds.Contains(kind);
+}
+
+public sealed partial class CopyRow(UnitCard card, string path, bool kept) : ObservableObject
+{
+    public string Path { get; } = path;
+    public bool IsKept { get; } = kept;
+    public bool IsOffered => !IsKept;
+    public string Folder => System.IO.Path.GetDirectoryName(Path) ?? Path;
+    public string FileName => System.IO.Path.GetFileName(Path);
+
+    [RelayCommand]
+    private void Keep() => card.ChooseKeep(Path);
 }
 
 public sealed class BulkCollection<T> : ObservableCollection<T>
@@ -34,24 +47,50 @@ public sealed class BulkCollection<T> : ObservableCollection<T>
 public sealed partial class UnitCard : ObservableObject
 {
     readonly Action _changed;
+    readonly Action<Unit>? _kept;
 
-    public UnitCard(Unit unit, DateTimeOffset now, Action changed, bool selected = false, bool settled = true, bool cloudFreed = false)
+    public UnitCard(Unit unit, DateTimeOffset now, Action changed, bool selected = false, bool settled = true, bool cloudFreed = false, Action<Unit>? kept = null)
     {
         _unit = unit;
         _isCloudFreed = cloudFreed;
         _changed = changed;
+        _kept = kept;
         _isSettled = settled;
         _isSelected = selected && settled;
         KindLabel = KindText.Label(unit);
         Effect = KindText.Effect(unit);
         UsageText = KindText.Usage(unit.Usage, now);
         PathText = Describe(unit);
+        Copies = CopiesOf(unit);
     }
 
-    static string Describe(Unit unit) => unit.Paths.Count == 1 ? unit.Paths[0] : $"{unit.Paths[0]} ve {unit.Paths.Count - 1} yol daha";
+    static string Describe(Unit unit) => unit.Kind == UnitKind.Duplicate && unit.Keep is { } keep
+        ? "Kalacak: " + keep
+        : unit.Paths.Count == 1 ? unit.Paths[0] : $"{unit.Paths[0]} ve {unit.Paths.Count - 1} yol daha";
+
+    IReadOnlyList<CopyRow> CopiesOf(Unit unit) => unit.Kind == UnitKind.Duplicate && unit.Keep is { } keep
+        ? [new CopyRow(this, keep, true), .. unit.Paths.Select(p => new CopyRow(this, p, false))]
+        : [];
+
+    public bool IsDuplicate => Unit.Kind == UnitKind.Duplicate && Unit.Keep is not null;
+    public IReadOnlyList<CopyRow> Copies { get; private set; }
+    public string KeepRule => DustyBytes.Units.DuplicateUnits.Rule;
+
+    public void ChooseKeep(string path)
+    {
+        var next = DustyBytes.Units.DuplicateUnits.WithKeep(Unit, path);
+        if (ReferenceEquals(next, Unit))
+            return;
+        Unit = next;
+        PathText = Describe(next);
+        Copies = CopiesOf(next);
+        OnPropertyChanged(nameof(PathText));
+        OnPropertyChanged(nameof(Copies));
+        _kept?.Invoke(next);
+    }
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(SizeText), nameof(CanCompress), nameof(CanUncompress), nameof(CompressText))]
+    [NotifyPropertyChangedFor(nameof(SizeText), nameof(Name), nameof(CanCompress), nameof(CanUncompress), nameof(CompressText))]
     private Unit _unit;
 
     [ObservableProperty]
@@ -65,6 +104,8 @@ public sealed partial class UnitCard : ObservableObject
         Unit = unit;
         UsageText = KindText.Usage(unit.Usage, now);
         PathText = Describe(unit);
+        Copies = CopiesOf(unit);
+        OnPropertyChanged(nameof(Copies));
         IsSettled = settled;
         if (!settled)
             IsSelected = false;
@@ -113,7 +154,7 @@ public sealed partial class UnitCard : ObservableObject
     [NotifyPropertyChangedFor(nameof(CanCloudFree), nameof(CanCloudKeep))]
     private bool _isCloudFreed;
     public bool IsDirect => Unit.Removal == RemovalMethod.DirectDelete;
-    public bool NeverPurge => Unit.Kind == UnitKind.OldDownload;
+    public bool NeverPurge => Unit.Kind is UnitKind.OldDownload or UnitKind.Duplicate;
     public bool CanPurge => IsBatch && !IsDirect && !NeverPurge;
     public string PurgeHint => "Karantinaya almadan siler; geri alınamaz";
 
@@ -175,6 +216,7 @@ public sealed partial class OffersViewModel : ViewModelBase
             new OfferFilter("Önbellek", UnitKind.Cache, UnitKind.BrowserCache),
             new OfferFilter("İndirilenler", UnitKind.Installer, UnitKind.OldDownload),
             new OfferFilter("Bulut kopyası", UnitKind.CloudCopy),
+            new OfferFilter("Kopyalar", UnitKind.Duplicate) { AllSizes = true },
         ];
         _selectedFilter = Filters[0];
         main.Session.SnapshotChanged += (_, _) => Invalidate();
@@ -217,7 +259,7 @@ public sealed partial class OffersViewModel : ViewModelBase
 
     public bool HasNotice => Notice.Length > 0;
 
-    bool Visible(UnitCard card) => SelectedFilter.Matches(card.Unit.Kind) && (ShowSmall || !IsSmall(card));
+    bool Visible(UnitCard card) => SelectedFilter.Matches(card.Unit.Kind) && (ShowSmall || SelectedFilter.AllSizes || !IsSmall(card));
 
     void Stream()
     {
@@ -277,6 +319,7 @@ public sealed partial class OffersViewModel : ViewModelBase
     }
 
     public TaskProgressViewModel Progress { get; }
+    public SessionState Session => _main.Session;
     public IReadOnlyList<OfferFilter> Filters { get; }
     public BulkCollection<UnitCard> Cards { get; } = [];
     public Task Ready { get; private set; } = Task.CompletedTask;
@@ -304,7 +347,7 @@ public sealed partial class OffersViewModel : ViewModelBase
 
     public const long SmallBytes = 1L << 30;
     public bool HasSmall => SmallCount > 0;
-    int SmallCount => _all.Count(c => IsSmall(c) && SelectedFilter.Matches(c.Unit.Kind));
+    int SmallCount => SelectedFilter.AllSizes ? 0 : _all.Count(c => IsSmall(c) && SelectedFilter.Matches(c.Unit.Kind));
     public string SmallText => $"1 GB altındakileri de göster · {Format.Count(SmallCount)} birim, {Format.Bytes(_all.Where(c => IsSmall(c) && SelectedFilter.Matches(c.Unit.Kind)).Sum(c => c.Unit.SizeBytes))}";
 
     static bool IsSmall(UnitCard card) => card.Unit.SizeBytes < SmallBytes;
@@ -370,14 +413,14 @@ public sealed partial class OffersViewModel : ViewModelBase
         foreach (var unit in units.OrderByDescending(u => u.Score).ThenByDescending(u => u.SizeBytes))
         {
             var batch = unit.Removal is RemovalMethod.Quarantine or RemovalMethod.DirectDelete;
-            cards.Add(new UnitCard(unit, now, Selected, batch && keep.Contains(unit.Id), cloudFreed: _cloudFreed.Contains(unit.Id)));
+            cards.Add(new UnitCard(unit, now, Selected, batch && keep.Contains(unit.Id), cloudFreed: _cloudFreed.Contains(unit.Id), kept: _main.Session.ChooseKeep));
         }
         return cards;
     }
 
     void Apply()
     {
-        Cards.ReplaceAll(_all.Where(c => SelectedFilter.Matches(c.Unit.Kind) && (ShowSmall || !IsSmall(c))));
+        Cards.ReplaceAll(_all.Where(Visible));
         RaiseState();
         Selected();
     }
@@ -548,6 +591,7 @@ public sealed partial class OffersViewModel : ViewModelBase
                         UnitId = unit.Id,
                         UserApproved = true,
                         IncludeUserData = !card.IsDirect || unit.ContainsUserData,
+                        Target = unit.Kind == UnitKind.Duplicate ? unit.Keep : null,
                     }, progress, ct);
                     dryRun |= response.DryRun;
                     freed += response.FreedBytes;

@@ -7,6 +7,7 @@ using DustyBytes.Core.Ipc;
 using DustyBytes.Core.Model;
 using DustyBytes.Core.Protection;
 using DustyBytes.Scan;
+using DustyBytes.Scan.Duplicates;
 using DustyBytes.Signals;
 using DustyBytes.Units;
 using DustyBytes.Worker;
@@ -373,6 +374,30 @@ public sealed class AppBackend : IAppBackend, IAsyncDisposable
         }
     }
 
+    public Task<IReadOnlyList<Unit>> FindDuplicatesAsync(ScanSnapshot snapshot, IProgress<TaskStep> progress, Action<Unit> found, CancellationToken ct) => Task.Run<IReadOnlyList<Unit>>(() =>
+    {
+        progress.Report(new TaskStep("Kopya adayları seçiliyor", 0, null));
+        var settings = AppSettings.Load();
+        var minBytes = settings.DuplicateMinBytes > 0 ? settings.DuplicateMinBytes : DuplicateFinder.DefaultMinBytes;
+        var candidates = DuplicateUnits.Candidates(snapshot.Results.Select(r => r.Root), minBytes, snapshot.Units, Protection(null), ct);
+        var cache = new HashCache(HashCache.DefaultPath);
+        var finder = new DuplicateFinder(cache);
+        var units = new List<Unit>();
+        try
+        {
+            finder.Find(candidates, group =>
+            {
+                var unit = DuplicateUnits.Build(group);
+                units.Add(unit);
+                found(unit);
+            }, new Relay<DuplicateProgress>(p => progress.Report(new TaskStep(p.Step, p.Percent, p.Line))), ct);
+        }
+        finally
+        {
+            cache.Save();
+        }
+        return units;
+    }, ct);
     public async Task<ScanSnapshot?> RefreshAsync(ScanSnapshot cached, IProgress<TaskStep> progress, CancellationToken ct)
     {
         var drives = await Task.Run(ListDrives, ct).ConfigureAwait(false);

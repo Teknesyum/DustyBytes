@@ -3,6 +3,7 @@ using DustyBytes.Clean.Quarantine;
 using DustyBytes.Clean.Safety;
 using DustyBytes.Core;
 using DustyBytes.Core.Ipc;
+using DustyBytes.Scan.Duplicates;
 
 namespace DustyBytes.Worker;
 
@@ -36,8 +37,9 @@ public sealed class WorkerServices
         request.Op switch
         {
             Ops.Ping => Task.FromResult(new WorkerResponse { Id = request.Id, Ok = true, Message = "pong", DryRun = DryRun.Enabled, Payload = Environment.ProcessId.ToString() }),
+            Ops.Quarantine when IsDuplicate(request) => Task.Run(() => QuarantineDuplicates(request, progress, ct), ct),
             Ops.Quarantine => Task.Run(() => PerPath(request, progress, ct, p => Quarantine.Quarantine(p, request.UnitId, request.IncludeUserData)), ct),
-            Ops.Delete when QuarantineOnly(request) => Task.FromResult(new WorkerResponse { Id = request.Id, Ok = false, Message = "Eski indirmeler yalnız karantinaya alınır; kalıcı silinmez" }),
+            Ops.Delete when QuarantineOnly(request) => Task.FromResult(new WorkerResponse { Id = request.Id, Ok = false, Message = IsDuplicate(request) ? "Kopyalar yalnız karantinaya alınır; kalıcı silinmez" : "Eski indirmeler yalnız karantinaya alınır; kalıcı silinmez" }),
             Ops.Delete => Task.Run(() => PerPath(request, progress, ct, p => Delete.Delete(p, request.IncludeUserData, request.Target == TargetOnReboot)), ct),
             Ops.Restore => Task.Run(() => PerId(request, progress, ct, Quarantine.Restore), ct),
             Ops.Purge => Task.Run(() => PurgeAsync(request, progress, ct), ct),
@@ -48,7 +50,26 @@ public sealed class WorkerServices
         };
 
     public static bool QuarantineOnly(WorkerRequest request) =>
-        request.UnitId?.StartsWith(nameof(Core.Model.UnitKind.OldDownload) + "-", StringComparison.Ordinal) == true;
+        request.UnitId?.StartsWith(nameof(Core.Model.UnitKind.OldDownload) + "-", StringComparison.Ordinal) == true || IsDuplicate(request);
+
+    public static bool IsDuplicate(WorkerRequest request) =>
+        request.UnitId?.StartsWith(nameof(Core.Model.UnitKind.Duplicate) + "-", StringComparison.Ordinal) == true;
+
+    WorkerResponse QuarantineDuplicates(WorkerRequest request, IProgress<WorkerProgress> progress, CancellationToken ct)
+    {
+        var guard = new DuplicateGuard(request.Target ?? "");
+        string? first = null;
+        var response = PerPath(request, progress, ct, p =>
+        {
+            if (guard.Check(p, ct) is { } refusal)
+            {
+                first ??= refusal;
+                return OpResult.Failed(p, OpMethod.Quarantine, refusal);
+            }
+            return Quarantine.Quarantine(p, request.UnitId, request.IncludeUserData);
+        });
+        return first is null ? response : response with { Message = response.Message + ": " + first };
+    }
 
     static WorkerResponse Collect(WorkerRequest request, List<OpResult> results)
     {

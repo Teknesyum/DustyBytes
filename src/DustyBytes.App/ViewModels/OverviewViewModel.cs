@@ -25,6 +25,7 @@ public static class KindText
         UnitKind.SystemArtifact => "Sistem artığı",
         UnitKind.OldDownload => "Eski indirme",
         UnitKind.CloudCopy => "Bulut kopyası",
+        UnitKind.Duplicate => "Kopya",
         _ => "Klasör",
     };
 
@@ -42,6 +43,7 @@ public static class KindText
         UnitKind.SystemArtifact => "Windows'un eski güncelleme ve kurulum artıkları temizlenir. Bilgisayar olduğu gibi çalışır.",
         UnitKind.OldDownload => "Dosyalar karantinaya taşınır, kalıcı silinmez. Lazım olan varsa 7 gün içinde karantinadan geri alırsınız.",
         UnitKind.CloudCopy => "Dosyalar bulutta kalır, yalnız bu bilgisayardaki kopyası kalkar. Açtığında internetten yeniden iner; bağlantı yoksa açılmaz.",
+        UnitKind.Duplicate => DustyBytes.Units.DuplicateUnits.Effect,
         _ => "Uzun süredir açılmamış bir klasör. İçinde lazım olan bir şey varsa 7 gün içinde karantinadan geri alırsınız.",
     };
 
