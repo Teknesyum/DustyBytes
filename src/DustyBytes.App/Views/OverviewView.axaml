@@ -7,7 +7,7 @@
   <ScrollViewer HorizontalScrollBarVisibility="Disabled">
     <StackPanel Margin="{StaticResource PanelPadding}" Spacing="{StaticResource SectionGap}">
 
-      <Grid ColumnDefinitions="*,Auto">
+      <WrapPanel ItemSpacing="{StaticResource Space5}" LineSpacing="{StaticResource Space3}">
         <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space3}" VerticalAlignment="Center">
           <TextBlock Theme="{StaticResource H2}" Text="Genel bakış"/>
           <Border IsVisible="{Binding IsRefreshing}" BorderBrush="{StaticResource Renk1}" BorderThickness="{StaticResource BorderWidth}"
@@ -16,7 +16,7 @@
             <TextBlock Theme="{StaticResource Label}" Text="Tazeleniyor"/>
           </Border>
         </StackPanel>
-        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="{StaticResource Space3}">
+        <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space3}">
           <Button Name="FastScanButton" Classes="ghost" Content="Hızlı tarama (yönetici)"
                   Command="{Binding FastScanCommand}"
                   ToolTip.Tip="{Binding FastScanTip}" ToolTip.ShowOnDisabled="True"/>
@@ -30,7 +30,7 @@
                   Command="{Binding AutoCleanCommand}" IsVisible="{Binding HasSnapshot}"
                   ToolTip.Tip="Güvenli artıkları sormadan siler, büyük ve eski öğeleri tek tek sorar"/>
         </StackPanel>
-      </Grid>
+      </WrapPanel>
 
       <Panel IsVisible="{Binding IsScanning}">
         <v:TaskProgressView DataContext="{Binding Progress}"/>

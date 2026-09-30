@@ -128,7 +128,7 @@ public static class WorkerBindings
         WorkerResponse Fail(string message) => new() { Id = request.Id, Ok = false, Message = message };
         if (request.Items is not [var input] || !ScanTreeCodec.IsTreePath(input, Paths.AppData) || !File.Exists(input))
             return Fail("Yenilenecek tarama dosyası geçersiz");
-        progress.Report(new WorkerProgress(request.Id, "Değişiklikler okunuyor", -1, "USN günlüğü, yönetici izniyle"));
+        progress.Report(new WorkerProgress(request.Id, "Değişiklikler okunuyor", -1, "Son taramadan bu yana değişen dosyalar, yönetici izniyle"));
         ScanResult cached;
         try
         {

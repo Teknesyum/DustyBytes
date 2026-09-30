@@ -239,7 +239,7 @@ public sealed class AppBackend : IAppBackend, IAsyncDisposable
     {
         if (cached.Usn is null || cached.Cancelled || !string.Equals(cached.Root.Name, ScanRoot, StringComparison.OrdinalIgnoreCase))
             return null;
-        progress.Report(new TaskStep("Değişiklikler okunuyor", -1, "Son taramadan bu yana USN günlüğü"));
+        progress.Report(new TaskStep("Değişiklikler okunuyor", -1, "Son taramadan bu yana değişen dosyalar"));
         var copy = await Task.Run(() => new ScanResult
         {
             Root = ScanTree.Clone(cached.Root),
