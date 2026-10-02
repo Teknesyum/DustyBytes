@@ -509,3 +509,27 @@ Listeleme ve açma salt okuma; silme ve taşıma yine yalnız worker'da SafetyGa
 
 Durum: iki madde de birleşti ve 0.8.0 ile yayımlandı (2026-10-03), 947 test geçti. Gerçek makinede
 varsayılan oynatıcı ve Dosya Gezgini açılışı sahibin elle denemesini bekliyor.
+
+## A18 Gerçek Sonuç Ve Yol Gösterme — 2026-10-03
+
+Sahibin sözü: "70 GB güvenle silinebilir diyor ancak siliyorsun yine 70 GB kalıyor, kullanıcı ne elde
+edecek?"; "silinebilir alan 120 diyor, nasıl sileceğimiz konusunda yönlendirme yok"; "temizlikte bir sürü
+seçenek var, hangileri seçilmeli?"; "içindekileri tek tek, istediğimizi oynatıp seçip sileceğiz".
+
+Kök nedenler (inceleme, 2026-10-03): güvenli turun boşalttığı ancak tur tamamen bitince yazılıyor, uzun
+Disk Temizleme sırasında kapanınca hiçbir şey kaydedilmiyor; yarım silinen birim ilk boyutuyla listede
+kalıyor; kural önizlemesi yalnız boşalan sıfırdan büyükse tazeleniyor; tur özeti tahmini bayt, sürücü
+farkı değil; Disk Temizleme görevi Windows.old yokken Panther'i sayıp hep 0 bildiriyor; Genel bakışta üç
+ayrı sayı (132 / 69 / 28,6 GB) var ve hiçbiri "bunu şöyle açarsın" demiyor.
+
+1. **Gerçek sonuç** (A18-1): tur önce ve sonra sürücü boş alanını ölçer, özet gerçek farkı yazar; her
+   adım bitince boşalan hemen kaydedilir; silinemeyen kalemler sebebiyle listelenir ("dosya kullanımda:
+   Chrome'u kapatıp yeniden dene"); tur sonunda toplam ve birimler yeniden ölçülür; boşaltamayacağı
+   tahmini sayan sistem görevi toplama girmez; karantinanın otomatik boşaltması da kaydedilir.
+2. **Yer açma planı** (A18-2): Genel bakışta üç sayı yerine üç basamak: Güvenli (tek tık, sormadan),
+   Kullanmadıkların (göz at, seç, karantina), Kullandıkların (yalnız bilgi). Her basamakta tek düğme ve
+   "nasıl açılır" cümlesi. Temizlik ekranında "Önerilen" seçim hazır gelir, her seçenekte Önerilir / İsteğe
+   bağlı / Dikkat etiketi ve sebebi; önerilmeyenler "Diğer seçenekler" altında kapalı.
+3. **İçindekilerden seç ve sil** (A18-3): İçindekiler listesinde dosya başına onay kutusu, "Seçilenleri
+   karantinaya al (N dosya, X GB)"; kalıcı silme yalnız tehlike onayıyla. İstek worker'a gider, SafetyGate ve
+   korumalı liste değişmez.
