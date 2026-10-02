@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using DustyBytes.App.Services;
+using DustyBytes.Core.Model;
 
 namespace DustyBytes.App.ViewModels;
 
@@ -28,6 +29,17 @@ public sealed partial class TaskProgressViewModel : ObservableObject
     public TaskProgressViewModel(Action<TaskProgressViewModel, bool>? register = null) => _register = register;
 
     public ObservableCollection<LogLine> Lines { get; } = [];
+    public ObservableCollection<ScanCounter> Counters { get; } = [];
+    public Action<ScanCounter>? CounterOpened { get; set; }
+
+    [ObservableProperty]
+    private bool _hasCounters;
+
+    [ObservableProperty]
+    private string _currentLine = "";
+
+    [ObservableProperty]
+    private bool _hasCurrent;
 
     [ObservableProperty]
     private bool _isRunning;
@@ -60,6 +72,7 @@ public sealed partial class TaskProgressViewModel : ObservableObject
         _measured = false;
         PercentText = "%0";
         Lines.Clear();
+        ClearCounters();
         CanCancel = cancellable;
         IsRunning = true;
         _register?.Invoke(this, true);
@@ -101,11 +114,34 @@ public sealed partial class TaskProgressViewModel : ObservableObject
         if (!force && now - _lastLine < LineGap && Lines.Count > 0)
             return;
         _lastLine = now;
+        CurrentLine = text;
+        HasCurrent = true;
         if (Lines.Count > 0)
             Lines[^1].IsNewest = false;
         Lines.Add(new LogLine(text));
         while (Lines.Count > MaxLines)
             Lines.RemoveAt(0);
+    }
+
+    public void SetCounters(IEnumerable<Unit> units)
+    {
+        if (Counters.Count == 0)
+        {
+            foreach (var category in ScanCounters.Categories)
+                Counters.Add(new ScanCounter(category, c => CounterOpened?.Invoke(c)));
+            HasCounters = true;
+        }
+        var tally = ScanCounters.Tally(units);
+        for (var i = 0; i < Counters.Count; i++)
+            Counters[i].Set(tally[i].Count, tally[i].Bytes);
+    }
+
+    public void ClearCounters()
+    {
+        Counters.Clear();
+        HasCounters = false;
+        CurrentLine = "";
+        HasCurrent = false;
     }
 
     public void Tick()

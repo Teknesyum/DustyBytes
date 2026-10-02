@@ -18,15 +18,25 @@
         <Border Classes="bar" Background="{StaticResource Renk1}" CornerRadius="{StaticResource Radius}"
                 RenderTransform="{Binding Value, Converter={x:Static v:UiConvert.ScaleX}}"/>
       </Border>
-      <ItemsControl ItemsSource="{Binding Lines}">
+      <ItemsControl ItemsSource="{Binding Counters}" IsVisible="{Binding HasCounters}">
+        <ItemsControl.ItemsPanel>
+          <ItemsPanelTemplate>
+            <WrapPanel Orientation="Horizontal" ItemSpacing="{StaticResource FieldGap}" LineSpacing="{StaticResource FieldGap}"/>
+          </ItemsPanelTemplate>
+        </ItemsControl.ItemsPanel>
         <ItemsControl.ItemTemplate>
-          <DataTemplate x:DataType="vm:LogLine">
-            <TextBlock Classes="log" Classes.newest="{Binding IsNewest}" Text="{Binding Text}"
-                       FontFamily="{StaticResource FontMono}" FontSize="{StaticResource FontSize2}"
-                       Foreground="{StaticResource TextBody}" TextTrimming="LeadingCharacterEllipsis"/>
+          <DataTemplate x:DataType="vm:ScanCounter">
+            <Button Classes="ghost" Content="{Binding Text}" Command="{Binding OpenCommand}"
+                    ToolTip.Tip="{Binding Hint}"/>
           </DataTemplate>
         </ItemsControl.ItemTemplate>
       </ItemsControl>
+      <Grid ColumnDefinitions="Auto,*" ColumnSpacing="{StaticResource FieldGap}" IsVisible="{Binding HasCurrent}">
+        <TextBlock Theme="{StaticResource Hint}" Text="şu an:"/>
+        <TextBlock Grid.Column="1" Text="{Binding CurrentLine}" MaxLines="1"
+                   FontFamily="{StaticResource FontMono}" FontSize="{StaticResource FontSize2}"
+                   Foreground="{StaticResource TextBody}" TextTrimming="LeadingCharacterEllipsis"/>
+      </Grid>
     </StackPanel>
   </Border>
 </UserControl>

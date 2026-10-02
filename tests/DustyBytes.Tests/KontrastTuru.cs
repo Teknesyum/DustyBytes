@@ -87,6 +87,7 @@ static class KontrastTuru
             return bekle.Task;
         });
         yukleniyor.Session.Scan.AddLine("Kullanım izleri okunuyor", true);
+        yukleniyor.Session.Scan.SetCounters(FakeBackend.Snapshot().Units);
         Otur();
         yield return "Yükleniyor";
     }

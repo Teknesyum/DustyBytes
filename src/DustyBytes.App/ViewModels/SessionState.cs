@@ -30,6 +30,8 @@ public sealed partial class SessionState(IAppBackend backend) : ObservableObject
         Draft = draft is null || _removedDuringScan.Count == 0
             ? draft
             : draft with { Units = [.. draft.Units.Where(u => !_removedDuringScan.Contains(u.Id))] };
+        if (Draft is { } shown && _scan?.IsRunning == true)
+            _scan.SetCounters(shown.Units);
         DraftChanged?.Invoke(this, EventArgs.Empty);
     }
 
@@ -60,7 +62,17 @@ public sealed partial class SessionState(IAppBackend backend) : ObservableObject
 
     public bool HasSnapshot => Snapshot is not null;
 
-    public void Attach(MainViewModel shell) => _scan ??= shell.NewProgress();
+    public void Attach(MainViewModel shell)
+    {
+        if (_scan is not null)
+            return;
+        _scan = shell.NewProgress();
+        _scan.CounterOpened = counter =>
+        {
+            shell.Offers.ShowFilter(counter.Filter);
+            shell.GoTo(shell.Offers);
+        };
+    }
 
     public async Task StartAsync(MainViewModel shell)
     {
@@ -116,6 +128,8 @@ public sealed partial class SessionState(IAppBackend backend) : ObservableObject
             var refreshed = false;
             var result = await Scan.RunAsync(title, async (p, ct) =>
             {
+                if (cached is not null)
+                    Scan.SetCounters(cached.Units);
                 if (mode == ScanMode.Refresh && await backend.RefreshAsync(cached!, p, ct) is { } fresh)
                 {
                     refreshed = true;
