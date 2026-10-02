@@ -96,7 +96,7 @@ public sealed class UpdateFixture : IDisposable
         Http.Routes[ShaUrl] = () => FakeHttp.Text(Sha + "  DustyBytes-win-x64.zip\n");
     }
 
-    public UpdateService Service(Version? fake = null, bool simulate = false, long busyLimit = 0) =>
+    public UpdateService Service(Version? fake = null, bool simulate = false, long busyLimit = 0, int stepMs = 0) =>
         new(new HttpClient(Http), new Version(0, 1, 0), new UpdateOptions
         {
             Root = System.IO.Path.Combine(Root, "update"),
@@ -107,7 +107,7 @@ public sealed class UpdateFixture : IDisposable
             BusyBytesPerSecond = busyLimit,
             FakeVersion = fake,
             Simulate = simulate || fake is not null,
-            SimulatedStep = TimeSpan.Zero,
+            SimulatedStep = TimeSpan.FromMilliseconds(stepMs),
             Launch = psi =>
             {
                 Launched.Add(psi);
@@ -276,7 +276,7 @@ public class UpdateTests
     public async Task Cancel_Returns_To_Available_Without_A_Failure()
     {
         using var f = new UpdateFixture();
-        var vm = f.Model(f.Service(fake: new Version(0, 2, 0)));
+        var vm = f.Model(f.Service(fake: new Version(0, 2, 0), stepMs: 50));
         await vm.CheckAsync();
         vm.CancelCommand.Execute(null);
         var run = vm.DownloadAsync();

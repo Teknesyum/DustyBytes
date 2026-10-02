@@ -11,7 +11,7 @@ Windows disk cleaner, by purpose.
 | What | Count | Source |
 |---|---|---|
 | Open source repositories reviewed | 61, in 7 reports | `docs/inceleme/` |
-| Tests passing | 644 (scan 34, signals 24, units 71, safety 127, uninstall 177, cleaning 27, UI 184) | `dotnet test` |
+| Tests passing | 869 (scan 49, signals 24, units 71, safety 134, uninstall 222, cleaning 79, UI 290) | `dotnet test` |
 | Full scan of `C:\` with the MFT reader | 8.6 s, 2.84 M files | one machine, n=1 |
 | Full scan of `C:\` with `FindFirstFileEx` | 33.2 s, 2.90 M files | same machine |
 | Installed programs detected | 199 (47 MSI, 53 MSIX) | same machine |
@@ -49,6 +49,16 @@ Storage Sense and Disk Cleanup clear temp files, the recycle bin and old Windows
 - **Duplicate files.** Found in the background after a scan; each group keeps one copy you choose. Copies only go to quarantine, and the worker re-hashes them at the moment of removal.
 - **Force and bulk uninstall.** A program with a missing or broken uninstaller can be force-removed: only high-confidence traces go to quarantine, registry keys are backed up first. Several programs can be uninstalled in one queue, silently where the uninstaller allows it.
 - **Reminders.** A weekly user-level check measures free space and shows a Windows notification when it runs low; it never deletes. Explorer's right-click menu gets "DustyBytes ile incele" (inspect with DustyBytes).
+- **One button.** The overview shows "Safe to delete: X — Clean": caches, temp files and other non-personal items, one click and no questions. It stays off until the scan ends and says why. "More space: Y GB, K decisions" asks about the rest in groups ("4 games unused for 12+ months, 112 GB"), with Enter, Esc and the arrow keys.
+- **A target.** "I need 60 GB" builds the least painful plan: the safe set first, then what has gone unused longest. It says how much frees now and how much waits in quarantine.
+- **Honest counters.** "Freed now X · In quarantine Y (frees in N days)" comes from the bytes the worker actually removed, not from estimates. "Free space now" empties the quarantine with two presses.
+- **Undo a whole cleanup.** Each cleanup is a session. The quarantine screen groups by session with "Restore all", and every cleanup ends with a before/after panel.
+- **Preview equals execution.** For cleaning rules the worker builds the file list, the screen shows it, and only files in that list are touched. The result line reads "Shown 1,204 files, deleted 1,198, skipped 6 (in use)". The full list stays inside the worker.
+- **What grew?** A small per-folder snapshot is kept for 30 days; the overview names the three folders that grew most since the last scan, and the weekly notification mentions it.
+- **Plain explanations.** Every rule and every kind of item answers "What is it?", "What happens if I delete it?" and "Does it come back?". Browser cookies are a separate, unticked option, so sites stay signed in.
+- **Quiet uninstall.** MSI, Inno Setup, NSIS and Squirrel uninstallers are recognised and run silently in the bulk queue; unknown ones run visibly. Shared runtimes (.NET, VC++, DirectX, Java, WebView2) start unticked.
+- **Notifications with a budget.** At most one a week, only when 5 GB or more can be freed or free space is below 10 %. "Clean safely" runs the safe set from the notification itself; "Mute this week" and "Never show again" are on it too.
+- **Local measurements.** `olcum.jsonl` in the app data folder records time to first card, time to first freed byte, decisions and clicks. Nothing leaves the machine.
 
 ## What It Does Not Do
 

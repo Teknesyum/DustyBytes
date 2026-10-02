@@ -11,7 +11,7 @@ Amacına göre Windows disk temizleyici.
 | Ne | Sayı | Kaynak |
 |---|---|---|
 | İncelenen açık kaynak depo | 61, yedi raporda | `docs/inceleme/` |
-| Geçen test | 644 (tarama 34, sinyal 24, birim 71, güvenlik 127, kaldırma 177, temizlik 27, arayüz 184) | `dotnet test` |
+| Geçen test | 869 (tarama 49, sinyal 24, birim 71, güvenlik 134, kaldırma 222, temizlik 79, arayüz 290) | `dotnet test` |
 | `C:\` tam tarama, MFT okuyucu | 8,6 sn, 2,84 M dosya | tek makine, n=1 |
 | `C:\` tam tarama, `FindFirstFileEx` | 33,2 sn, 2,90 M dosya | aynı makine |
 | Bulunan kurulu program | 199 (47 MSI, 53 MSIX) | aynı makine |
@@ -49,6 +49,16 @@ Depolama Algısı ve Disk Temizleme geçici dosyaları, geri dönüşüm kutusun
 - **Kopya dosyalar.** Taramadan sonra arka planda bulunur; her grupta seçtiğiniz bir kopya kalır. Kopyalar yalnız karantinaya gider, worker kaldırma anında içeriği yeniden doğrular.
 - **Zorla ve toplu kaldırma.** Kaldırıcısı olmayan ya da bozuk bir program zorla kaldırılabilir: yalnız yüksek güvenli izler karantinaya gider, kayıt anahtarları önce yedeklenir. Birden çok program tek sırada, kaldırıcı izin veriyorsa sessizce kaldırılır.
 - **Hatırlatma.** Kullanıcı düzeyindeki haftalık denetim boş alanı ölçer, azsa Windows bildirimi gösterir; hiçbir şey silmez. Explorer sağ tık menüsünde "DustyBytes ile incele" var.
+- **Tek düğme.** Genel bakışta "Güvenle silinebilir: X — Temizle": önbellek, geçici dosya ve benzeri kişisel olmayan şeyler, tek tık, soru yok. Tarama bitene kadar kapalı kalır ve nedenini söyler. "Daha fazla yer: Y GB, K karar" gerisini kümeler hâlinde sorar ("4 oyun, 12+ aydır açılmamış, 112 GB"); Enter, Esc ve oklarla.
+- **Hedef.** "Bana 60 GB lazım" en az acı veren planı kurar: önce güvenli küme, sonra en uzun süredir kullanılmayan. Ne kadarının şimdi boşalacağını, ne kadarının karantinada bekleyeceğini söyler.
+- **Dürüst sayaç.** "Şimdi boşalan X · Karantinada Y (N gün sonra boşalır)" tahminden değil, worker'ın gerçekten sildiği bayttan gelir. "Şimdi yer aç" karantinayı iki basışla boşaltır.
+- **Bütün temizliği geri al.** Her temizlik bir oturumdur. Karantina ekranı oturuma göre kümelenir, "Hepsini geri al" vardır; her temizlik önce/sonra paneliyle biter.
+- **Önizleme = yürütme.** Temizlik kurallarında listeyi worker çıkarır, ekran onu gösterir, yalnız o listedeki dosyalara dokunulur. Sonuç satırı: "Gösterilen 1.204 dosya, silinen 1.198, atlanan 6 (kullanımda)". Tam liste worker'da kalır.
+- **Ne büyüdü?** Klasör başına küçük bir anlık görüntü 30 gün saklanır; Genel bakış son taramadan beri en çok büyüyen üç klasörü adıyla söyler, haftalık bildirim de anar.
+- **Sade açıklama.** Her kural ve her öğe türü "Bu nedir?", "Silersem ne olur?", "Geri gelir mi?" sorularını yanıtlar. Tarayıcı çerezleri ayrı ve işaretsiz bir seçenektir; sitelerden çıkış yapılmaz.
+- **Sessiz kaldırma.** MSI, Inno Setup, NSIS ve Squirrel kaldırıcıları tanınır, toplu kuyrukta penceresiz çalışır; tanınmayanlar görünür çalışır. Paylaşılan çalışma zamanları (.NET, VC++, DirectX, Java, WebView2) işaretsiz başlar.
+- **Bütçeli bildirim.** Haftada en çok bir tane, yalnız 5 GB ya da daha fazla açılabiliyorsa ya da boş alan %10'un altındaysa. "Güvenli temizle" bildirimin içinden güvenli kümeyi çalıştırır; "Bu hafta sus" ve "Bir daha gösterme" de bildirimdedir.
+- **Yerel ölçüm.** Uygulama veri klasöründeki `olcum.jsonl` ilk karta süreyi, ilk boşalan bayta süreyi, karar ve tık sayısını tutar. Hiçbir şey makineden çıkmaz.
 
 ## Yapmadıkları
 

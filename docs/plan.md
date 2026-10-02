@@ -487,3 +487,6 @@ güvenlik modeline dokunur), kayıt defteri temizleme, RAM hızlandırma.
 
 Güvenlik değişmez: her silme, taşıma ve sistem işlemi worker'da SafetyGate'ten geçer; arayüz dosyaya
 dokunmaz; kullanıcı verisi hiçbir zaman sorulmadan gitmez.
+
+Durum: iki dalga da birleşti ve 0.7.0 ile yayımlandı (2026-10-02), 869 test geçti. Gerçek makinede
+bildirim düğmesi, sessiz kaldırma ve hedefli mod sahibin elle denemesini bekliyor.
