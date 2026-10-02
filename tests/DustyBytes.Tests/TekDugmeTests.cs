@@ -112,10 +112,10 @@ public class TekDugmeTests
 
         var tour = vm.Tour;
         Assert.True(tour.IsAsking);
-        Assert.Equal("u1", tour.Current!.Unit.Id);
+        Assert.Equal("u1", tour.Cluster!.Items[0].Card.Unit.Id);
         Assert.DoesNotContain(backend.Requests, r => r.Op is Ops.Clean or Ops.SystemClean or Ops.Delete);
 
-        await tour.QuarantineCommand.ExecuteAsync(null);
+        await tour.QuarantineClusterCommand.ExecuteAsync(null);
         Assert.Equal(0, tour.FreedBytes);
         Assert.Equal(FakeBackend.QuarantinePending, tour.HeldBytes);
         tour.EndCommand.Execute(null);

@@ -140,23 +140,26 @@ public class KolayAkisTests
     }
 
     [AvaloniaFact]
-    public async Task Tour_Walks_Large_Old_Units_In_Offer_Order_And_Warns_On_User_Data()
+    public async Task Tour_Asks_Clusters_In_Size_Order_And_Warns_On_User_Data()
     {
         var (vm, backend) = await Toured();
         var tour = vm.Tour;
-        Assert.Equal(["u1", "u3"], tour.Items.Select(c => c.Unit.Id));
-        Assert.Equal("u1", tour.Current!.Unit.Id);
+        Assert.Equal(["u1", "u3"], tour.Steps.Cast<TourCluster>().Select(c => c.Items[0].Card.Unit.Id));
+        Assert.Equal("u1", tour.Cluster!.Items[0].Card.Unit.Id);
+        Assert.Equal("1 oyun, 12+ aydır açılmamış", tour.Cluster.Title);
         Assert.Equal("1 / 2", tour.StepText);
-        Assert.False(tour.HasUserData);
-        Assert.Equal("Bunu silmek ister misiniz?", tour.Question);
+        Assert.False(tour.Cluster.HasUserData);
+        Assert.Equal(ClusterChoice.All, tour.Recommended);
+        Assert.Equal("Bu kümeyi ne yapalım?", tour.ClusterQuestion);
 
         tour.KeepCommand.Execute(null);
-        Assert.Equal("u3", tour.Current!.Unit.Id);
+        Assert.Equal("u3", tour.Cluster!.Items[0].Card.Unit.Id);
         Assert.Equal("2 / 2", tour.StepText);
-        Assert.True(tour.HasUserData);
+        Assert.True(tour.Cluster.HasUserData);
+        Assert.Equal(ClusterChoice.Select, tour.Recommended);
         Assert.DoesNotContain(backend.Requests, r => r.UnitId is "u1" or "u3");
 
-        await tour.QuarantineCommand.ExecuteAsync(null);
+        await tour.QuarantineClusterCommand.ExecuteAsync(null);
         var request = Assert.Single(backend.Requests, r => r.Op == Ops.Quarantine);
         Assert.Equal("u3", request.UnitId);
         Assert.True(request.UserApproved);
@@ -171,26 +174,6 @@ public class KolayAkisTests
         Assert.Same(vm.Quarantine, vm.Navigation.Current);
     }
 
-    [AvaloniaFact]
-    public async Task Tour_Purge_Needs_Two_Presses_And_Expires()
-    {
-        var (vm, backend) = await Toured();
-        var tour = vm.Tour;
-        await tour.PurgeOneCommand.ExecuteAsync(null);
-        Assert.True(tour.IsPurgeArmed);
-        Assert.Equal(TwoStep.ArmedText, tour.PurgeText);
-        vm.Tick(TimeSpan.FromSeconds(4.5));
-        Assert.False(tour.IsPurgeArmed);
-        Assert.DoesNotContain(backend.Requests, r => r.UnitId == "u1");
-
-        await tour.PurgeOneCommand.ExecuteAsync(null);
-        await tour.PurgeOneCommand.ExecuteAsync(null);
-        var request = Assert.Single(backend.Requests, r => r.UnitId == "u1");
-        Assert.Equal(Ops.Delete, request.Op);
-        Assert.Equal("u3", tour.Current!.Unit.Id);
-        Assert.False(tour.IsPurgeArmed);
-        Assert.Equal(FakeBackend.CleanFreed * 2 + FakeBackend.DeleteFreed * 2, tour.FreedBytes);
-    }
 
     [AvaloniaFact]
     public async Task Tour_Ends_Early_And_Returns()
@@ -210,8 +193,8 @@ public class KolayAkisTests
     {
         var (vm, _) = await Toured(dryRun: true);
         Assert.Contains(vm.Session.Snapshot!.Units, u => u.Id == "u4");
-        await vm.Tour.QuarantineCommand.ExecuteAsync(null);
-        await vm.Tour.QuarantineCommand.ExecuteAsync(null);
+        await vm.Tour.QuarantineClusterCommand.ExecuteAsync(null);
+        await vm.Tour.QuarantineClusterCommand.ExecuteAsync(null);
         Assert.True(vm.Tour.Summary!.IsDryRun);
         Assert.Contains(vm.Session.Snapshot!.Units, u => u.Id == "u1");
     }
@@ -250,12 +233,13 @@ public class KolayAkisTests
         Assert.Same(vm.Tour, vm.Navigation.Current);
         Assert.Null(vm.Confirm);
         var card = window.GetVisualDescendants().OfType<TransitioningContentControl>().First(c => c.Name == "Card");
-        Assert.Same(vm.Tour.Current, card.Content);
-        var purge = window.GetVisualDescendants().OfType<Button>().First(b => b.Name == "TourPurge");
-        Click(window, purge);
-        Assert.Contains("danger", purge.Classes);
-        Click(window, window.GetVisualDescendants().OfType<TextBlock>().First(t => t.Name == "FreedText"));
-        Assert.False(vm.Tour.IsPurgeArmed);
+        Assert.Same(vm.Tour.Page, card.Content);
+        Assert.IsType<TourCluster>(card.Content);
+        var all = window.GetVisualDescendants().OfType<Button>().First(b => b.Name == "ClusterAll");
+        Assert.True(all.IsEffectivelyVisible);
+        Assert.Contains("primary", all.Classes);
+        Assert.False(window.GetVisualDescendants().OfType<Button>().First(b => b.Name == "TourPurge").IsEffectivelyVisible);
+        Assert.True(window.GetVisualDescendants().OfType<TextBlock>().First(t => t.Name == "TourKeys").IsEffectivelyVisible);
         window.Close();
     }
 
@@ -285,7 +269,8 @@ public class KolayAkisTests
             Pump();
             await Task.Delay(20);
         }
-        var name = card.GetVisualDescendants().OfType<TextBlock>().First(t => t.Text == "Film" && t.IsEffectivelyVisible);
+        var name = card.GetVisualDescendants().OfType<TextBlock>().First(t => t.Name == "ClusterTitle" && t.IsEffectivelyVisible);
+        Assert.StartsWith("1 film", name.Text, StringComparison.Ordinal);
         Assert.All(name.GetSelfAndVisualAncestors().TakeWhile(v => v != card), v => Assert.Equal(1, v.Opacity));
         window.Close();
     }

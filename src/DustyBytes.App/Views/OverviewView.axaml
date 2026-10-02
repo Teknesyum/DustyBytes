@@ -53,7 +53,7 @@
 
       <Border Name="SafePanel" Theme="{StaticResource Panel}" IsVisible="{Binding ShowSafe}">
         <StackPanel Spacing="{StaticResource FieldGap}">
-          <Button Name="SafeCleanButton" Classes="primary" HorizontalAlignment="Left"
+          <Button Name="SafeCleanButton" Classes.primary="{Binding !Target.HasPlan}" Classes.ghost="{Binding Target.HasPlan}" HorizontalAlignment="Left"
                   Content="{Binding SafeText}" Command="{Binding SafeCleanCommand}" IsVisible="{Binding ShowSafeButton}"
                   ToolTip.Tip="{Binding SafeTip}" ToolTip.ShowOnDisabled="True"/>
           <TextBlock Name="SafeEmptyText" Theme="{StaticResource Body}" Text="Güvenle silinecek bir şey kalmadı" IsVisible="{Binding IsSafeEmpty}"/>
@@ -62,6 +62,100 @@
                   Content="{Binding MoreText}" Command="{Binding MoreSpaceCommand}" IsVisible="{Binding HasMore}"
                   ToolTip.Tip="{Binding MoreTip}" ToolTip.ShowOnDisabled="True"/>
         </StackPanel>
+      </Border>
+
+      <Border Name="TargetPanel" Theme="{StaticResource Panel}" IsVisible="{Binding HasSnapshot}">
+        <ContentControl Content="{Binding Target}">
+          <ContentControl.ContentTemplate>
+            <DataTemplate x:DataType="vm:TargetViewModel">
+              <StackPanel Spacing="{StaticResource FieldStack}">
+                <StackPanel Spacing="{StaticResource FieldGap}">
+                  <TextBlock Theme="{StaticResource H3}" Text="Bana ne kadar yer lazım?"/>
+                  <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space2}">
+                    <TextBox Name="GoalBox" Text="{Binding GoalText}" Width="{StaticResource SidebarWidth}" AutomationProperties.Name="Gereken yer, gigabayt"/>
+                    <TextBlock Theme="{StaticResource Body}" Text="GB" VerticalAlignment="Center"/>
+                  </StackPanel>
+                  <TextBlock Name="GoalInvalid" Theme="{StaticResource Hint}" Text="{Binding InvalidText}" IsVisible="{Binding IsInvalid}"/>
+                  <ItemsControl Name="GoalPresets" ItemsSource="{Binding Presets}">
+                    <ItemsControl.ItemsPanel>
+                      <ItemsPanelTemplate>
+                        <WrapPanel ItemSpacing="{StaticResource Space2}" LineSpacing="{StaticResource Space2}"/>
+                      </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate x:DataType="vm:TargetPreset">
+                        <Button Classes="ghost" Content="{Binding Label}"
+                                Command="{Binding $parent[ItemsControl].((vm:TargetViewModel)DataContext).ChooseCommand}" CommandParameter="{Binding}"/>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                </StackPanel>
+
+                <TextBlock Name="PlanWait" Theme="{StaticResource Hint}" Text="{Binding WaitText}" IsVisible="{Binding IsWaiting}" TextWrapping="Wrap"/>
+
+                <StackPanel Name="PlanPanel" Spacing="{StaticResource RowGap}" IsVisible="{Binding HasPlan}">
+                  <TextBlock Name="PlanHead" Theme="{StaticResource H3}" Classes="data" Text="{Binding HeadText}" TextWrapping="Wrap"/>
+                  <ItemsControl Name="PlanRows" ItemsSource="{Binding Rows}" IsVisible="{Binding HasRows}">
+                    <ItemsControl.ItemsPanel>
+                      <ItemsPanelTemplate>
+                        <StackPanel Spacing="{StaticResource FieldGap}"/>
+                      </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate x:DataType="vm:PlanRow">
+                        <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="{StaticResource Space3}">
+                          <StackPanel>
+                            <TextBlock Theme="{StaticResource Body}" Text="{Binding Name}" TextTrimming="CharacterEllipsis"/>
+                            <TextBlock Theme="{StaticResource Hint}" Text="{Binding Detail}" TextTrimming="CharacterEllipsis"/>
+                          </StackPanel>
+                          <TextBlock Grid.Column="1" Theme="{StaticResource MonoValue}" Classes="data" Text="{Binding SizeText}" VerticalAlignment="Center"/>
+                          <Button Grid.Column="2" Classes="ghost" Content="Plandan çıkar" VerticalAlignment="Center"
+                                  IsVisible="{Binding $parent[ItemsControl].((vm:TargetViewModel)DataContext).IsEditing}"
+                                  Command="{Binding $parent[ItemsControl].((vm:TargetViewModel)DataContext).ExcludeCommand}" CommandParameter="{Binding}"/>
+                        </Grid>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                  <TextBlock Name="PlanNow" Theme="{StaticResource Body}" Text="{Binding NowText}" TextWrapping="Wrap"/>
+                  <Border Name="PlanShort" Theme="{StaticResource WarningPanel}" IsVisible="{Binding HasShort}">
+                    <TextBlock Theme="{StaticResource WarningBody}" Text="{Binding ShortText}" TextWrapping="Wrap"/>
+                  </Border>
+                  <StackPanel Name="PlanSkipped" Spacing="{StaticResource FieldGap}" IsVisible="{Binding HasSkipped}">
+                    <TextBlock Theme="{StaticResource Label}" Text="Plana girmeyenler"/>
+                    <ItemsControl ItemsSource="{Binding Skipped}">
+                      <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                          <StackPanel Spacing="{StaticResource FieldGap}"/>
+                        </ItemsPanelTemplate>
+                      </ItemsControl.ItemsPanel>
+                      <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:SkipRow">
+                          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{StaticResource Space3}">
+                            <StackPanel>
+                              <TextBlock Theme="{StaticResource Body}" Text="{Binding Name}" TextTrimming="CharacterEllipsis"/>
+                              <TextBlock Theme="{StaticResource Hint}" Text="{Binding Detail}" TextTrimming="CharacterEllipsis"/>
+                            </StackPanel>
+                            <TextBlock Grid.Column="1" Theme="{StaticResource MonoValue}" Classes="data" Text="{Binding SizeText}" VerticalAlignment="Center"/>
+                          </Grid>
+                        </DataTemplate>
+                      </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <TextBlock Theme="{StaticResource Hint}" Text="{Binding MoreSkippedText}" IsVisible="{Binding HasMoreSkipped}"/>
+                  </StackPanel>
+                  <WrapPanel ItemSpacing="{StaticResource Space3}" LineSpacing="{StaticResource Space2}">
+                    <Button Name="PlanConfirm" Classes="primary" Content="Onayla" Command="{Binding ConfirmCommand}"
+                            ToolTip.Tip="{Binding ConfirmTip}" ToolTip.ShowOnDisabled="True"/>
+                    <Button Name="PlanEdit" Classes="ghost" Content="{Binding EditText}" Command="{Binding EditCommand}" IsVisible="{Binding HasRows}"/>
+                    <Button Name="PlanRestore" Classes="link" Content="Çıkardıklarımı geri koy" Command="{Binding RestoreCommand}" IsVisible="{Binding HasExcluded}"/>
+                    <Button Name="PlanFreeNow" Classes="purge" Classes.ghost="{Binding !IsPurgeArmed}" Classes.danger="{Binding IsPurgeArmed}"
+                            Content="{Binding FreeNowText}" Command="{Binding FreeNowCommand}" IsVisible="{Binding HasHeld}"
+                            ToolTip.Tip="{Binding FreeNowTip}" ToolTip.ShowOnDisabled="True"/>
+                  </WrapPanel>
+                </StackPanel>
+              </StackPanel>
+            </DataTemplate>
+          </ContentControl.ContentTemplate>
+        </ContentControl>
       </Border>
 
       <Border Name="CounterPanel" Theme="{StaticResource Panel}">
