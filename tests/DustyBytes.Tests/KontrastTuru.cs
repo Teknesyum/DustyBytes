@@ -6,6 +6,7 @@ using DustyBytes.App;
 using DustyBytes.App.Kontrast;
 using DustyBytes.App.Services;
 using DustyBytes.App.ViewModels;
+using DustyBytes.Core.Ipc;
 using DustyBytes.Core.Model;
 
 namespace DustyBytes.Tests;
@@ -206,7 +207,30 @@ static class KontrastTuru
         Bekle(oneriKarti.Contents.Ready);
         Otur();
         yield return "Öneriler İçindekiler";
-        oneriKarti.Contents.ToggleCommand.Execute(null);
+        var secim = oneriKarti.Contents;
+        secim.Rows[0].IsSelected = true;
+        secim.Rows[1].IsSelected = true;
+        Otur();
+        yield return "Öneriler İçindekiler Seçili";
+        Bekle(secim.PurgeSelectedCommand.ExecuteAsync(null));
+        Otur();
+        yield return "Öneriler İçindekiler Kalıcı Sil";
+        belirsiz.Offers.Purge.Reset();
+        var kilitli = secim.Rows[1].Path;
+        ((FakeBackend)belirsiz.Backend).Respond = r => new WorkerResponse
+        {
+            Id = r.Id,
+            Ok = false,
+            Items = [.. r.Paths.Select(p => p == kilitli
+                ? new ItemResult(p, false, "Locked: dosya kullanımda — Tutan: oynatici (42)")
+                : new ItemResult(p + "|k1-0", true, "", 1024))],
+        };
+        Bekle(secim.QuarantineSelectedCommand.ExecuteAsync(null));
+        Bekle(belirsiz.Offers.Ready);
+        Otur();
+        yield return "Öneriler İçindekiler Sonuç";
+        ((FakeBackend)belirsiz.Backend).Respond = null;
+        secim.ToggleCommand.Execute(null);
 
         var bos = new MainViewModel(new FakeBackend { DryRun = true });
         pencere.DataContext = bos;
@@ -247,7 +271,7 @@ static class KontrastTuru
 
     static string IcerikKlasoru()
     {
-        var kok = Path.Combine(Path.GetTempPath(), "dustybytes-kontrast-icerik");
+        var kok = Path.Combine(Path.GetTempPath(), "dustybytes-kontrast-" + Environment.ProcessId);
         if (Directory.Exists(kok))
             Directory.Delete(kok, true);
         Directory.CreateDirectory(Path.Combine(kok, "Ekstra"));

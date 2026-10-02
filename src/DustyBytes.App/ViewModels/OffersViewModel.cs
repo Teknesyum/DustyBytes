@@ -50,7 +50,7 @@ public sealed partial class UnitCard : ObservableObject
     readonly Action _changed;
     readonly Action<Unit>? _kept;
 
-    public UnitCard(Unit unit, DateTimeOffset now, Action changed, bool selected = false, bool settled = true, bool cloudFreed = false, Action<Unit>? kept = null)
+    public UnitCard(Unit unit, DateTimeOffset now, Action changed, bool selected = false, bool settled = true, bool cloudFreed = false, Action<Unit>? kept = null, UnitContentsViewModel? contents = null)
     {
         _unit = unit;
         _isCloudFreed = cloudFreed;
@@ -63,7 +63,7 @@ public sealed partial class UnitCard : ObservableObject
         UsageText = KindText.Usage(unit.Usage, now);
         PathText = Describe(unit);
         Copies = CopiesOf(unit);
-        Contents = UnitContentsViewModel.Supports(unit) ? new UnitContentsViewModel(unit) : null;
+        Contents = contents ?? (UnitContentsViewModel.Supports(unit) ? new UnitContentsViewModel(unit) : null);
     }
 
     public UnitContentsViewModel? Contents { get; }
@@ -321,7 +321,7 @@ public sealed partial class OffersViewModel : ViewModelBase
             }
             else
             {
-                card = new UnitCard(unit, now, Selected, settled: settled);
+                card = new UnitCard(unit, now, Selected, settled: settled, contents: ContentsFor(unit));
                 _all.Add(card);
                 if (Visible(card))
                     Cards.Add(card);
@@ -428,9 +428,40 @@ public sealed partial class OffersViewModel : ViewModelBase
         foreach (var unit in units.OrderByDescending(u => u.Score).ThenByDescending(u => u.SizeBytes))
         {
             var batch = unit.Removal is RemovalMethod.Quarantine or RemovalMethod.DirectDelete;
-            cards.Add(new UnitCard(unit, now, Selected, batch && keep.Contains(unit.Id), cloudFreed: _cloudFreed.Contains(unit.Id), kept: _main.Session.ChooseKeep));
+            cards.Add(new UnitCard(unit, now, Selected, batch && keep.Contains(unit.Id), cloudFreed: _cloudFreed.Contains(unit.Id), kept: _main.Session.ChooseKeep, contents: ContentsFor(unit)));
         }
         return cards;
+    }
+
+    readonly System.Collections.Concurrent.ConcurrentDictionary<string, (UnitContentsViewModel Contents, long Bytes)> _contents = new(StringComparer.Ordinal);
+
+    UnitContentsViewModel? ContentsFor(Unit unit)
+    {
+        if (_contents.TryGetValue(unit.Id, out var kept) && kept.Bytes == unit.SizeBytes)
+            return kept.Contents;
+        if (!UnitContentsViewModel.Supports(unit))
+            return null;
+        var contents = new UnitContentsViewModel(unit);
+        contents.Connect(_main.Backend, Purge, removal => ContentsRemoved(contents, removal));
+        return contents;
+    }
+
+    void ContentsRemoved(UnitContentsViewModel contents, ContentsRemoval removal)
+    {
+        if (removal.FreedBytes > 0)
+            _main.Session.AddFreed(removal.FreedBytes);
+        _ = _main.Session.RefreshQuarantineAsync(_main);
+        if (_main.Session.Snapshot?.Units.FirstOrDefault(u => u.Id == contents.UnitId) is not { } unit)
+            return;
+        if (removal.Empty)
+        {
+            _contents.TryRemove(unit.Id, out _);
+            _main.Session.RemoveUnits([unit.Id]);
+            return;
+        }
+        var shrunk = unit with { SizeBytes = Math.Max(0, unit.SizeBytes - removal.Bytes) };
+        _contents[unit.Id] = (contents, shrunk.SizeBytes);
+        _main.Session.UpdateUnit(shrunk);
     }
 
     void Apply()
