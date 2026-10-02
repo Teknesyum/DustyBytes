@@ -7,7 +7,7 @@
   <DockPanel>
     <StackPanel DockPanel.Dock="Top" Margin="24,24,24,12" Spacing="{StaticResource FieldGap}">
       <Grid ColumnDefinitions="*,Auto">
-        <TextBlock Theme="{StaticResource H2}" Text="Otomatik temizlik" VerticalAlignment="Center"/>
+        <TextBlock Name="TourTitle" Theme="{StaticResource H2}" Text="{Binding Title}" VerticalAlignment="Center"/>
         <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="{StaticResource Space4}" VerticalAlignment="Center">
           <TextBlock Name="StepText" Theme="{StaticResource MonoValue}" Classes="data" Text="{Binding StepText}" IsVisible="{Binding IsAsking}" VerticalAlignment="Center"/>
           <TextBlock Name="FreedText" Theme="{StaticResource MonoValue}" Classes="data" Text="{Binding FreedText}" VerticalAlignment="Center"/>
@@ -19,24 +19,40 @@
 
     <Border DockPanel.Dock="Bottom" Background="{StaticResource Surface}" BorderBrush="{StaticResource BorderDecorative}"
             BorderThickness="0,1,0,0" Padding="{StaticResource PanelPadding}" IsVisible="{Binding !IsCleaning}">
-      <Panel>
-        <Grid ColumnDefinitions="*,Auto" IsVisible="{Binding IsAsking}">
-          <Button Name="TourEnd" Classes="ghost" Content="Turu bitir" HorizontalAlignment="Left" Command="{Binding EndCommand}"/>
+      <StackPanel Spacing="{StaticResource FieldGap}">
+        <Grid ColumnDefinitions="*,Auto" IsVisible="{Binding IsClusterStep}">
+          <Button Name="TourEndCluster" Classes="ghost" Content="Turu bitir" HorizontalAlignment="Left" Command="{Binding EndCommand}"/>
           <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="{StaticResource Space3}">
-            <Button Name="TourKeep" Classes="ghost" Content="Kalsın" Command="{Binding KeepCommand}"/>
-            <Button Name="TourPurge" Classes="purge" Classes.ghost="{Binding !IsPurgeArmed}" Classes.danger="{Binding IsPurgeArmed}"
-                    Content="{Binding PurgeText}" Command="{Binding PurgeOneCommand}" IsVisible="{Binding CanPurgeCurrent}"
-                    ToolTip.Tip="Karantinaya almadan siler; geri alınamaz"/>
-            <Button Name="TourQuarantine" Classes="primary" Content="Karantinaya al" Command="{Binding QuarantineCommand}"
+            <Button Name="ClusterKeep" Classes.primary="{Binding KeepIsRecommended}" Classes.ghost="{Binding !KeepIsRecommended}"
+                    Content="Kalsın" Command="{Binding KeepCommand}"/>
+            <Button Name="ClusterSelect" Classes.primary="{Binding SelectIsRecommended}" Classes.ghost="{Binding !SelectIsRecommended}"
+                    Content="{Binding SelectText}" Command="{Binding SelectCommand}"
+                    ToolTip.Tip="Kümeyi açar; istemediğinizin işaretini tek tıkla kaldırırsınız"/>
+            <Button Name="ClusterAll" Classes.primary="{Binding AllIsRecommended}" Classes.ghost="{Binding !AllIsRecommended}"
+                    Content="{Binding AllText}" Command="{Binding QuarantineClusterCommand}"
                     ToolTip.Tip="Hemen yer açılır; karantinadan istediğiniz an geri alırsınız"/>
           </StackPanel>
         </Grid>
+        <Grid ColumnDefinitions="*,Auto" IsVisible="{Binding IsCardStep}">
+          <Button Name="TourEnd" Classes="ghost" Content="Turu bitir" HorizontalAlignment="Left" Command="{Binding EndCommand}"/>
+          <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="{StaticResource Space3}">
+            <Button Name="TourKeep" Classes.primary="{Binding KeepIsRecommended}" Classes.ghost="{Binding !KeepIsRecommended}"
+                    Content="Kalsın" Command="{Binding KeepCommand}"/>
+            <Button Name="TourPurge" Classes="purge" Classes.ghost="{Binding !IsPurgeArmed}" Classes.danger="{Binding IsPurgeArmed}"
+                    Content="{Binding PurgeText}" Command="{Binding PurgeOneCommand}" IsVisible="{Binding CanPurgeCurrent}"
+                    ToolTip.Tip="Karantinaya almadan siler; geri alınamaz"/>
+            <Button Name="TourQuarantine" Classes.primary="{Binding AllIsRecommended}" Classes.ghost="{Binding !AllIsRecommended}"
+                    Content="Karantinaya al" Command="{Binding QuarantineCommand}"
+                    ToolTip.Tip="Hemen yer açılır; karantinadan istediğiniz an geri alırsınız"/>
+          </StackPanel>
+        </Grid>
+        <TextBlock Name="TourKeys" Theme="{StaticResource Hint}" Text="{Binding KeysText}" IsVisible="{Binding IsAsking}" HorizontalAlignment="Right"/>
         <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space3}" HorizontalAlignment="Right" IsVisible="{Binding IsDone}">
           <Button Name="TourUndo" Classes="ghost" Content="Geri al" Command="{Binding UndoCommand}" IsVisible="{Binding HasQuarantined}"
                   ToolTip.Tip="Karantina ekranında istediğiniz öğeyi yerine döndürürsünüz"/>
           <Button Name="TourClose" Classes="primary" Content="Tamam" Command="{Binding CloseCommand}"/>
         </StackPanel>
-      </Panel>
+      </StackPanel>
     </Border>
 
     <Panel DockPanel.Dock="Top" Margin="24,0,24,12" IsVisible="{Binding Progress.IsRunning}">
@@ -46,10 +62,53 @@
     <ScrollViewer HorizontalScrollBarVisibility="Disabled" Padding="24,0,24,24">
       <TransitioningContentControl Name="Card" Content="{Binding Page}">
         <TransitioningContentControl.DataTemplates>
+          <DataTemplate DataType="vm:TourCluster">
+            <Border Theme="{StaticResource Panel}">
+              <StackPanel Spacing="{StaticResource FieldStack}">
+                <StackPanel Spacing="{StaticResource Space1}">
+                  <TextBlock Theme="{StaticResource Label}" Text="{Binding KindLabel}"/>
+                  <TextBlock Name="ClusterTitle" Theme="{StaticResource H3}" Text="{Binding Title}" TextWrapping="Wrap"/>
+                </StackPanel>
+                <TextBlock Theme="{StaticResource Hero}" Classes="data" Text="{Binding SizeText}"/>
+                <TextBlock Theme="{StaticResource Body}" Text="{Binding Effect}" TextWrapping="Wrap"/>
+                <TextBlock Theme="{StaticResource Hint}" Text="{Binding PreviewText}" TextWrapping="Wrap" IsVisible="{Binding !IsExpanded}"/>
+                <Border Name="ClusterUserData" Theme="{StaticResource WarningPanel}" IsVisible="{Binding HasUserData}">
+                  <TextBlock Theme="{StaticResource WarningBody}" TextWrapping="Wrap" Text="{Binding UserDataText}"/>
+                </Border>
+                <StackPanel Spacing="{StaticResource FieldGap}" IsVisible="{Binding IsExpanded}">
+                  <TextBlock Theme="{StaticResource Hint}" Classes="data" Text="{Binding ChosenText}"/>
+                  <ItemsControl Name="ClusterItems" ItemsSource="{Binding Items}">
+                    <ItemsControl.ItemsPanel>
+                      <ItemsPanelTemplate>
+                        <StackPanel Spacing="{StaticResource FieldGap}"/>
+                      </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate x:DataType="vm:ClusterItem">
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{StaticResource Space3}">
+                          <CheckBox IsChecked="{Binding IsIncluded}" AutomationProperties.Name="{Binding Name}">
+                            <StackPanel>
+                              <TextBlock Theme="{StaticResource Body}" Text="{Binding Name}" TextTrimming="CharacterEllipsis"/>
+                              <TextBlock Theme="{StaticResource Hint}" Text="{Binding UsageText}"/>
+                              <TextBlock Theme="{StaticResource WarningBody}" Text="{Binding UserDataHint}" IsVisible="{Binding HasUserData}"/>
+                            </StackPanel>
+                          </CheckBox>
+                          <TextBlock Grid.Column="1" Theme="{StaticResource MonoValue}" Classes="data" Text="{Binding SizeText}" VerticalAlignment="Center"/>
+                        </Grid>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                </StackPanel>
+                <TextBlock Theme="{StaticResource H3}" Text="{Binding $parent[v:TourView].((vm:TourViewModel)DataContext).ClusterQuestion}"/>
+              </StackPanel>
+            </Border>
+          </DataTemplate>
           <DataTemplate DataType="vm:UnitCard">
             <Border Theme="{StaticResource Panel}">
               <StackPanel Spacing="{StaticResource FieldStack}">
                 <StackPanel Spacing="{StaticResource Space1}">
+                  <TextBlock Name="UncertainLabel" Theme="{StaticResource Label}" Text="{Binding $parent[v:TourView].((vm:TourViewModel)DataContext).UncertainText}"
+                             IsVisible="{Binding $parent[v:TourView].((vm:TourViewModel)DataContext).IsUncertain}"/>
                   <TextBlock Theme="{StaticResource Label}" Text="{Binding KindLabel}"/>
                   <TextBlock Theme="{StaticResource H3}" Text="{Binding Name}" TextTrimming="CharacterEllipsis"/>
                 </StackPanel>

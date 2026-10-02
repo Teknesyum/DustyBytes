@@ -77,6 +77,61 @@ static class KontrastTuru
         yield return "Güncelleme Hazır";
         vm.Update.IsPanelOpen = false;
 
+        vm.GoTo(vm.Overview);
+        Bekle(vm.Overview.EstimateAsync());
+        vm.Overview.Target.GoalText = "60";
+        vm.Overview.Target.EditCommand.Execute(null);
+        Otur();
+        yield return "Hedef Planı";
+        vm.Overview.Target.FreeNowCommand.Execute(null);
+        Otur();
+        yield return "Hedef Şimdi Yer Aç";
+        vm.Overview.Target.Disarm();
+        vm.Overview.Target.GoalText = "";
+
+        Bekle(vm.StartTourAsync(TourMode.Ask));
+        Otur();
+        yield return "Tur Kümesi";
+        vm.Tour.Key(TourKey.Right);
+        Otur();
+        yield return "Tur Kümesi Kullanıcı Verisi";
+        vm.Tour.SelectCommand.Execute(null);
+        Otur();
+        yield return "Tur Kümesi Seçerek";
+        vm.Tour.EndCommand.Execute(null);
+        vm.Tour.CloseCommand.Execute(null);
+
+        var snapshot = FakeBackend.Snapshot();
+        var belirsiz = new MainViewModel(FakeBackend.Rich());
+        belirsiz.Session.SetSnapshot(snapshot with
+        {
+            Units =
+            [
+                .. snapshot.Units,
+                new Unit
+                {
+                    Id = "k1",
+                    Kind = UnitKind.Folder,
+                    Name = "Eski Klasör",
+                    Paths = [@"C:\Eski Klasör"],
+                    SizeBytes = 30_000_000_000,
+                    Usage = new UsageSignal(DateTimeOffset.Now.AddDays(-200), "prefetch", 0.9),
+                    Confidence = 0.4,
+                },
+            ],
+        });
+        pencere.DataContext = belirsiz;
+        belirsiz.GoTo(belirsiz.Overview);
+        Bekle(belirsiz.StartTourAsync(TourMode.Ask));
+        belirsiz.Tour.KeepCommand.Execute(null);
+        belirsiz.Tour.KeepCommand.Execute(null);
+        Otur();
+        yield return "Tur Emin Değiliz";
+        belirsiz.Tour.PurgeOneCommand.Execute(null);
+        Otur();
+        yield return "Tur Emin Değiliz Kalıcı Sil";
+        belirsiz.Tour.Purge.Reset();
+
         var bos = new MainViewModel(new FakeBackend { DryRun = true });
         pencere.DataContext = bos;
         foreach (var item in bos.NavItems)
@@ -105,6 +160,15 @@ static class KontrastTuru
         yukleniyor.Session.Scan.SetCounters(FakeBackend.Snapshot().Units);
         Otur();
         yield return "Yükleniyor";
+    }
+
+    static void Bekle(Task gorev)
+    {
+        for (var i = 0; i < 400 && !gorev.IsCompleted; i++)
+        {
+            Dispatcher.UIThread.RunJobs();
+            Thread.Sleep(5);
+        }
     }
 
     static void Otur()

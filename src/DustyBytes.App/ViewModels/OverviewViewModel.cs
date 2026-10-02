@@ -74,6 +74,7 @@ public sealed partial class OverviewViewModel : ViewModelBase
         _main = main;
         FreeProgress = main.NewProgress();
         Growth = new GrowthViewModel(main);
+        Target = new TargetViewModel(main, this);
         _weeklyCheck = main.Backend.WeeklyCheck;
         Purge.PropertyChanged += (_, e) =>
         {
@@ -197,6 +198,7 @@ public sealed partial class OverviewViewModel : ViewModelBase
 
     public TaskProgressViewModel FreeProgress { get; }
     public GrowthViewModel Growth { get; }
+    public TargetViewModel Target { get; }
     public TwoStep Purge { get; } = new();
     public ObservableCollection<KindBar> Compare { get; } = [];
 
@@ -264,8 +266,8 @@ public sealed partial class OverviewViewModel : ViewModelBase
     public string SafeTip => IsWaitingScan ? WaitText : "Önbellek, geçici dosyalar ve kendiliğinden yeniden oluşan dosyalar sorulmadan silinir; kişisel dosyalara dokunulmaz";
     public string MoreText => $"Daha fazla yer: {Format.Bytes(_moreBytes)}, {Format.Count(_moreCount)} karar →";
     public bool HasMore => HasSnapshot && _moreCount > 0;
-    public string MoreTip => IsWaitingScan ? WaitText : "Büyük ve uzun süredir açılmamış öğeleri tek tek sorar";
-    public string AutoTip => IsWaitingScan ? WaitText : "Güvenli artıkları sormadan siler, büyük ve eski öğeleri tek tek sorar";
+    public string MoreTip => IsWaitingScan ? WaitText : "Büyük ve uzun süredir açılmamış öğeleri türüne ve süresine göre küme küme sorar";
+    public string AutoTip => IsWaitingScan ? WaitText : "Güvenli artıkları sormadan siler, büyük ve eski öğeleri küme küme sorar";
 
     [ObservableProperty]
     private bool _weeklyCheck;
@@ -375,6 +377,7 @@ public sealed partial class OverviewViewModel : ViewModelBase
         SafeCleanCommand.NotifyCanExecuteChanged();
         MoreSpaceCommand.NotifyCanExecuteChanged();
         AutoCleanCommand.NotifyCanExecuteChanged();
+        Target.Refresh();
     }
 
     void Plan()
@@ -383,7 +386,7 @@ public sealed partial class OverviewViewModel : ViewModelBase
         _silentBytes = units.Where(TourViewModel.Silent).Sum(u => Math.Max(0, u.SizeBytes));
         var picked = TourViewModel.Pick(units, DateTimeOffset.Now);
         _moreBytes = picked.Sum(u => Math.Max(0, u.SizeBytes));
-        _moreCount = picked.Count;
+        _moreCount = UnitClusters.Decisions(picked, DateTimeOffset.Now);
         RaiseSafe();
     }
 
@@ -562,7 +565,11 @@ public sealed partial class OverviewViewModel : ViewModelBase
         await Session.RefreshQuarantineAsync(_main);
     }
 
-    protected override void OnNavigatedFrom() => Purge.Reset();
+    protected override void OnNavigatedFrom()
+    {
+        Purge.Reset();
+        Target.Disarm();
+    }
 
     protected override void OnNavigatedTo()
     {
