@@ -74,6 +74,38 @@ public sealed partial class UpdateViewModel : ObservableObject
 
     public string Version => VersionText;
 
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CurrentText))]
+    private int _checkStep;
+
+    public string CurrentText => CheckStep switch
+    {
+        1 => "Denetleniyor…",
+        2 => $"v{UpdateService.CurrentVersion().ToString(3)} · güncel",
+        _ => $"v{UpdateService.CurrentVersion().ToString(3)}",
+    };
+
+    [RelayCommand]
+    private async Task CheckNow()
+    {
+        if (State is not (UpdateState.None or UpdateState.Available))
+        {
+            IsPanelOpen = true;
+            return;
+        }
+        CheckStep = 1;
+        try
+        {
+            await CheckAsync();
+        }
+        catch (Exception e) when (e is HttpRequestException or TaskCanceledException or InvalidOperationException)
+        {
+        }
+        CheckStep = State == UpdateState.None ? 2 : 0;
+        if (State == UpdateState.Available)
+            IsPanelOpen = true;
+    }
+
     public string Text => State switch
     {
         UpdateState.Available or UpdateState.Ready => Labels.Update,

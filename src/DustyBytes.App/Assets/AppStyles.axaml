@@ -363,6 +363,13 @@
     <Setter Property="Theme" Value="{StaticResource GhostButton}"/>
   </Style>
 
+  <Style Selector="Button.ghost.surum">
+    <Setter Property="Foreground" Value="{StaticResource TextMuted}"/>
+  </Style>
+  <Style Selector="Button.ghost.surum:pointerover, Button.ghost.surum:pressed, Button.ghost.surum:focus">
+    <Setter Property="Foreground" Value="{StaticResource TextBody}"/>
+  </Style>
+
   <Style Selector="Button.link">
     <Setter Property="Theme" Value="{StaticResource LinkButton}"/>
   </Style>

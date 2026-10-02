@@ -35,9 +35,15 @@
       <k:TitleBar Name="TitleBar" DockPanel.Dock="Top" Ad1="Dusty" Ad2="Bytes"
                   ImzaMetni="{x:Static s:Labels.Brand}" ImzaIpucu="{x:Static s:Labels.BrandTitle}"
                   DestekMetni="{x:Static s:Labels.Support}" DestekIpucu="{x:Static s:Labels.SupportTitle}"
-                  SiteMetni=""
+                  Logo="avares://DustyBytes/Assets/DustyBytes.png"
                   RozetDurumu="{Binding Update.Badge}" RozetMetni="{Binding Update.Text}"
-                  RozetIpucu="{Binding Update.Tip}" RozetKomutu="{Binding Update.TogglePanelCommand}"/>
+                  RozetIpucu="{Binding Update.Tip}" RozetKomutu="{Binding Update.TogglePanelCommand}">
+        <k:TitleBar.Surum>
+          <Button Name="SurumDugmesi" Classes="ghost surum"
+                  Content="{Binding Update.CurrentText}" Command="{Binding Update.CheckNowCommand}"
+                  ToolTip.Tip="Güncellemeyi şimdi denetle" AutomationProperties.Name="Sürüm, güncellemeyi denetle"/>
+        </k:TitleBar.Surum>
+      </k:TitleBar>
 
       <Border DockPanel.Dock="Left" Width="{StaticResource SidebarWidth}" Background="{StaticResource Surface}"
               BorderBrush="{StaticResource BorderDecorative}" BorderThickness="0,1,1,0">

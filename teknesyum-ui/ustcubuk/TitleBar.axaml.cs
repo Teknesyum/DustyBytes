@@ -70,12 +70,6 @@ namespace DustyBytes.App.Kabuk
             AvaloniaProperty.Register<TitleBar, string>(nameof(DestekAdresi), "https://github.com/sponsors/Teknesyum");
         public static readonly StyledProperty<string> DestekIpucuProperty =
             AvaloniaProperty.Register<TitleBar, string>(nameof(DestekIpucu), "Projeyi desteklemek için tıkla");
-        public static readonly StyledProperty<string> SiteMetniProperty =
-            AvaloniaProperty.Register<TitleBar, string>(nameof(SiteMetni), "teknesyum.com");
-        public static readonly StyledProperty<string> SiteAdresiProperty =
-            AvaloniaProperty.Register<TitleBar, string>(nameof(SiteAdresi), "https://teknesyum.com");
-        public static readonly StyledProperty<string> SiteIpucuProperty =
-            AvaloniaProperty.Register<TitleBar, string>(nameof(SiteIpucu), "Teknesyum sitesini aç");
         public static readonly StyledProperty<string> KucultMetniProperty =
             AvaloniaProperty.Register<TitleBar, string>(nameof(KucultMetni), "Küçült");
         public static readonly StyledProperty<string> BuyutMetniProperty =
@@ -86,6 +80,12 @@ namespace DustyBytes.App.Kabuk
             AvaloniaProperty.Register<TitleBar, string>(nameof(KapatMetni), "Kapat");
         public static readonly StyledProperty<object?> OrtaProperty =
             AvaloniaProperty.Register<TitleBar, object?>(nameof(Orta));
+        public static readonly StyledProperty<IImage?> LogoProperty =
+            AvaloniaProperty.Register<TitleBar, IImage?>(nameof(Logo));
+        public static readonly StyledProperty<string?> DilProperty =
+            AvaloniaProperty.Register<TitleBar, string?>(nameof(Dil));
+        public static readonly StyledProperty<object?> SurumProperty =
+            AvaloniaProperty.Register<TitleBar, object?>(nameof(Surum));
         public static readonly StyledProperty<object?> EkProperty =
             AvaloniaProperty.Register<TitleBar, object?>(nameof(Ek));
 
@@ -109,16 +109,17 @@ namespace DustyBytes.App.Kabuk
         public string DestekMetni { get => GetValue(DestekMetniProperty); set => SetValue(DestekMetniProperty, value); }
         public string DestekAdresi { get => GetValue(DestekAdresiProperty); set => SetValue(DestekAdresiProperty, value); }
         public string DestekIpucu { get => GetValue(DestekIpucuProperty); set => SetValue(DestekIpucuProperty, value); }
-        public string SiteMetni { get => GetValue(SiteMetniProperty); set => SetValue(SiteMetniProperty, value); }
-        public string SiteAdresi { get => GetValue(SiteAdresiProperty); set => SetValue(SiteAdresiProperty, value); }
-        public string SiteIpucu { get => GetValue(SiteIpucuProperty); set => SetValue(SiteIpucuProperty, value); }
         public string KucultMetni { get => GetValue(KucultMetniProperty); set => SetValue(KucultMetniProperty, value); }
         public string BuyutMetni { get => GetValue(BuyutMetniProperty); set => SetValue(BuyutMetniProperty, value); }
         public string GeriAlMetni { get => GetValue(GeriAlMetniProperty); set => SetValue(GeriAlMetniProperty, value); }
         public string KapatMetni { get => GetValue(KapatMetniProperty); set => SetValue(KapatMetniProperty, value); }
         public object? Orta { get => GetValue(OrtaProperty); set => SetValue(OrtaProperty, value); }
+        public IImage? Logo { get => GetValue(LogoProperty); set => SetValue(LogoProperty, value); }
+        public string? Dil { get => GetValue(DilProperty); set => SetValue(DilProperty, value); }
+        public object? Surum { get => GetValue(SurumProperty); set => SetValue(SurumProperty, value); }
         public object? Ek { get => GetValue(EkProperty); set => SetValue(EkProperty, value); }
 
+        public event EventHandler<string>? DilDegisti;
         public event EventHandler? RozetTiklandi;
         public event EventHandler? SenkronTiklandi;
 
@@ -148,7 +149,8 @@ namespace DustyBytes.App.Kabuk
             };
             ImzaDugmesi.Click += (_, _) => Ac(ImzaAdresi);
             DestekDugmesi.Click += (_, _) => Ac(DestekAdresi);
-            SiteDugmesi.Click += (_, _) => Ac(SiteAdresi);
+            DilTr.Click += (_, _) => DilSec("tr");
+            DilEn.Click += (_, _) => DilSec("en");
             KucultDugmesi.Click += (_, _) =>
             {
                 if (Pencere() is { } w)
@@ -228,6 +230,13 @@ namespace DustyBytes.App.Kabuk
             OrtaAlani.Content = Orta;
             EkAlani.Content = Ek;
             EkAlani.IsVisible = Ek is not null;
+            LogoResmi.Source = Logo;
+            LogoResmi.IsVisible = Logo is not null;
+            DilAnahtari.IsVisible = Dil is "tr" or "en";
+            DilTr.Classes.Set("secili", Dil == "tr");
+            DilEn.Classes.Set("secili", Dil == "en");
+            SurumAlani.Content = Surum;
+            SurumAlani.IsVisible = Surum is not null;
 
             RozetYazisi.Text = RozetMetni;
             Rozet.IsVisible = RozetDurumu != RozetDurumu.Yok && !string.IsNullOrWhiteSpace(RozetMetni);
@@ -261,11 +270,6 @@ namespace DustyBytes.App.Kabuk
             DestekDugmesi.IsVisible = !string.IsNullOrWhiteSpace(DestekMetni);
             ToolTip.SetTip(DestekDugmesi, DestekIpucu);
             AutomationPropertiesAd(DestekDugmesi, DestekIpucu);
-
-            SiteDugmesi.Content = SiteMetni;
-            SiteDugmesi.IsVisible = !string.IsNullOrWhiteSpace(SiteMetni);
-            ToolTip.SetTip(SiteDugmesi, SiteIpucu);
-            AutomationPropertiesAd(SiteDugmesi, SiteIpucu);
 
             ToolTip.SetTip(KucultDugmesi, KucultMetni);
             AutomationPropertiesAd(KucultDugmesi, KucultMetni);
@@ -305,6 +309,14 @@ namespace DustyBytes.App.Kabuk
                 return;
             }
             Pencere()?.BeginMoveDrag(e);
+        }
+
+        void DilSec(string dil)
+        {
+            if (Dil == dil)
+                return;
+            Dil = dil;
+            DilDegisti?.Invoke(this, dil);
         }
 
         static bool DugmeIcinde(Visual kaynak)
