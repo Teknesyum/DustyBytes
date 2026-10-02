@@ -17,7 +17,7 @@ public static class Program
                 return Worker.WorkerHost.Run(args[1..]);
             case LaunchMode.Check:
                 var integration = SystemIntegration.ForCurrentUser();
-                return DiskCheck.Run(DiskCheck.FixedDrives(), new WindowsToast(integration.Shell));
+                return DiskCheck.Run(DiskCheck.FixedDrives(), new WindowsToast(integration.Shell), root => GrowthText.WeeklyFor(root, DateTimeOffset.Now));
             case LaunchMode.Unregister:
                 return SystemIntegration.ForCurrentUser().Unregister().Error is null ? 0 : 1;
         }

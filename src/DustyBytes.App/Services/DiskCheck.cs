@@ -35,12 +35,13 @@ public static class DiskCheck
 
     public static string Message(IReadOnlyList<DriveSpace> low) => Title(low) + " · " + Body;
 
-    public static int Run(IEnumerable<DriveSpace> drives, INotifier notifier)
+    public static int Run(IEnumerable<DriveSpace> drives, INotifier notifier, Func<string, string?>? growth = null)
     {
         var low = Low(drives);
         if (low.Count == 0)
             return 0;
-        return notifier.Show(Title(low), Body, LaunchArgs.OpenUri) ? 0 : 1;
+        var sentence = growth is null ? null : low.Select(d => growth(d.Root)).FirstOrDefault(s => s is { Length: > 0 });
+        return notifier.Show(Title(low), sentence is null ? Body : sentence + ". " + Body, LaunchArgs.OpenUri) ? 0 : 1;
     }
 
     public static string? RootOf(QuarantineEntry entry)

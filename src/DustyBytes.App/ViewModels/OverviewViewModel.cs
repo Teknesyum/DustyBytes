@@ -65,6 +65,7 @@ public sealed partial class OverviewViewModel : ViewModelBase
     {
         _main = main;
         FreeProgress = main.NewProgress();
+        Growth = new GrowthViewModel(main);
         _weeklyCheck = main.Backend.WeeklyCheck;
         Purge.PropertyChanged += (_, e) =>
         {
@@ -180,6 +181,7 @@ public sealed partial class OverviewViewModel : ViewModelBase
     private string _scannedText = "";
 
     public TaskProgressViewModel FreeProgress { get; }
+    public GrowthViewModel Growth { get; }
     public TwoStep Purge { get; } = new();
     public ObservableCollection<KindBar> Compare { get; } = [];
 

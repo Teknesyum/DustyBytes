@@ -98,6 +98,12 @@ public sealed class FakeBackend : IAppBackend
         {
             Cached = Snapshot(),
             Fresh = Snapshot(),
+            Growth = _ => new FolderGrowth(14_500_000_000,
+            [
+                new FolderGrowthItem(@"C:\Oyunlar\Eski Oyun", 9_000_000_000),
+                new FolderGrowthItem(@"C:\Kod\node_modules", 3_000_000_000),
+                new FolderGrowthItem(@"C:\Videolar\Film", 2_000_000_000),
+            ], DateTimeOffset.Now.AddDays(-1)),
             Programs =
             [
                 new ProgramInfo(Program("p1", "Eski Editör", "Örnek Yazılım", 900_000_000), new UsageSignal(DateTimeOffset.Now.AddDays(-400), "prefetch", 0.9)),
@@ -235,6 +241,15 @@ public sealed class FakeBackend : IAppBackend
     public List<Unit> Duplicates { get; set; } = [];
     public TaskCompletionSource? HoldDuplicates { get; set; }
     public int DuplicateCalls { get; private set; }
+
+    public Func<ScanResult, FolderGrowth?>? Growth { get; set; }
+    public List<ScanResult> GrowthCalls { get; } = [];
+
+    public Task<FolderGrowth?> GrowthAsync(ScanResult result, CancellationToken ct)
+    {
+        GrowthCalls.Add(result);
+        return Task.FromResult(Growth?.Invoke(result));
+    }
 
     public async Task<IReadOnlyList<Unit>> FindDuplicatesAsync(ScanSnapshot snapshot, IProgress<TaskStep> progress, Action<Unit> found, CancellationToken ct)
     {

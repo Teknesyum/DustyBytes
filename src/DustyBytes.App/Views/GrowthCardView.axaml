@@ -1,0 +1,34 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:DustyBytes.App.ViewModels"
+             x:Class="DustyBytes.App.Views.GrowthCardView"
+             x:DataType="vm:GrowthViewModel">
+  <Border Name="GrowthCard" Theme="{StaticResource Panel}">
+    <StackPanel Spacing="{StaticResource RowGap}">
+      <TextBlock Theme="{StaticResource H3}" Text="{Binding Title}" TextWrapping="Wrap"/>
+      <ItemsControl ItemsSource="{Binding Rows}">
+        <ItemsControl.ItemsPanel>
+          <ItemsPanelTemplate>
+            <StackPanel Spacing="{StaticResource FieldGap}"/>
+          </ItemsPanelTemplate>
+        </ItemsControl.ItemsPanel>
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="vm:GrowthRow">
+            <Grid ColumnDefinitions="*,Auto,Auto">
+              <StackPanel VerticalAlignment="Center">
+                <TextBlock Theme="{StaticResource Body}" Text="{Binding Name}" TextTrimming="CharacterEllipsis"/>
+                <TextBlock Theme="{StaticResource Hint}" Text="{Binding Path}" TextTrimming="CharacterEllipsis"/>
+              </StackPanel>
+              <TextBlock Grid.Column="1" Theme="{StaticResource MonoValue}" Classes="data" Text="{Binding SizeText}"
+                         VerticalAlignment="Center" Margin="12,0"/>
+              <Button Grid.Column="2" Classes="link" Content="İncele" VerticalAlignment="Center"
+                      Command="{Binding $parent[ItemsControl].((vm:GrowthViewModel)DataContext).InspectCommand}"
+                      CommandParameter="{Binding}"
+                      ToolTip.Tip="Bu klasörü haritada açar"/>
+            </Grid>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </StackPanel>
+  </Border>
+</UserControl>
