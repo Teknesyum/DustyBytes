@@ -44,6 +44,7 @@ public sealed record WorkerRequest
     public List<string> Items { get; init; } = [];
     public string? Digest { get; init; }
     public string? SessionId { get; init; }
+    public string? PreviewId { get; init; }
 }
 
 public sealed record ItemResult(string Path, bool Ok, string Message, long Bytes = 0);
@@ -59,6 +60,7 @@ public sealed record WorkerResponse
     public long FreedBytes { get; init; }
     public string? Payload { get; init; }
     public PathTally? Tally { get; init; }
+    public bool Stale { get; init; }
 }
 
 public sealed record WorkerProgress(string Id, string Step, double Percent, string? Line);

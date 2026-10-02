@@ -68,9 +68,12 @@ public sealed class RealFileDeleter : ICleanupDeleter
 
 public static class WorkerCleanHandlers
 {
+    public const string StaleMessage = "Önizleme eskidi, yeniden hesaplanıyor";
+
     public static WorkerResponse HandleClean(
         WorkerRequest request,
         CleanerCatalog catalog,
+        PreviewStore store,
         ICleanupDeleter deleter,
         IProgress<WorkerProgress>? progress = null,
         CancellationToken ct = default)
@@ -78,14 +81,18 @@ public static class WorkerCleanHandlers
         if (!request.UserApproved)
             return new WorkerResponse { Id = request.Id, Ok = false, Message = "Kullanıcı onayı yok" };
 
-        if (string.IsNullOrEmpty(request.Digest))
+        if (string.IsNullOrEmpty(request.PreviewId) || string.IsNullOrEmpty(request.Digest))
             return new WorkerResponse { Id = request.Id, Ok = false, DryRun = DryRun.Enabled, Message = "Önizleme yok; temizlik yalnız gösterilen listeyle yapılır" };
 
-        if (!string.Equals(PreviewDigest.Of(request.Paths), request.Digest, StringComparison.OrdinalIgnoreCase))
-            return new WorkerResponse { Id = request.Id, Ok = false, DryRun = DryRun.Enabled, Message = "Gönderilen liste önizleme özetiyle tutmuyor; temizlik yapılmadı" };
+        if (request.Paths.Count > 0)
+            return new WorkerResponse { Id = request.Id, Ok = false, DryRun = DryRun.Enabled, Message = "Temizlikte yol listesi kabul edilmez; yalnız worker'ın tuttuğu önizleme kullanılır" };
 
-        progress?.Report(new WorkerProgress(request.Id, "Temizlik", -1, $"{Core.Model.Format.Count(request.Paths.Count)} gösterilen dosya"));
-        var run = catalog.Execute(CleanerCatalog.Selection(request.Items), request.Paths, deleter, ct);
+        var shown = store.Take(request.PreviewId, request.Digest, request.Items);
+        if (shown is null)
+            return new WorkerResponse { Id = request.Id, Ok = false, Stale = true, DryRun = DryRun.Enabled, Message = StaleMessage };
+
+        progress?.Report(new WorkerProgress(request.Id, "Temizlik", -1, $"{Core.Model.Format.Count(shown.Count)} gösterilen dosya"));
+        var run = catalog.Execute(CleanerCatalog.Selection(request.Items), shown, deleter, ct);
         var results = run.Options;
 
         var items = results.Select(r => new ItemResult(
@@ -108,9 +115,15 @@ public static class WorkerCleanHandlers
         };
     }
 
-    public static WorkerResponse HandleCleanPreview(WorkerRequest request, CleanerCatalog catalog, CancellationToken ct = default)
+    public static WorkerResponse HandleCleanPreview(WorkerRequest request, CleanerCatalog catalog, PreviewStore store, CancellationToken ct = default)
     {
-        var preview = catalog.Plan(CleanerCatalog.Selection(request.Items), ct).ToPreview();
+        var plan = catalog.Plan(CleanerCatalog.Selection(request.Items), ct);
+        return PreviewResponse(request, new BuiltPreview(plan.Summary, plan.Shown), store);
+    }
+
+    public static WorkerResponse PreviewResponse(WorkerRequest request, BuiltPreview built, PreviewStore store)
+    {
+        var preview = store.Add(built, request.Items);
         return new WorkerResponse
         {
             Id = request.Id,

@@ -14,6 +14,8 @@
                      IsVisible="{Binding HasQuarantined}"/>
           <TextBlock Name="SessionPurged" Theme="{StaticResource Body}" Text="{Binding PurgedText}" TextWrapping="Wrap"
                      IsVisible="{Binding HasPurged}"/>
+          <TextBlock Name="SessionClean" Theme="{StaticResource Body}" Text="{Binding CleanText}" TextWrapping="Wrap"
+                     IsVisible="{Binding HasClean}"/>
         </StackPanel>
         <Button Name="SessionUndo" Grid.Column="1" Classes="ghost" Content="Geri al" VerticalAlignment="Top" Margin="12,0,0,0"
                 Command="{Binding UndoCommand}" IsVisible="{Binding CanUndo}"

@@ -10,13 +10,10 @@ public interface ICleanupDeleter
 
 public sealed class ShownOnlyDeleter(ICleanupDeleter inner, IReadOnlySet<string> shown) : ICleanupDeleter
 {
-    public List<string> Attempted { get; } = [];
-
     void Guard(string path)
     {
         if (!shown.Contains(path))
             throw new ShownListViolationException(path);
-        Attempted.Add(path);
     }
 
     public bool DeleteFile(string path)

@@ -511,11 +511,12 @@ public class ViewModelTests
     }
 
     [AvaloniaFact]
-    public async Task Cleanup_Sends_Exactly_The_Previewed_List_And_Shows_Tally()
+    public async Task Cleanup_Sends_Only_Preview_Id_And_Digest_And_Shows_Tally()
     {
         var backend = FakeBackend.Rich();
+        var shownCount = 0;
         backend.Respond = r => r.Op == Ops.Clean
-            ? new WorkerResponse { Id = r.Id, Ok = true, FreedBytes = 999, Tally = new PathTally { Shown = r.Paths.Count, Processed = r.Paths.Count - 1, ProcessedBytes = 999, Locked = 1 } }
+            ? new WorkerResponse { Id = r.Id, Ok = true, FreedBytes = 999, Tally = new PathTally { Shown = shownCount, Processed = shownCount - 1, ProcessedBytes = 999, Locked = 1 } }
             : new WorkerResponse { Id = r.Id, Ok = true };
         var vm = Shell(backend);
         vm.GoTo(vm.Cleanup);
@@ -523,16 +524,63 @@ public class ViewModelTests
         await vm.Cleanup.PreviewTask;
         await Settle();
         var preview = vm.Cleanup.Preview!;
+        shownCount = preview.Count;
 
         await vm.Cleanup.CleanCommand.ExecuteAsync(null);
         await Settle();
 
         var clean = Assert.Single(backend.Requests, r => r.Op == Ops.Clean);
-        Assert.Equal(preview.Paths(), clean.Paths);
+        Assert.Empty(clean.Paths);
         Assert.Equal(preview.Digest, clean.Digest);
-        Assert.Equal(PreviewDigest.Of(clean.Paths), clean.Digest);
+        Assert.Equal($"onizleme-{backend.WorkerPreviewCalls.Count}", clean.PreviewId);
         Assert.True(vm.Cleanup.HasResult);
         Assert.Equal($"Gösterilen {preview.Count} dosya, silinen {preview.Count - 1}, atlanan 1 (kullanımda)", vm.Cleanup.ResultText);
+    }
+
+    [AvaloniaFact]
+    public async Task Cleanup_Stops_When_Worker_Count_Differs_From_Shown_And_Shows_New_Count()
+    {
+        var backend = FakeBackend.Rich();
+        backend.WorkerCleanFiles = keys => FakeBackend.FakeCleanFiles(keys, 4);
+        var vm = Shell(backend);
+        vm.GoTo(vm.Cleanup);
+        await Settle();
+        await vm.Cleanup.PreviewTask;
+        await Settle();
+        var shown = vm.Cleanup.Preview!;
+        Assert.False(shown.FromWorker);
+
+        await vm.Cleanup.CleanCommand.ExecuteAsync(null);
+        await Settle();
+
+        Assert.DoesNotContain(backend.Requests, r => r.Op is Ops.Clean or Ops.SystemClean);
+        Assert.NotEqual(shown.Count, vm.Cleanup.Preview!.Count);
+        Assert.True(vm.Cleanup.Preview.FromWorker);
+        Assert.Contains($"gösterilen {Format.Count(shown.Count)} dosyaydı, şimdi {Format.Count(vm.Cleanup.Preview.Count)} dosya", vm.Cleanup.ResultText);
+    }
+
+    [AvaloniaFact]
+    public async Task Cleanup_Refreshes_Preview_When_Worker_Says_Stale()
+    {
+        var backend = FakeBackend.Rich();
+        backend.Respond = r => r.Op == Ops.Clean
+            ? new WorkerResponse { Id = r.Id, Ok = false, Stale = true, Message = "Önizleme eskidi, yeniden hesaplanıyor" }
+            : new WorkerResponse { Id = r.Id, Ok = true };
+        var vm = Shell(backend);
+        vm.GoTo(vm.Cleanup);
+        await Settle();
+        await vm.Cleanup.PreviewTask;
+        await Settle();
+        var calls = backend.WorkerPreviewCalls.Count;
+
+        await vm.Cleanup.CleanCommand.ExecuteAsync(null);
+        await Settle();
+
+        Assert.Single(backend.Requests, r => r.Op == Ops.Clean);
+        Assert.DoesNotContain(backend.Requests, r => r.Op == Ops.SystemClean);
+        Assert.Equal(calls + 2, backend.WorkerPreviewCalls.Count);
+        Assert.Equal($"onizleme-{backend.WorkerPreviewCalls.Count}", vm.Cleanup.Preview!.Id);
+        Assert.StartsWith("Önizleme eskidi, yeniden hesaplanıyor", vm.Cleanup.ResultText);
     }
 
     [Fact]

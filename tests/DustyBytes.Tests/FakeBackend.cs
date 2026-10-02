@@ -300,6 +300,16 @@ public sealed class FakeBackend : IAppBackend
         return Task.FromResult(CleanFiles?.Invoke(optionKeys) ?? FakeCleanFiles(optionKeys));
     }
 
+    public List<IReadOnlyList<string>> WorkerPreviewCalls { get; } = [];
+    public Func<IReadOnlyList<string>, CleanPreview>? WorkerCleanFiles { get; set; }
+
+    public Task<CleanPreview> PreviewCleanInWorkerAsync(IReadOnlyList<string> optionKeys, IProgress<TaskStep> progress, CancellationToken ct)
+    {
+        WorkerPreviewCalls.Add([.. optionKeys]);
+        var preview = (WorkerCleanFiles ?? CleanFiles)?.Invoke(optionKeys) ?? FakeCleanFiles(optionKeys);
+        return Task.FromResult(preview with { Id = $"onizleme-{WorkerPreviewCalls.Count}" });
+    }
+
     public Task<IReadOnlyList<SystemTaskInfo>> SystemTasksAsync(CancellationToken ct) => Task.FromResult<IReadOnlyList<SystemTaskInfo>>(Tasks);
 
     public Task<QuarantineSnapshot> ReadQuarantineAsync(CancellationToken ct) => Task.FromResult(Quarantine);
