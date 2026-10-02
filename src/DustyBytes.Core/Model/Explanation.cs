@@ -51,7 +51,7 @@ public static class UnitKindInfo
         UnitKind.Installer => new(
             "Daha önce indirilmiş bir kurulum dosyası.",
             "Program zaten kuruluysa hiçbir etkisi olmaz.",
-            "Evet, yeniden kurmak istersen dosyayı tekrar indirirsin."),
+            "Evet, yeniden kurmak isterseniz dosyayı tekrar indirirsiniz."),
         UnitKind.SystemArtifact => new(
             "Windows'un eski güncelleme ve kurulum artıkları.",
             "Bilgisayar olduğu gibi çalışır; yalnız eski sürüme dönüş seçeneği azalabilir.",
@@ -59,11 +59,11 @@ public static class UnitKindInfo
         UnitKind.Folder => new(
             "Uzun süredir açılmamış büyük bir klasör.",
             "İçindekiler karantinaya taşınır; hemen yer açılır.",
-            "Evet, karantina süresi içinde tek tıkla geri alırsın."),
+            "Evet, karantina süresi içinde tek tıkla geri alırsınız."),
         UnitKind.OldDownload => new(
             "İndirilenler klasöründe uzun süredir duran eski bir dosya.",
             "Dosya karantinaya taşınır, kalıcı silinmez.",
-            "Evet, karantina süresi içinde tek tıkla geri alırsın."),
+            "Evet, karantina süresi içinde tek tıkla geri alırsınız."),
         UnitKind.CloudCopy => new(
             "Bulutta da bulunan ve bu bilgisayarda yer kaplayan bir kopya.",
             "Yalnız bu bilgisayardaki kopya kalkar; dosyalar bulutta durur.",
@@ -71,7 +71,7 @@ public static class UnitKindInfo
         UnitKind.Duplicate => new(
             "İçeriği birebir aynı olan birden çok dosya.",
             "Kalacak kopya dışındakiler karantinaya taşınır; bir kopya her zaman kalır.",
-            "Evet, karantina süresi içinde tek tıkla geri alırsın."),
+            "Evet, karantina süresi içinde tek tıkla geri alırsınız."),
         _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
     };
 }

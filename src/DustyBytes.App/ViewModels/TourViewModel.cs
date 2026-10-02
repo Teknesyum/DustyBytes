@@ -71,11 +71,11 @@ public sealed partial class TourCluster : ObservableObject
 {
     readonly Action _changed;
 
-    public TourCluster(UnitGroup group, DateTimeOffset now, Action changed)
+    public TourCluster(UnitGroup group, DateTimeOffset now, Action changed, Func<Unit, UnitContentsViewModel?>? contents = null)
     {
         Group = group;
         _changed = changed;
-        Items = [.. group.Units.Select(u => new ClusterItem(this, new UnitCard(u, now, () => { })))];
+        Items = [.. group.Units.Select(u => new ClusterItem(this, new UnitCard(u, now, () => { }, contents: contents?.Invoke(u))))];
     }
 
     public UnitGroup Group { get; }
@@ -243,10 +243,10 @@ public sealed partial class TourViewModel : ViewModelBase
             .OrderByDescending(u => u.Score).ThenByDescending(u => u.SizeBytes),
     ];
 
-    public static List<object> Build(IEnumerable<Unit> units, DateTimeOffset now, Action changed)
+    public static List<object> Build(IEnumerable<Unit> units, DateTimeOffset now, Action changed, Func<Unit, UnitContentsViewModel?>? contents = null)
     {
         var (groups, unsure) = UnitClusters.Build(units, now);
-        return [.. groups.Select(g => (object)new TourCluster(g, now, changed)), .. unsure.Select(u => (object)new UnitCard(u, now, () => { }))];
+        return [.. groups.Select(g => (object)new TourCluster(g, now, changed, contents)), .. unsure.Select(u => (object)new UnitCard(u, now, () => { }, contents: contents?.Invoke(u)))];
     }
 
     protected override void OnNavigatedFrom() => Purge.Reset();
@@ -264,7 +264,7 @@ public sealed partial class TourViewModel : ViewModelBase
         var now = DateTimeOffset.Now;
         _mode = mode;
         _plan = plan;
-        _steps = mode is TourMode.Full or TourMode.Ask ? Build(Pick(units, now), now, OnClusterChanged) : [];
+        _steps = mode is TourMode.Full or TourMode.Ask ? Build(Pick(units, now), now, OnClusterChanged, _main.Offers.ContentsFor) : [];
         _decided.Clear();
         var skips = _main.Session.SafeSkips.ToHashSet(StringComparer.OrdinalIgnoreCase);
         var silent = units.Where(Silent).ToList();

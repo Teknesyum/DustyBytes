@@ -11,7 +11,7 @@ Windows disk cleaner, by purpose.
 | What | Count | Source |
 |---|---|---|
 | Open source repositories reviewed | 61, in 7 reports | `docs/inceleme/` |
-| Tests passing | 947 (scan 49, signals 24, units 71, safety 134, uninstall 222, cleaning 79, UI 368) | `dotnet test` |
+| Tests passing | 987 (scan 49, signals 24, units 71, safety 134, uninstall 222, cleaning 82, UI 405) | `dotnet test` |
 | Full scan of `C:\` with the MFT reader | 8.6 s, 2.84 M files | one machine, n=1 |
 | Full scan of `C:\` with `FindFirstFileEx` | 33.2 s, 2.90 M files | same machine |
 | Installed programs detected | 199 (47 MSI, 53 MSIX) | same machine |
@@ -61,6 +61,9 @@ Storage Sense and Disk Cleanup clear temp files, the recycle bin and old Windows
 - **Local measurements.** `olcum.jsonl` in the app data folder records time to first card, time to first freed byte, decisions and clicks. Nothing leaves the machine.
 - **What is inside?** Under the safe clean button the total is broken down item by item, largest first: name, file count, size and one line on what it is. Each item opens to its largest files with a reveal-in-folder link, and "Skip this" leaves it out.
 - **See before you delete.** Film, series, folder, game and program cards list their largest files. Videos play and pictures open in your default app, pictures show a thumbnail, and every file can be shown in File Explorer. Only audio, video and image files ever open; programs, scripts and shortcuts never do.
+- **Pick files, then remove them.** The contents list shows every file, largest first, fifty at a time. Tick the ones you want, play or open any of them, and quarantine the selection; the card shrinks by what went. The worker refuses any path outside that card.
+- **What you actually got.** After a safe clean the summary reads the free space on each drive before and after, so the number is what the disk gained, not an estimate. Items that could not go are listed with the reason and what to do ("close Code and try again").
+- **A plan, not a pile of numbers.** The overview splits the space into three steps: safe (one click), unused (look and pick), in use (information only). Each step says how it is freed. The cleaning screen ticks the recommended options and folds the rest away.
 
 ## What It Does Not Do
 

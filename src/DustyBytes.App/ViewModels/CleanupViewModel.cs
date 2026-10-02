@@ -23,7 +23,7 @@ public sealed record CleanAdvice(AdviceLevel Level, string Reason)
     public const string RebuildsReason = "Kendiliğinden yeniden oluşur; hiçbir şey kaybolmaz";
     public const string SessionReason = "Oturum ve kayıtlı site bilgileri silinir; geri gelmez";
     public const string TaskReason = "Bu bilgisayar için önerilir; günlük kullanım etkilenmez";
-    public const string TaskOptionalReason = "Şu an önerilmez; istersen işaretle";
+    public const string TaskOptionalReason = "Şu an önerilmez; isterseniz işaretleyin";
     public const string TaskUnavailableReason = "Şu an kullanılamıyor";
 
     public string Text => Level switch
@@ -210,7 +210,7 @@ public sealed partial class CleanupViewModel : ViewModelBase
     public ObservableCollection<SystemTaskRow> RecommendedTasks { get; } = [];
     public ObservableCollection<SystemTaskRow> OtherTasks { get; } = [];
 
-    public const string GuideText = "Hangilerini seçmeliyim? Önerilenler işaretli geldi, dokunmadan temizleyebilirsin.";
+    public const string GuideText = "Hangilerini seçmeliyim? Önerilenler işaretli geldi, dokunmadan temizleyebilirsiniz.";
     public int OtherCount => OtherRules.Sum(g => g.Options.Count) + OtherTasks.Count;
     public bool HasOthers => OtherCount > 0;
     public bool HasRecommendedTasks => RecommendedTasks.Count > 0;

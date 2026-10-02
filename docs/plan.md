@@ -533,3 +533,7 @@ ayrı sayı (132 / 69 / 28,6 GB) var ve hiçbiri "bunu şöyle açarsın" demiyo
 3. **İçindekilerden seç ve sil** (A18-3): İçindekiler listesinde dosya başına onay kutusu, "Seçilenleri
    karantinaya al (N dosya, X GB)"; kalıcı silme yalnız tehlike onayıyla. İstek worker'a gider, SafetyGate ve
    korumalı liste değişmez.
+
+Durum: üç madde birleşti ve 0.9.0 ile yayımlandı (2026-10-03), 987 test geçti. Tur kartlarındaki
+içindekiler de seçip karantinaya almaya bağlandı. Yeni metinler uygulamanın geneli gibi "siz" dilinde.
+Gerçek makinede yeni ekranlara sahibin gözle bakması bekleniyor.

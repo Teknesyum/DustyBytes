@@ -126,7 +126,7 @@ public sealed partial class UnitCard : ObservableObject
     public string ActionText => IsDirect ? "Temizle" : "Karantinaya al";
     public string ActionHint => IsDirect
         ? "Kendiliğinden yeniden oluşan dosyalar; hemen silinir"
-        : $"Hemen yer açılır; {AppSettings.QuarantineDays.Days} gün içinde istediğin an geri alırsın";
+        : $"Hemen yer açılır; {AppSettings.QuarantineDays.Days} gün içinde istediğiniz an geri alırsınız";
     public string SizeText => IsSettled ? Format.Bytes(Unit.SizeBytes) : "—";
     public string UsageText { get; private set; }
     public string PathText { get; private set; }
@@ -142,7 +142,7 @@ public sealed partial class UnitCard : ObservableObject
     public bool CanUncompress => IsSettled && UnitBuilder.CanCompress(Unit) && Unit.CompressedBytes > 0;
     public bool CanCloudFree => IsSettled && IsCloudCopy && !IsCloudFreed;
     public bool CanCloudKeep => IsSettled && IsCloudCopy && IsCloudFreed;
-    public string CompressHint => "Dosyalar Windows sıkıştırmasıyla küçülür, oyun ve program olduğu gibi çalışır; istediğin an geri alırsın";
+    public string CompressHint => "Dosyalar Windows sıkıştırmasıyla küçülür, oyun ve program olduğu gibi çalışır; istediğiniz an geri alırsınız";
     public string UncompressHint => "Dosyalar eski boyutuna döner ve yeniden yer kaplar";
     public string CloudFreeHint => "Dosyalar bulutta kalır, silinmez; yalnız bu bilgisayardaki kopyası kalkar. Açtığında yeniden iner";
     public string CloudKeepHint => "Dosyalar yeniden bu bilgisayara iner ve internetsiz de açılır";
@@ -435,7 +435,7 @@ public sealed partial class OffersViewModel : ViewModelBase
 
     readonly System.Collections.Concurrent.ConcurrentDictionary<string, (UnitContentsViewModel Contents, long Bytes)> _contents = new(StringComparer.Ordinal);
 
-    UnitContentsViewModel? ContentsFor(Unit unit)
+    internal UnitContentsViewModel? ContentsFor(Unit unit)
     {
         if (_contents.TryGetValue(unit.Id, out var kept) && kept.Bytes == unit.SizeBytes)
             return kept.Contents;

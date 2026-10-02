@@ -192,8 +192,8 @@ static class KontrastTuru
             "C: önce 48 GB boş, sonra 50,4 GB boş",
             "Tahmini: 2,5 GB",
             [
-                new FailureNote("node_modules", "Dosya kullanımda", "Code programını kapatıp yeniden dene"),
-                new FailureNote("Önbellek ve geçici dosyalar", "3 dosya kullanımda", "Açık programları (örneğin tarayıcıyı) kapatıp yeniden dene"),
+                new FailureNote("node_modules", "Dosya kullanımda", "Code programını kapatıp yeniden deneyin"),
+                new FailureNote("Önbellek ve geçici dosyalar", "3 dosya kullanımda", "Açık programları (örneğin tarayıcıyı) kapatıp yeniden deneyin"),
             ]);
         Otur();
         yield return "Tur Özeti Silinemeyenler";

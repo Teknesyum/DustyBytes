@@ -106,9 +106,9 @@ public sealed partial class UnitContentsViewModel : ObservableObject
     public bool CanPlay => Kind == UnitKind.Film;
     public bool CanSelect => _backend is not null && _removal == RemovalMethod.Quarantine;
     public string PlayHint => "Klasördeki en büyük videoyu varsayılan oynatıcıda açar";
-    public string ToggleHint => "Tüm dosyaları büyükten küçüğe gösterir; seçtiklerini karantinaya alabilirsin";
+    public string ToggleHint => "Tüm dosyaları büyükten küçüğe gösterir; seçtiklerinizi karantinaya alabilirsiniz";
     public string SelectAllHint => "Listede görünen dosyaların hepsini seçer";
-    public string QuarantineHint => $"Seçilen dosyalar karantinaya taşınır; {AppSettings.QuarantineDays.Days} gün içinde geri alırsın";
+    public string QuarantineHint => $"Seçilen dosyalar karantinaya taşınır; {AppSettings.QuarantineDays.Days} gün içinde geri alırsınız";
     public string PurgeHint => "Karantinaya almadan siler; geri alınamaz";
 
     [ObservableProperty]
@@ -394,7 +394,7 @@ public sealed partial class UnitContentsViewModel : ObservableObject
             ? ""
             : purge
                 ? $"{Format.Count(done.Count)} dosya kalıcı silindi, {Format.Bytes(freed)} yer açıldı."
-                : $"{Format.Count(done.Count)} dosya karantinada, {Format.Bytes(freed)} yer açıldı. {AppSettings.QuarantineDays.Days} gün içinde karantina ekranından geri alırsın.";
+                : $"{Format.Count(done.Count)} dosya karantinada, {Format.Bytes(freed)} yer açıldı. {AppSettings.QuarantineDays.Days} gün içinde karantina ekranından geri alırsınız.";
         Status = failed > 0 ? $"{Format.Count(failed)} dosya işlenemedi; sebebi dosyanın altında yazıyor." : "";
         if (done.Count > 0)
             _removed?.Invoke(new ContentsRemoval([.. done.Select(r => r.Path)], freed, purge, response.FreedBytes, response.PendingBytes, _fileCount == 0 && !_partial));

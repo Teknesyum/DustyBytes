@@ -158,7 +158,7 @@
           <StackPanel Name="UnusedStep" Spacing="{StaticResource FieldGap}" IsVisible="{Binding HasSnapshot}">
             <DockPanel>
               <TextBlock DockPanel.Dock="Right" Theme="{StaticResource MonoValue}" Classes="data" Text="{Binding UnusedSizeText}" VerticalAlignment="Center"/>
-              <TextBlock Theme="{StaticResource Body}" FontWeight="{StaticResource WeightSemi}" Text="2. Kullanmadıkların" VerticalAlignment="Center"/>
+              <TextBlock Theme="{StaticResource Body}" FontWeight="{StaticResource WeightSemi}" Text="2. Kullanmadıklarınız" VerticalAlignment="Center"/>
             </DockPanel>
             <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{StaticResource Space3}">
               <TextBlock Theme="{StaticResource Hint}" Text="{Binding UnusedHow}" TextWrapping="Wrap" VerticalAlignment="Center"/>
@@ -171,7 +171,7 @@
           <StackPanel Name="UsedStep" Spacing="{StaticResource FieldGap}" IsVisible="{Binding HasSnapshot}">
             <DockPanel>
               <TextBlock DockPanel.Dock="Right" Theme="{StaticResource MonoValue}" Classes="data" Text="{Binding UsedSizeText}" VerticalAlignment="Center"/>
-              <TextBlock Theme="{StaticResource Body}" FontWeight="{StaticResource WeightSemi}" Text="3. Kullandıkların" VerticalAlignment="Center"/>
+              <TextBlock Theme="{StaticResource Body}" FontWeight="{StaticResource WeightSemi}" Text="3. Kullandıklarınız" VerticalAlignment="Center"/>
             </DockPanel>
             <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{StaticResource Space3}">
               <TextBlock Theme="{StaticResource Hint}" Text="{x:Static vm:OverviewViewModel.UsedHow}" TextWrapping="Wrap" VerticalAlignment="Center"/>

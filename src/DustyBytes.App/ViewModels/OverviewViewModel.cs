@@ -281,12 +281,12 @@ public sealed partial class OverviewViewModel : ViewModelBase
     public string SafeTip => IsWaitingScan ? WaitText : "Önbellek, geçici dosyalar ve kendiliğinden yeniden oluşan dosyalar sorulmadan silinir; kişisel dosyalara dokunulmaz";
     public string MoreText => "Göz at ve seç";
     public string UnusedSizeText => Format.Bytes(_moreBytes);
-    public string UnusedHow => $"{(int)TourViewModel.LongUnused.TotalDays} gündür açılmamış oyun, film, program ve klasörler. Göz at, istediğini seç, karantinaya al; {AppSettings.QuarantineDays.Days} gün içinde geri alırsın.";
+    public string UnusedHow => $"{(int)TourViewModel.LongUnused.TotalDays} gündür açılmamış oyun, film, program ve klasörler. Göz atın, istediğinizi seçin, karantinaya alın; {AppSettings.QuarantineDays.Days} gün içinde geri alırsınız.";
     public const string UnusedEmptyText = "Uzun süredir açılmamış büyük bir şey yok.";
     public bool HasMore => HasSnapshot && _moreCount > 0;
     public bool IsUnusedEmpty => HasSnapshot && _moreCount == 0;
     public string UsedSizeText => Format.Bytes(_usedBytes);
-    public const string UsedHow = "Yer kaplıyorlar ama kullanıyorsun ya da kendi kaldırıcısıyla gidiyorlar. Sormadan dokunmayız; istersen programlar ekranından kaldır.";
+    public const string UsedHow = "Yer kaplıyorlar ama kullanıyorsunuz ya da kendi kaldırıcısıyla gidiyorlar. Sormadan dokunmayız; isterseniz programlar ekranından kaldırın.";
     public const string UsedEmptyText = "Bu basamakta bir şey yok.";
     public string UsedText => "Programlar'a git";
     public string UsedTip => "Programlar ekranında kaldırmak istediğini seçersin; kendi kaldırıcısı çalışır";

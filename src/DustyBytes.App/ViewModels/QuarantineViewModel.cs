@@ -118,7 +118,7 @@ public sealed partial class QuarantineViewModel : ViewModelBase
 
     public string AutoPurgeText => $"Karantinada {AppSettings.QuarantineDays.Days} günü geçenleri kalıcı sil";
     public string AutoPurgeTip => $"Açıkken, karantinada {AppSettings.QuarantineDays.Days} günü dolduran öğeler DustyBytes açıkken kendiliğinden kalıcı silinir";
-    public string EmptyHint => $"Karantinaya alınanlar burada bekler; istediğin an geri alırsın. Üstteki seçenek açıksa {AppSettings.QuarantineDays.Days} günü geçenler kalıcı silinir.";
+    public string EmptyHint => $"Karantinaya alınanlar burada bekler; istediğiniz an geri alırsınız. Üstteki seçenek açıksa {AppSettings.QuarantineDays.Days} günü geçenler kalıcı silinir.";
 
     partial void OnAutoPurgeChanged(bool value)
     {

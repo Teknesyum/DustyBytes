@@ -110,9 +110,9 @@ public class GercekSonucTests
         Assert.True(summary.HasProblems);
         Assert.Equal(
         [
-            "Chrome · Önbellek: Chrome çalışıyor. Programı kapatıp yeniden dene",
-            "Önbellek ve geçici dosyalar: 2 dosya kullanımda. Açık programları (örneğin tarayıcıyı) kapatıp yeniden dene",
-            "node_modules: Dosya kullanımda. Code programını kapatıp yeniden dene",
+            "Chrome · Önbellek: Chrome çalışıyor. Programı kapatıp yeniden deneyin",
+            "Önbellek ve geçici dosyalar: 2 dosya kullanımda. Açık programları (örneğin tarayıcıyı) kapatıp yeniden deneyin",
+            "node_modules: Dosya kullanımda. Code programını kapatıp yeniden deneyin",
         ], summary.ProblemLines);
         Assert.Equal("Silinemeyenler (3)", summary.ProblemsTitle);
 
@@ -226,17 +226,17 @@ public class GercekSonucTests
     [Fact]
     public void Failure_Advice_Speaks_Plainly()
     {
-        Assert.Equal("a.txt: Dosya kullanımda. chrome programını kapatıp yeniden dene",
+        Assert.Equal("a.txt: Dosya kullanımda. chrome programını kapatıp yeniden deneyin",
             FailureAdvice.For("a.txt", "Locked: Kilitli — Tutan: chrome (1)")!.Text);
-        Assert.Equal("a.txt: Dosya kullanımda. İlgili programı kapatıp yeniden dene",
+        Assert.Equal("a.txt: Dosya kullanımda. İlgili programı kapatıp yeniden deneyin",
             FailureAdvice.For("a.txt", "Locked: Kilitli")!.Text);
-        Assert.Equal("Proje: Dosya kullanımda. Code, explorer programlarını kapatıp yeniden dene",
+        Assert.Equal("Proje: Dosya kullanımda. Code, explorer programlarını kapatıp yeniden deneyin",
             FailureAdvice.For("Proje", "Failed: Yarım kaldı — Tutan: Code (4), explorer (5)")!.Text);
-        Assert.Equal("Proje: Erişilemedi. Bilgisayarı yeniden başlatıp yeniden dene",
+        Assert.Equal("Proje: Erişilemedi. Bilgisayarı yeniden başlatıp yeniden deneyin",
             FailureAdvice.For("Proje", "Failed: Erişim reddedildi")!.Text);
         Assert.StartsWith("Windows: Korumalı (Sistem klasörü)", FailureAdvice.For("Windows", "Denied: Sistem klasörü")!.Text);
         Assert.Null(FailureAdvice.For("Eski", "NotFound: Yol bulunamadı"));
-        Assert.Equal("Disk Temizleme: cleanmgr çıktı kodu 2. Temizlik ekranından yeniden dene",
+        Assert.Equal("Disk Temizleme: cleanmgr çıktı kodu 2. Temizlik ekranından yeniden deneyin",
             FailureAdvice.For("Disk Temizleme", "cleanmgr çıktı kodu 2")!.Text);
         Assert.Empty(FailureAdvice.ForTally(new PathTally { Shown = 2, Processed = 2 }));
         Assert.Equal(2, FailureAdvice.ForTally(new PathTally { Shown = 4, Processed = 1, Locked = 2, Failed = 1 }).Count);

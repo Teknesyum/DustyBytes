@@ -11,7 +11,7 @@ Amacına göre Windows disk temizleyici.
 | Ne | Sayı | Kaynak |
 |---|---|---|
 | İncelenen açık kaynak depo | 61, yedi raporda | `docs/inceleme/` |
-| Geçen test | 947 (tarama 49, sinyal 24, birim 71, güvenlik 134, kaldırma 222, temizlik 79, arayüz 368) | `dotnet test` |
+| Geçen test | 987 (tarama 49, sinyal 24, birim 71, güvenlik 134, kaldırma 222, temizlik 82, arayüz 405) | `dotnet test` |
 | `C:\` tam tarama, MFT okuyucu | 8,6 sn, 2,84 M dosya | tek makine, n=1 |
 | `C:\` tam tarama, `FindFirstFileEx` | 33,2 sn, 2,90 M dosya | aynı makine |
 | Bulunan kurulu program | 199 (47 MSI, 53 MSIX) | aynı makine |
@@ -61,6 +61,9 @@ Depolama Algısı ve Disk Temizleme geçici dosyaları, geri dönüşüm kutusun
 - **Yerel ölçüm.** Uygulama veri klasöründeki `olcum.jsonl` ilk karta süreyi, ilk boşalan bayta süreyi, karar ve tık sayısını tutar. Hiçbir şey makineden çıkmaz.
 - **İçinde ne var?** Güvenli temizlik düğmesinin altında toplam kalem kalem, en büyükten küçüğe dökülür: ad, dosya sayısı, boyut ve ne olduğunu anlatan bir satır. Her kalem en büyük dosyalarına açılır, "Klasörde göster" bağlantısı vardır; "Bunu atla" kalemi dışarıda bırakır.
 - **Silmeden önce gör.** Film, dizi, klasör, oyun ve program kartları en büyük dosyalarını listeler. Video varsayılan oynatıcıda oynar, resim varsayılan uygulamada açılır ve küçük önizlemeyle görünür, her dosya Dosya Gezgini'nde gösterilir. Yalnız ses, video ve resim açılır; program, betik ve kısayol asla.
+- **Dosya seç, sonra sil.** İçindekiler listesi bütün dosyaları en büyükten başlayarak ellişer gösterir. İstediklerinizi işaretler, herhangi birini oynatır ya da açarsınız, seçimi karantinaya alırsınız; kart gidenin kadar küçülür. Worker o kartın dışındaki her yolu reddeder.
+- **Gerçekte ne kazandınız.** Güvenli temizlikten sonra özet her sürücünün boş alanını önce ve sonra okur; sayı tahmin değil, diskin kazandığıdır. Silinemeyenler sebebi ve yapılacakla listelenir ("Code programını kapatıp yeniden deneyin").
+- **Sayı yığını değil, plan.** Genel bakış yeri üç basamağa ayırır: güvenli (tek tık), kullanmadıklarınız (bakıp seçin), kullandıklarınız (yalnız bilgi). Her basamak nasıl açıldığını söyler. Temizlik ekranı önerilen seçenekleri işaretli getirir, gerisini katlar.
 
 ## Yapmadıkları
 
