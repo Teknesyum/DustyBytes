@@ -506,3 +506,6 @@ varsayılan oynatıcıyla açılabilmeli, resimler görülebilmeli.
 
 Güvenlik: "Aç" yalnız ses, video ve resim uzantılarında çalışır; program, betik, kısayol asla açılmaz.
 Listeleme ve açma salt okuma; silme ve taşıma yine yalnız worker'da SafetyGate'ten geçer.
+
+Durum: iki madde de birleşti ve 0.8.0 ile yayımlandı (2026-10-03), 947 test geçti. Gerçek makinede
+varsayılan oynatıcı ve Dosya Gezgini açılışı sahibin elle denemesini bekliyor.

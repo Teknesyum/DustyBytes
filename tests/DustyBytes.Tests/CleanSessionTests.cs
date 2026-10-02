@@ -206,7 +206,8 @@ public class CleanSessionTests
         var groups = vm.Quarantine.Groups;
         Assert.Equal(["s2", "s1", null], groups.Select(g => g.SessionId));
         Assert.Equal(2, groups[1].Rows.Count);
-        Assert.StartsWith("Bugün ", groups[0].Title, StringComparison.Ordinal);
+        var day = now.AddMinutes(-5).ToLocalTime().Date == DateTime.Now.Date ? "Bugün " : "Dün ";
+        Assert.StartsWith(day, groups[0].Title, StringComparison.Ordinal);
         Assert.Equal("Eski kayıtlar", groups[2].Title);
         Assert.Equal(4, vm.Quarantine.Items.Count);
 

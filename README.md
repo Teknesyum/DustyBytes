@@ -11,7 +11,7 @@ Windows disk cleaner, by purpose.
 | What | Count | Source |
 |---|---|---|
 | Open source repositories reviewed | 61, in 7 reports | `docs/inceleme/` |
-| Tests passing | 869 (scan 49, signals 24, units 71, safety 134, uninstall 222, cleaning 79, UI 290) | `dotnet test` |
+| Tests passing | 947 (scan 49, signals 24, units 71, safety 134, uninstall 222, cleaning 79, UI 368) | `dotnet test` |
 | Full scan of `C:\` with the MFT reader | 8.6 s, 2.84 M files | one machine, n=1 |
 | Full scan of `C:\` with `FindFirstFileEx` | 33.2 s, 2.90 M files | same machine |
 | Installed programs detected | 199 (47 MSI, 53 MSIX) | same machine |
@@ -59,6 +59,8 @@ Storage Sense and Disk Cleanup clear temp files, the recycle bin and old Windows
 - **Quiet uninstall.** MSI, Inno Setup, NSIS and Squirrel uninstallers are recognised and run silently in the bulk queue; unknown ones run visibly. Shared runtimes (.NET, VC++, DirectX, Java, WebView2) start unticked.
 - **Notifications with a budget.** At most one a week, only when 5 GB or more can be freed or free space is below 10 %. "Clean safely" runs the safe set from the notification itself; "Mute this week" and "Never show again" are on it too.
 - **Local measurements.** `olcum.jsonl` in the app data folder records time to first card, time to first freed byte, decisions and clicks. Nothing leaves the machine.
+- **What is inside?** Under the safe clean button the total is broken down item by item, largest first: name, file count, size and one line on what it is. Each item opens to its largest files with a reveal-in-folder link, and "Skip this" leaves it out.
+- **See before you delete.** Film, series, folder, game and program cards list their largest files. Videos play and pictures open in your default app, pictures show a thumbnail, and every file can be shown in File Explorer. Only audio, video and image files ever open; programs, scripts and shortcuts never do.
 
 ## What It Does Not Do
 

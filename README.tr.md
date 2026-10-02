@@ -11,7 +11,7 @@ Amacına göre Windows disk temizleyici.
 | Ne | Sayı | Kaynak |
 |---|---|---|
 | İncelenen açık kaynak depo | 61, yedi raporda | `docs/inceleme/` |
-| Geçen test | 869 (tarama 49, sinyal 24, birim 71, güvenlik 134, kaldırma 222, temizlik 79, arayüz 290) | `dotnet test` |
+| Geçen test | 947 (tarama 49, sinyal 24, birim 71, güvenlik 134, kaldırma 222, temizlik 79, arayüz 368) | `dotnet test` |
 | `C:\` tam tarama, MFT okuyucu | 8,6 sn, 2,84 M dosya | tek makine, n=1 |
 | `C:\` tam tarama, `FindFirstFileEx` | 33,2 sn, 2,90 M dosya | aynı makine |
 | Bulunan kurulu program | 199 (47 MSI, 53 MSIX) | aynı makine |
@@ -59,6 +59,8 @@ Depolama Algısı ve Disk Temizleme geçici dosyaları, geri dönüşüm kutusun
 - **Sessiz kaldırma.** MSI, Inno Setup, NSIS ve Squirrel kaldırıcıları tanınır, toplu kuyrukta penceresiz çalışır; tanınmayanlar görünür çalışır. Paylaşılan çalışma zamanları (.NET, VC++, DirectX, Java, WebView2) işaretsiz başlar.
 - **Bütçeli bildirim.** Haftada en çok bir tane, yalnız 5 GB ya da daha fazla açılabiliyorsa ya da boş alan %10'un altındaysa. "Güvenli temizle" bildirimin içinden güvenli kümeyi çalıştırır; "Bu hafta sus" ve "Bir daha gösterme" de bildirimdedir.
 - **Yerel ölçüm.** Uygulama veri klasöründeki `olcum.jsonl` ilk karta süreyi, ilk boşalan bayta süreyi, karar ve tık sayısını tutar. Hiçbir şey makineden çıkmaz.
+- **İçinde ne var?** Güvenli temizlik düğmesinin altında toplam kalem kalem, en büyükten küçüğe dökülür: ad, dosya sayısı, boyut ve ne olduğunu anlatan bir satır. Her kalem en büyük dosyalarına açılır, "Klasörde göster" bağlantısı vardır; "Bunu atla" kalemi dışarıda bırakır.
+- **Silmeden önce gör.** Film, dizi, klasör, oyun ve program kartları en büyük dosyalarını listeler. Video varsayılan oynatıcıda oynar, resim varsayılan uygulamada açılır ve küçük önizlemeyle görünür, her dosya Dosya Gezgini'nde gösterilir. Yalnız ses, video ve resim açılır; program, betik ve kısayol asla.
 
 ## Yapmadıkları
 
