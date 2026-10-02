@@ -579,6 +579,8 @@ public sealed partial class OffersViewModel : ViewModelBase
         var dryRun = false;
         var cancelled = false;
         long freed = 0;
+        using var scope = _main.Sessions.Scope("Temizlik");
+        var sessionId = _main.Sessions.CurrentId;
         try
         {
             await runner.RunAsync(title, async (progress, ct) =>
@@ -587,9 +589,11 @@ public sealed partial class OffersViewModel : ViewModelBase
                 {
                     ct.ThrowIfCancellationRequested();
                     var unit = card.Unit;
+                    var op = (purge && !card.NeverPurge) || card.IsDirect ? Ops.Delete : Ops.Quarantine;
                     var response = await _main.Backend.SendAsync(new WorkerRequest
                     {
-                        Op = (purge && !card.NeverPurge) || card.IsDirect ? Ops.Delete : Ops.Quarantine,
+                        Op = op,
+                        SessionId = sessionId,
                         Paths = [.. unit.Paths],
                         UnitId = unit.Id,
                         UserApproved = true,
@@ -604,6 +608,12 @@ public sealed partial class OffersViewModel : ViewModelBase
                         moved.Add(unit);
                     else
                         failures.Add($"{unit.Name}: {response.Message}");
+                    if (response.DryRun)
+                        _main.Sessions.MarkDryRun();
+                    else if (op == Ops.Quarantine && unitIds.Count > 0)
+                        _main.Sessions.Quarantined(unit, response.PendingBytes > 0 ? response.PendingBytes : unit.SizeBytes, unitIds.Count);
+                    else if (op == Ops.Delete && response.Ok)
+                        _main.Sessions.Purged(unit);
                 }
                 return true;
             });

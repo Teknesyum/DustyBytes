@@ -409,6 +409,11 @@ public class ViewModelTests
         await Settle();
         await vm.Quarantine.EmptyAllCommand.ExecuteAsync(null);
         await Settle();
+        Assert.DoesNotContain(backend.Requests, r => r.Op == Ops.Purge);
+        Assert.True(vm.Quarantine.IsEmptyArmed);
+        Assert.Equal(TwoStep.ArmedText, vm.Quarantine.EmptyText);
+        await vm.Quarantine.EmptyAllCommand.ExecuteAsync(null);
+        await Settle();
         Assert.Null(vm.Confirm);
         var purge = Assert.Single(backend.Requests, r => r.Op == Ops.Purge);
         Assert.Equal(Targets.All, purge.Target);

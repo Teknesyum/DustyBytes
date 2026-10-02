@@ -110,7 +110,9 @@ public sealed class QuarantineStore
         new DirectoryInfo(root).SetAccessControl(sec);
     }
 
-    static bool ValidId(string id) => Guid.TryParseExact(id, "N", out _);
+    static bool ValidId(string? id) => Guid.TryParseExact(id, "N", out _);
+
+    public static bool ValidSession(string? sessionId) => ValidId(sessionId);
 
     (QuarantineManifest Manifest, QuarantineEntry Entry)? Find(string id)
     {
@@ -133,7 +135,7 @@ public sealed class QuarantineStore
         return result with { Message = $"{reason}. {result.Message}" };
     }
 
-    public OpResult Quarantine(string path, string? unitId = null, bool includeUserData = false)
+    public OpResult Quarantine(string path, string? unitId = null, bool includeUserData = false, string? sessionId = null)
     {
         var verdict = _gate.Check(path, includeUserData);
         if (!verdict.Allowed)
@@ -205,6 +207,7 @@ public sealed class QuarantineStore
             ExpiresUtc = now + _options.Retention,
             UnitId = unitId,
             State = QuarantineState.Moving,
+            SessionId = ValidId(sessionId) ? sessionId : null,
         };
         var manifest = new QuarantineManifest(root);
         manifest.Insert(entry);
@@ -314,6 +317,23 @@ public sealed class QuarantineStore
             Message = recreated ? "Geri yüklendi; üst klasör yeniden kuruldu" : "Geri yüklendi",
         };
     }
+
+    public IReadOnlyList<QuarantineEntry> SessionItems(string sessionId)
+    {
+        if (!ValidId(sessionId))
+            return [];
+        var found = new List<QuarantineEntry>();
+        foreach (var root in KnownRoots())
+        {
+            var manifest = new QuarantineManifest(root);
+            Recover(manifest);
+            found.AddRange(manifest.Session(sessionId));
+        }
+        return [.. found.OrderByDescending(e => e.MovedUtc)];
+    }
+
+    public IReadOnlyList<OpResult> RestoreSession(string sessionId) =>
+        [.. SessionItems(sessionId).Select(e => Restore(e.Id))];
 
     public OpResult Purge(string id)
     {

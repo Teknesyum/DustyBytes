@@ -40,6 +40,21 @@ static class KontrastTuru
         yield return "Bildirimler";
         vm.Toasts.Clear();
 
+        vm.Report = new SessionReportViewModel(vm, new SessionReport
+        {
+            Id = "rapor",
+            Title = "Tur",
+            FreeBefore = 48_000_000_000,
+            FreeAfter = 62_000_000_000,
+            QuarantinedBytes = 80_000_000_000,
+            QuarantinedCount = 23,
+            PurgedBytes = 3_000_000_000,
+            PurgedCount = 1,
+        });
+        Otur();
+        yield return "Oturum Raporu";
+        vm.Report = null;
+
         _ = vm.ConfirmAsync("Karantinaya taşınsın mı?", "Seçilen 3 birim karantinaya taşınır; 7 gün içinde geri alınabilir.", "Taşı");
         Otur();
         yield return "Onay Tehlikeli";

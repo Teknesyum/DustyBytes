@@ -27,6 +27,7 @@ public sealed record QuarantineEntry
     public DateTime ExpiresUtc { get; init; }
     public string? UnitId { get; init; }
     public string State { get; init; } = QuarantineState.Pending;
+    public string? SessionId { get; init; }
 
     public string StoredPath => Path.Combine(Root, Id);
 }
@@ -63,10 +64,22 @@ internal sealed class QuarantineManifest
                 moved_utc INTEGER NOT NULL,
                 expires_utc INTEGER NOT NULL,
                 unit_id TEXT,
-                state TEXT NOT NULL
+                state TEXT NOT NULL,
+                session_id TEXT
             );
             CREATE INDEX IF NOT EXISTS items_state ON items(state, expires_utc);
             """);
+        if (!HasColumn(db, "session_id"))
+            Exec(db, "ALTER TABLE items ADD COLUMN session_id TEXT");
+        Exec(db, "CREATE INDEX IF NOT EXISTS items_session ON items(session_id)");
+    }
+
+    public static bool HasColumn(SqliteConnection db, string column)
+    {
+        using var cmd = db.CreateCommand();
+        cmd.CommandText = "SELECT COUNT(*) FROM pragma_table_info('items') WHERE name = $name";
+        cmd.Parameters.AddWithValue("$name", column);
+        return Convert.ToInt64(cmd.ExecuteScalar()) > 0;
     }
 
     public static bool ExistsIn(string root) => File.Exists(Path.Combine(root, FileName));
@@ -90,8 +103,8 @@ internal sealed class QuarantineManifest
         using var db = Open();
         using var cmd = db.CreateCommand();
         cmd.CommandText = """
-            INSERT INTO items(id, original_path, is_dir, size, attributes, created_utc, modified_utc, accessed_utc, acl, volume_id, moved_utc, expires_utc, unit_id, state)
-            VALUES($id, $path, $dir, $size, $attrs, $c, $m, $a, $acl, $vol, $moved, $exp, $unit, $state)
+            INSERT INTO items(id, original_path, is_dir, size, attributes, created_utc, modified_utc, accessed_utc, acl, volume_id, moved_utc, expires_utc, unit_id, state, session_id)
+            VALUES($id, $path, $dir, $size, $attrs, $c, $m, $a, $acl, $vol, $moved, $exp, $unit, $state, $session)
             """;
         cmd.Parameters.AddWithValue("$id", e.Id);
         cmd.Parameters.AddWithValue("$path", e.OriginalPath);
@@ -107,6 +120,7 @@ internal sealed class QuarantineManifest
         cmd.Parameters.AddWithValue("$exp", e.ExpiresUtc.Ticks);
         cmd.Parameters.AddWithValue("$unit", (object?)e.UnitId ?? DBNull.Value);
         cmd.Parameters.AddWithValue("$state", e.State);
+        cmd.Parameters.AddWithValue("$session", (object?)e.SessionId ?? DBNull.Value);
         cmd.ExecuteNonQuery();
     }
 
@@ -144,6 +158,9 @@ internal sealed class QuarantineManifest
     public List<QuarantineEntry> All(bool includeClosed) =>
         includeClosed ? Query("ORDER BY moved_utc DESC") : Query("WHERE state IN ('pending', 'moving') ORDER BY moved_utc DESC");
 
+    public List<QuarantineEntry> Session(string sessionId) =>
+        Query("WHERE state = 'pending' AND session_id = $session ORDER BY moved_utc DESC", ("$session", sessionId));
+
     public List<QuarantineEntry> Expired(DateTime nowUtc, TimeSpan? maxAge = null) =>
         maxAge is { } age
             ? Query("WHERE state = 'pending' AND (expires_utc <= $now OR moved_utc <= $moved)", ("$now", nowUtc.Ticks), ("$moved", (nowUtc - age).Ticks))
@@ -153,7 +170,7 @@ internal sealed class QuarantineManifest
     {
         using var db = Open();
         using var cmd = db.CreateCommand();
-        cmd.CommandText = "SELECT id, original_path, is_dir, size, attributes, created_utc, modified_utc, accessed_utc, acl, volume_id, moved_utc, expires_utc, unit_id, state FROM items " + tail;
+        cmd.CommandText = "SELECT id, original_path, is_dir, size, attributes, created_utc, modified_utc, accessed_utc, acl, volume_id, moved_utc, expires_utc, unit_id, state, session_id FROM items " + tail;
         foreach (var (name, value) in args)
             cmd.Parameters.AddWithValue(name, value);
         using var r = cmd.ExecuteReader();
@@ -177,6 +194,7 @@ internal sealed class QuarantineManifest
                 ExpiresUtc = new DateTime(r.GetInt64(11), DateTimeKind.Utc),
                 UnitId = r.IsDBNull(12) ? null : r.GetString(12),
                 State = r.GetString(13),
+                SessionId = r.IsDBNull(14) ? null : r.GetString(14),
             });
         }
         return list;
