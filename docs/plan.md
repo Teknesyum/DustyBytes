@@ -446,3 +446,44 @@ tarayıcı kapanınca temizle (19, sürekli süreç ister), paket yazılım tesp
 
 Güvenlik değişmez: her silme, taşıma, sıkıştırma ve bulut çözme isteği worker'da SafetyGate'ten
 geçer; arayüz dosyaya dokunmaz; kullanıcı verisi hiçbir zaman sorulmadan gitmez.
+
+## A16 Kullanıcı Verimi — 2026-10-02
+
+Sahibin sözü: "fable ve sen düşün kullanıcı verimi için neler yapılabilir ve yap araştırma yap tekrardan
+benzerlerinden çok daha iyi olmalıyız".
+Kaynaklar: `docs/danisma/004-fable-kullanici-verimi.md` (10 madde), `docs/danisma/2026-10-02-verim-arastirmasi.md`
+(17 acı noktası, 15 öneri).
+
+Ölçü: açılış → ilk boşalan GB süresi, karar sayısı, tık sayısı, geri al sayısı. Hedef: ilk açılıştan ilk
+temizliğin bitişine ≤ 90 sn ve ≤ 3 tık. Açılışta sorgusuz tarama ve önbellekten anında sonuç zaten var
+(SessionState.StartAsync, ScanIndex, USN); fable madde 1 bu yüzden dalgada yok.
+
+**Dalga 1**, altı ayrı çalışma ağacında paralel:
+
+1. **Tek düğme ve dürüst sayaç** (fable 2, 5 sayaç kısmı; araştırma 3, 5): Genel bakışta "Güvenle
+   silinebilir: X GB — Temizle" tek düğme, tarama bitene kadar pasif ve nedenini söyler; altında "Daha
+   fazla yer: Y GB, K karar →" turu başlatır. "Otomatik temizle" tarama sürerken pasif. İki sayaç: "Şimdi
+   boşalan X · Karantinada Y (N gün sonra boşalır)" ve "Şimdi yer aç". Boşalan sayı worker'ın döndürdüğü
+   gerçek bayttan, tahminden değil. Silinecek bir şey yoksa "Güvenle silinecek bir şey kalmadı" açık cümlesi.
+2. **Oturum geri alma ve önce/sonra** (fable 10; araştırma 8, 15): karantina kaydına oturum kimliği; her
+   temizlik bir oturum. Karantina ekranı oturuma göre kümeli, "Hepsini geri al". "Karantinayı boşalt" iki
+   basışlı. Temizlik sonunda tek ekran: önce boş → şimdi boş, karantinada, Geri al.
+3. **Tarama ekranı** (fable 6): akan yol listesi yerine dolan kategori sayaçları (oyun, film, program,
+   önbellek…). Pasif görünen ikincil düğmeler okunur hale gelir.
+4. **Ne büyüdü?** (araştırma 1): her tarama sonunda klasör başına boyut anlık görüntüsü, 30 gün; Genel
+   bakışta "Son taramadan beri +x GB: şu 3 klasör" kartı ve "İncele"; haftalık bildirime fark cümlesi.
+5. **Önizleme = yürütme** (araştırma 2): temizlik kuralları için worker önce listeyi çıkarır, arayüz onu
+   gösterir; yürütmede worker yalnız gösterilen listedeki yollara dokunur; sonunda "gösterilen N, işlenen N"
+   denetimi; fark varsa durur. SafetyGate ve korumalı liste olduğu gibi kalır, yalnız kısıt eklenir.
+6. **Güven metinleri ve güvenli varsayılanlar** (araştırma 6, 7; notlar): her kural ve birim türünde
+   "Bu nedir? / Silersem ne olur? / Geri gelir mi?"; tarayıcı çerez ve oturumu varsayılan işaretsiz;
+   hazırda bekletmede "küçült" seçeneği; toplu kaldırmada paylaşılan çalışma zamanları varsayılan işaretsiz.
+
+**Dalga 2**: hedefli mod "Bana 60 GB lazım" (fable 3), küme küme karar ve klavye (fable 4), bildirimden tek
+tık güvenli temizlik (fable 9), yerel ölçüm `olcum.jsonl` (ağa gitmez), sessiz kaldırma bayrakları (fable 8).
+
+**Dışarıda**: kod imzası (sahibin kararı: imza yok), launcher oyunlarında karantinasız silme (fable 5⚠,
+güvenlik modeline dokunur), kayıt defteri temizleme, RAM hızlandırma.
+
+Güvenlik değişmez: her silme, taşıma ve sistem işlemi worker'da SafetyGate'ten geçer; arayüz dosyaya
+dokunmaz; kullanıcı verisi hiçbir zaman sorulmadan gitmez.

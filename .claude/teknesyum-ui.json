@@ -83,10 +83,10 @@
   },
   "plugin": "0.34.0",
   "uc": {
-    "surum": "0.32.0",
+    "surum": "0.34.0",
     "duzen": "920c61ba2837ca0d",
-    "commit": "0e3f539dab7cb35f571a582a58fbea3c13d5b527",
-    "tarih": "2026-09-30"
+    "commit": "384eb08782d0a7bce6106ae97535604a65a1544e",
+    "tarih": "2026-10-02"
   },
   "pencere": "maximize"
 }
