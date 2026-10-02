@@ -116,6 +116,7 @@ public sealed partial class UnitCard : ObservableObject
     public string Name => Unit.Name;
     public string KindLabel { get; }
     public string Effect { get; }
+    public Explanation Explain => UnitKindInfo.Explain(Unit.Kind);
     public string ActionText => IsDirect ? "Temizle" : "Karantinaya al";
     public string ActionHint => IsDirect
         ? "Kendiliğinden yeniden oluşan dosyalar; hemen silinir"
@@ -192,7 +193,7 @@ public sealed partial class UnitCard : ObservableObject
     }
 }
 
-public sealed record RemoveOutcome(IReadOnlyList<Unit> Moved, IReadOnlyList<string> Ids, long Freed, bool DryRun, IReadOnlyList<string> Failures, bool Cancelled, string? Error);
+public sealed record RemoveOutcome(IReadOnlyList<Unit> Moved, IReadOnlyList<string> Ids, long Freed, bool DryRun, IReadOnlyList<string> Failures, bool Cancelled, string? Error, long Pending = 0);
 
 public sealed partial class OffersViewModel : ViewModelBase
 {
@@ -214,6 +215,7 @@ public sealed partial class OffersViewModel : ViewModelBase
             new OfferFilter("Uygulama içeriği", UnitKind.AppContent),
             new OfferFilter("Geliştirici", UnitKind.DevArtifact),
             new OfferFilter("Önbellek", UnitKind.Cache, UnitKind.BrowserCache),
+            new OfferFilter("Klasör", UnitKind.Folder),
             new OfferFilter("İndirilenler", UnitKind.Installer, UnitKind.OldDownload),
             new OfferFilter("Bulut kopyası", UnitKind.CloudCopy),
             new OfferFilter("Kopyalar", UnitKind.Duplicate) { AllSizes = true },
@@ -361,6 +363,8 @@ public sealed partial class OffersViewModel : ViewModelBase
     public string DisabledTip => "Önce en az bir birim seçin";
 
     partial void OnSelectedFilterChanged(OfferFilter value) => Apply();
+
+    public void ShowFilter(string label) => SelectedFilter = Filters.FirstOrDefault(f => f.Label == label) ?? Filters[0];
 
     protected override void OnNavigatedTo()
     {
@@ -576,6 +580,9 @@ public sealed partial class OffersViewModel : ViewModelBase
         var dryRun = false;
         var cancelled = false;
         long freed = 0;
+        using var scope = _main.Sessions.Scope("Temizlik");
+        var sessionId = _main.Sessions.CurrentId;
+        long pending = 0;
         try
         {
             await runner.RunAsync(title, async (progress, ct) =>
@@ -584,9 +591,11 @@ public sealed partial class OffersViewModel : ViewModelBase
                 {
                     ct.ThrowIfCancellationRequested();
                     var unit = card.Unit;
+                    var op = (purge && !card.NeverPurge) || card.IsDirect ? Ops.Delete : Ops.Quarantine;
                     var response = await _main.Backend.SendAsync(new WorkerRequest
                     {
-                        Op = (purge && !card.NeverPurge) || card.IsDirect ? Ops.Delete : Ops.Quarantine,
+                        Op = op,
+                        SessionId = sessionId,
                         Paths = [.. unit.Paths],
                         UnitId = unit.Id,
                         UserApproved = true,
@@ -595,6 +604,7 @@ public sealed partial class OffersViewModel : ViewModelBase
                     }, progress, ct);
                     dryRun |= response.DryRun;
                     freed += response.FreedBytes;
+                    pending += response.PendingBytes;
                     var unitIds = IdsOf(response);
                     ids.AddRange(unitIds);
                     if (response.Ok)
@@ -603,6 +613,12 @@ public sealed partial class OffersViewModel : ViewModelBase
                         failures.Add($"{unit.Name}: {response.Message}");
                     if (PathGap(unit, response) is { } gap)
                         failures.Add($"{unit.Name}: {gap}");
+                    if (response.DryRun)
+                        _main.Sessions.MarkDryRun();
+                    else if (op == Ops.Quarantine && unitIds.Count > 0)
+                        _main.Sessions.Quarantined(unit, response.PendingBytes > 0 ? response.PendingBytes : unit.SizeBytes, unitIds.Count);
+                    else if (op == Ops.Delete && response.Ok)
+                        _main.Sessions.Purged(unit);
                 }
                 return true;
             });
@@ -623,7 +639,7 @@ public sealed partial class OffersViewModel : ViewModelBase
                 _main.Session.RemoveUnits(moved.Select(u => u.Id));
             _ = _main.Session.RefreshQuarantineAsync(_main);
         }
-        return new RemoveOutcome(moved, ids, freed, dryRun, failures, cancelled, null);
+        return new RemoveOutcome(moved, ids, freed, dryRun, failures, cancelled, null, pending);
     }
 
     public static string? PathGap(Unit unit, WorkerResponse response)

@@ -11,6 +11,9 @@
       "id": "cache2",
       "label": "HTTP Önbelleği",
       "warning": null,
+      "what": "Sitelerden indirilen resim ve dosyaların geçici kopyaları.",
+      "ifDeleted": "Siteler ilk açılışta biraz yavaş yüklenir. Giriş yaptığın siteler açık kalır.",
+      "returns": "Evet, tarayıcı gezdikçe kendiliğinden yeniden oluşturur.",
       "actions": [
         { "type": "Delete", "mode": "Recurse", "path": "%LOCALAPPDATA%/Mozilla/Firefox/Profiles/*/cache2" }
       ]
@@ -19,6 +22,9 @@
       "id": "startup-cache",
       "label": "Başlangıç Önbelleği",
       "warning": null,
+      "what": "Firefox'un daha hızlı açılmak için sakladığı dosyalar.",
+      "ifDeleted": "Firefox ilk açılışta biraz yavaş açılır. Giriş yaptığın siteler açık kalır.",
+      "returns": "Evet, kendiliğinden yeniden oluşur.",
       "actions": [
         { "type": "Delete", "mode": "Recurse", "path": "%LOCALAPPDATA%/Mozilla/Firefox/Profiles/*/startupCache" }
       ]
@@ -27,9 +33,26 @@
       "id": "service-worker-cache",
       "label": "Service Worker Önbelleği",
       "warning": null,
+      "what": "Sitelerin çevrimdışı çalışmak için sakladığı önbellek.",
+      "ifDeleted": "Bu siteler ilk açılışta dosyalarını yeniden indirir. Giriş yaptığın siteler açık kalır.",
+      "returns": "Evet, site açıldıkça yeniden oluşur.",
       "actions": [
         { "type": "Delete", "mode": "Recurse", "path": "%LOCALAPPDATA%/Mozilla/Firefox/Profiles/*/serviceworker.txt" },
         { "type": "Delete", "mode": "Recurse", "path": "%LOCALAPPDATA%/Mozilla/Firefox/Profiles/*/storage/default/*/cache" }
+      ]
+    },
+    {
+      "id": "cookies",
+      "label": "Çerezleri de sil",
+      "warning": "Sitelerden çıkış yapılır",
+      "what": "Sitelerin seni tanıması için sakladığı küçük oturum dosyaları.",
+      "ifDeleted": "Giriş yaptığın sitelerden çıkış yapılır; yeniden giriş gerekir.",
+      "returns": "Hayır, çerezler geri gelmez; siteye yeniden girince yenileri oluşur.",
+      "sensitive": true,
+      "actions": [
+        { "type": "Delete", "mode": "Glob", "path": "%APPDATA%/Mozilla/Firefox/Profiles/*/cookies.sqlite" },
+        { "type": "Delete", "mode": "Glob", "path": "%APPDATA%/Mozilla/Firefox/Profiles/*/cookies.sqlite-wal" },
+        { "type": "Delete", "mode": "Glob", "path": "%APPDATA%/Mozilla/Firefox/Profiles/*/cookies.sqlite-shm" }
       ]
     }
   ]

@@ -81,6 +81,9 @@
         </DockPanel>
       </Border>
 
+      <v:SessionReportView Name="Report" DockPanel.Dock="Top" DataContext="{Binding Report}"
+                           IsVisible="{Binding $parent[Window].((vm:MainViewModel)DataContext).Report, Converter={x:Static ObjectConverters.IsNotNull}}"/>
+
       <TransitioningContentControl Name="Pages" Content="{Binding Navigation.Current}"/>
     </DockPanel>
 

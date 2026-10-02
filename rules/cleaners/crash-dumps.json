@@ -11,6 +11,9 @@
       "id": "crashdumps",
       "label": "Uygulama Çökme Dökümleri",
       "warning": null,
+      "what": "Programlar çöktüğünde Windows'un bıraktığı hata kayıtları.",
+      "ifDeleted": "Yalnız çökme nedenini araştırmak için kullanılır; programlar etkilenmez.",
+      "returns": "Hayır, silinenler geri gelmez; yeni bir çökmede yenisi oluşur.",
       "actions": [
         { "type": "Delete", "mode": "Recurse", "path": "%LOCALAPPDATA%/CrashDumps" }
       ]
@@ -19,6 +22,9 @@
       "id": "minidump",
       "label": "Sistem Küçük Dökümleri (Minidump)",
       "warning": "Yönetici yetkisi gerektirir, çökme geçmişi araştırması yapılıyorsa dokunma",
+      "what": "Windows çöktüğünde (mavi ekran) bıraktığı küçük döküm dosyaları.",
+      "ifDeleted": "Çökme nedenini araştırıyorsan o kayıtlar gider; bilgisayar etkilenmez.",
+      "returns": "Hayır, silinenler geri gelmez; yeni bir çökmede yenisi oluşur.",
       "actions": [
         { "type": "Delete", "mode": "FilesOnly", "path": "%WINDIR%/Minidump" }
       ]

@@ -16,7 +16,8 @@
           <TextBlock Theme="{StaticResource Label}" Text="Açılan"/>
           <TextBlock Theme="{StaticResource MonoValue}" Classes="data" Text="{Binding FreedText}"/>
         </StackPanel>
-        <Button Name="EmptyButton" Grid.Column="3" Classes="ghost" Content="Karantinayı boşalt" Margin="24,0,0,0"
+        <Button Name="EmptyButton" Grid.Column="3" Classes="purge" Classes.ghost="{Binding !IsEmptyArmed}" Classes.danger="{Binding IsEmptyArmed}"
+                Content="{Binding EmptyText}" Margin="24,0,0,0"
                 VerticalAlignment="Center" IsVisible="{Binding HasItems}"
                 Command="{Binding EmptyAllCommand}"
                 ToolTip.Tip="Karantinadaki her şeyi şimdi kalıcı siler ve yeri hemen açar"/>
@@ -74,28 +75,51 @@
           </StackPanel>
         </Border>
 
-        <ItemsControl ItemsSource="{Binding Items}" IsVisible="{Binding HasItems}">
+        <ItemsControl Name="Groups" ItemsSource="{Binding Groups}" IsVisible="{Binding HasItems}">
           <ItemsControl.ItemsPanel>
             <ItemsPanelTemplate>
-              <StackPanel Spacing="{StaticResource RowGap}"/>
+              <StackPanel Spacing="{StaticResource SectionGap}"/>
             </ItemsPanelTemplate>
           </ItemsControl.ItemsPanel>
           <ItemsControl.ItemTemplate>
-            <DataTemplate x:DataType="vm:QuarantineRow">
-              <Border Theme="{StaticResource Panel}" Padding="16">
+            <DataTemplate x:DataType="vm:QuarantineGroup">
+              <StackPanel Spacing="{StaticResource RowGap}">
                 <Grid ColumnDefinitions="Auto,*,Auto">
-                  <CheckBox IsChecked="{Binding IsSelected}" VerticalAlignment="Top" Margin="0,2,12,0"
-                            AutomationProperties.Name="{Binding Name}"/>
-                  <StackPanel Grid.Column="1" Spacing="{StaticResource Space1}">
-                    <TextBlock Theme="{StaticResource H3}" Text="{Binding Name}" TextTrimming="CharacterEllipsis"/>
-                    <TextBlock Theme="{StaticResource Hint}" FontFamily="{StaticResource FontMono}" Text="{Binding OriginalPath}" TextTrimming="PathSegmentEllipsis"/>
-                    <TextBlock Theme="{StaticResource Hint}">
-                      <Run Text="{Binding MovedText}"/><Run Text=" · "/><Run Text="{Binding DaysText}"/>
-                    </TextBlock>
-                  </StackPanel>
-                  <TextBlock Grid.Column="2" Theme="{StaticResource MonoValue}" Classes="data" Text="{Binding SizeText}" VerticalAlignment="Center"/>
+                  <TextBlock Theme="{StaticResource H3}" Text="{Binding Title}" VerticalAlignment="Center"/>
+                  <TextBlock Grid.Column="1" Theme="{StaticResource Hint}" Text="{Binding SummaryText, StringFormat='— {0}'}"
+                             VerticalAlignment="Center" Margin="8,0,0,0" TextTrimming="CharacterEllipsis"/>
+                  <Button Grid.Column="2" Classes="ghost" Content="Hepsini geri al"
+                          Command="{Binding $parent[v:QuarantineView].((vm:QuarantineViewModel)DataContext).RestoreGroupCommand}"
+                          CommandParameter="{Binding}"
+                          AutomationProperties.Name="{Binding RestoreName}"
+                          ToolTip.Tip="Bu gruptaki her şeyi eski yerine döndürür"/>
                 </Grid>
-              </Border>
+                <ItemsControl ItemsSource="{Binding Rows}">
+                  <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                      <StackPanel Spacing="{StaticResource RowGap}"/>
+                    </ItemsPanelTemplate>
+                  </ItemsControl.ItemsPanel>
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:QuarantineRow">
+                      <Border Theme="{StaticResource Panel}" Padding="16">
+                        <Grid ColumnDefinitions="Auto,*,Auto">
+                          <CheckBox IsChecked="{Binding IsSelected}" VerticalAlignment="Top" Margin="0,2,12,0"
+                                    AutomationProperties.Name="{Binding Name}"/>
+                          <StackPanel Grid.Column="1" Spacing="{StaticResource Space1}">
+                            <TextBlock Theme="{StaticResource H3}" Text="{Binding Name}" TextTrimming="CharacterEllipsis"/>
+                            <TextBlock Theme="{StaticResource Hint}" FontFamily="{StaticResource FontMono}" Text="{Binding OriginalPath}" TextTrimming="PathSegmentEllipsis"/>
+                            <TextBlock Theme="{StaticResource Hint}">
+                              <Run Text="{Binding MovedText}"/><Run Text=" · "/><Run Text="{Binding DaysText}"/>
+                            </TextBlock>
+                          </StackPanel>
+                          <TextBlock Grid.Column="2" Theme="{StaticResource MonoValue}" Classes="data" Text="{Binding SizeText}" VerticalAlignment="Center"/>
+                        </Grid>
+                      </Border>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </StackPanel>
             </DataTemplate>
           </ItemsControl.ItemTemplate>
         </ItemsControl>

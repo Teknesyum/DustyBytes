@@ -21,6 +21,8 @@ public sealed partial class ProgramRow(ProgramInfo info, DateTimeOffset now) : O
     public bool CanForce => UninstallerMissing && ForceUninstall.Refusal(Info.Program) is null;
     public bool CanOpen => CanUninstall || CanForce;
     public bool CanCheck => CanUninstall && !UninstallerMissing;
+    public bool IsShared { get; } = SharedRuntimes.IsShared(info.Program);
+    public string SharedNote => IsShared ? SharedRuntimes.Note : "";
 
     public bool CanForceAfter(bool vendorFailed, bool uninstalled) =>
         ForceUninstall.Refusal(Info.Program) is null && (UninstallerMissing && !uninstalled || vendorFailed);
@@ -175,6 +177,9 @@ public sealed partial class ProgramsViewModel : ViewModelBase
         var body = "Programlar sırayla, kendi kaldırıcılarıyla sessiz kaldırılır. İlkinden önce bir geri yükleme noktası oluşturulur. "
             + "Her programdan sonra kesin kalıntılar kayıt yedeği alınıp 7 gün karantinada tutularak temizlenir. "
             + "Sessiz kaldırılamayan programın penceresini siz bitirirsiniz; iptal ederseniz o anki program bitince sıra durur.";
+        var shared = rows.Where(r => r.IsShared).ToList();
+        if (shared.Count > 0)
+            body += $"\n\n{SharedRuntimes.Note}: {string.Join(", ", shared.Take(5).Select(r => r.Name))}{(shared.Count > 5 ? $" ve {Format.Count(shared.Count - 5)} tane daha" : "")}. Emin değilseniz bunların işaretini kaldırın.";
         if (!await _main.ConfirmAsync($"{Format.Count(rows.Count)} program kaldırılsın mı?", body, "Sırayla kaldır"))
             return;
         foreach (var row in rows)

@@ -47,7 +47,11 @@ public class CleanerRuleValidityTests
             {
                 var path = action.Path ?? action.Key ?? "";
                 foreach (var forbidden in ForbiddenBrowserTerms)
+                {
+                    if (forbidden == "Cookies" && option.Id == "cookies" && option.Sensitive && !string.IsNullOrWhiteSpace(option.Warning))
+                        continue;
                     Assert.DoesNotContain(forbidden, path, StringComparison.OrdinalIgnoreCase);
+                }
             }
         }
     }

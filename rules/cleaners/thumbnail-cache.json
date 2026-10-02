@@ -11,6 +11,9 @@
       "id": "thumbcache",
       "label": "Küçük Resim Önbelleği Dosyaları",
       "warning": "Gezgin bazı thumbcache dosyalarını açık tutabilir, kilitliyse atlanır",
+      "what": "Gezginin klasörlerde gösterdiği küçük resim önizlemeleri.",
+      "ifDeleted": "Klasörler ilk açılışta önizlemeleri yeniden üretir, biraz yavaş açılır.",
+      "returns": "Evet, Windows kendiliğinden yeniden oluşturur.",
       "actions": [
         { "type": "Delete", "mode": "Glob", "path": "%LOCALAPPDATA%/Microsoft/Windows/Explorer/thumbcache_*.db" },
         { "type": "Delete", "mode": "Glob", "path": "%LOCALAPPDATA%/Microsoft/Windows/Explorer/iconcache_*.db" }

@@ -11,6 +11,9 @@
       "id": "cache",
       "label": "npm Önbelleği",
       "warning": null,
+      "what": "npm'in indirdiği paketlerin yerel kopyası.",
+      "ifDeleted": "Sonraki kurulumlarda paketler yeniden indirilir; projelerin etkilenmez.",
+      "returns": "Evet, ihtiyaç olunca yeniden indirilir.",
       "actions": [
         { "type": "Delete", "mode": "Recurse", "path": "%APPDATA%/npm-cache" }
       ]

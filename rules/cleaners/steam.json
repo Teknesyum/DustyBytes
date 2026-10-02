@@ -11,6 +11,9 @@
       "id": "htmlcache",
       "label": "Mağaza Sayfası Önbelleği (htmlcache)",
       "warning": "Steam varsayılan kurulum yolu varsayılır, özel yol kullanıyorsanız bulunamaz",
+      "what": "Steam'in mağaza ve topluluk sayfalarının önbelleği.",
+      "ifDeleted": "Steam'de mağaza sayfaları ilk açılışta biraz yavaş yüklenir; oyunların ve hesabın etkilenmez.",
+      "returns": "Evet, Steam kendiliğinden yeniden oluşturur.",
       "actions": [
         { "type": "Delete", "mode": "Recurse", "path": "%PROGRAMFILES(X86)%/Steam/htmlcache" }
       ]
@@ -19,6 +22,9 @@
       "id": "logs",
       "label": "Günlük Dosyaları",
       "warning": "Steam varsayılan kurulum yolu varsayılır, özel yol kullanıyorsanız bulunamaz",
+      "what": "Steam'in çalışırken yazdığı günlük dosyaları.",
+      "ifDeleted": "Yalnız sorun araştırmak için kullanılır; Steam ve oyunların etkilenmez.",
+      "returns": "Hayır, eski günlükler geri gelmez; Steam yenilerini yazar.",
       "actions": [
         { "type": "Delete", "mode": "FilesOnly", "path": "%PROGRAMFILES(X86)%/Steam/logs" }
       ]
@@ -27,6 +33,9 @@
       "id": "dumps",
       "label": "Çökme Dökümleri",
       "warning": "Steam varsayılan kurulum yolu varsayılır, özel yol kullanıyorsanız bulunamaz",
+      "what": "Steam çöktüğünde bıraktığı hata kayıtları.",
+      "ifDeleted": "Yalnız çökme araştırması için kullanılır; Steam ve oyunların etkilenmez.",
+      "returns": "Hayır, silinenler geri gelmez; yeni bir çökmede yenisi oluşur.",
       "actions": [
         { "type": "Delete", "mode": "Recurse", "path": "%PROGRAMFILES(X86)%/Steam/dumps" }
       ]

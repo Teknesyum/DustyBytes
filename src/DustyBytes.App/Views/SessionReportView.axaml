@@ -1,0 +1,28 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:DustyBytes.App.ViewModels"
+             xmlns:v="using:DustyBytes.App.Views"
+             x:Class="DustyBytes.App.Views.SessionReportView"
+             x:DataType="vm:SessionReportViewModel">
+  <Border Name="SessionReport" Theme="{StaticResource Panel}" Margin="24,16,24,0" BorderBrush="{StaticResource BorderStrong}">
+    <StackPanel Spacing="{StaticResource FieldGap}">
+      <Grid ColumnDefinitions="*,Auto,Auto">
+        <StackPanel Spacing="{StaticResource Space1}">
+          <TextBlock Theme="{StaticResource H3}" Text="{Binding Title}" TextWrapping="Wrap"/>
+          <TextBlock Name="SessionSpace" Theme="{StaticResource Body}" FontFamily="{StaticResource FontMono}" Text="{Binding SpaceText}" TextWrapping="Wrap"/>
+          <TextBlock Name="SessionQuarantine" Theme="{StaticResource Body}" Text="{Binding QuarantineText}" TextWrapping="Wrap"
+                     IsVisible="{Binding HasQuarantined}"/>
+          <TextBlock Name="SessionPurged" Theme="{StaticResource Body}" Text="{Binding PurgedText}" TextWrapping="Wrap"
+                     IsVisible="{Binding HasPurged}"/>
+        </StackPanel>
+        <Button Name="SessionUndo" Grid.Column="1" Classes="ghost" Content="Geri al" VerticalAlignment="Top" Margin="12,0,0,0"
+                Command="{Binding UndoCommand}" IsVisible="{Binding CanUndo}"
+                AutomationProperties.Name="Bu temizliği geri al"
+                ToolTip.Tip="Bu oturumda karantinaya alınan her şeyi eski yerine döndürür; kalıcı silinenler dönmez"/>
+        <Button Name="SessionDismiss" Grid.Column="2" Classes="link" Content="Kapat" VerticalAlignment="Top" Margin="8,0,0,0"
+                Command="{Binding DismissCommand}" AutomationProperties.Name="Temizlik raporunu kapat"/>
+      </Grid>
+      <v:TaskProgressView DataContext="{Binding Progress}" IsVisible="{Binding IsRunning}"/>
+    </StackPanel>
+  </Border>
+</UserControl>

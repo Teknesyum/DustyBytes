@@ -27,7 +27,7 @@ public sealed record ProgramInfo(InstalledProgram Program, UsageSignal Usage);
 
 public sealed record CleanRuleInfo(CleanerRule Rule, bool Running, string? RunningReason);
 
-public sealed record SystemTaskInfo(string Id, string Name, long Bytes, bool Recommended, string Detail, bool Available, string? Note, string? Warning = null, bool Silent = true, string? RestoreId = null);
+public sealed record SystemTaskInfo(string Id, string Name, long Bytes, bool Recommended, string Detail, bool Available, string? Note, string? Warning = null, bool Silent = true, string? RestoreId = null, string? AltId = null, string? AltLabel = null, string? RestoreLabel = null);
 
 public sealed record QuarantineSnapshot(IReadOnlyList<QuarantineEntry> Entries, IReadOnlyList<VolumeUsage> Usage, bool Complete, string? Note);
 
@@ -46,6 +46,7 @@ public interface IAppBackend
     Task<ScanSnapshot?> RefreshAsync(ScanSnapshot cached, IProgress<TaskStep> progress, CancellationToken ct);
     Availability FastScanAvailability();
     Task<ScanSnapshot> FastScanAsync(IProgress<TaskStep> progress, CancellationToken ct);
+    Task<FolderGrowth?> GrowthAsync(ScanResult result, CancellationToken ct);
     Task<IReadOnlyList<Unit>> FindDuplicatesAsync(ScanSnapshot snapshot, IProgress<TaskStep> progress, Action<Unit> found, CancellationToken ct);
 
     Task<IReadOnlyList<ProgramInfo>> ListProgramsAsync(IProgress<TaskStep> progress, CancellationToken ct);

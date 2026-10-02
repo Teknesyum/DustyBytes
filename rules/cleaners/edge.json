@@ -1,7 +1,7 @@
 {
   "id": "edge",
   "name": "Microsoft Edge",
-  "source": "bleachbit/cleaners/microsoft_edge.xml (GPL-3.0-or-later, Andrew Ziem) ve PolarityFlow/CacheFlow güvenli klasör listesi (MIT) — yalnız önbellek seçenekleri alındı, geçmiş/çerez/parola hiç yok",
+  "source": "bleachbit/cleaners/microsoft_edge.xml (GPL-3.0-or-later, Andrew Ziem) ve PolarityFlow/CacheFlow güvenli klasör listesi (MIT) — yalnız önbellek seçenekleri alındı, çerez yalnız ayrı ve işaretsiz bir seçenek, geçmiş ve parola hiç yok",
   "running": {
     "processNames": ["msedge.exe"],
     "lockFiles": []
@@ -11,6 +11,9 @@
       "id": "cache",
       "label": "HTTP Önbelleği",
       "warning": null,
+      "what": "Sitelerden indirilen resim ve dosyaların geçici kopyaları.",
+      "ifDeleted": "Siteler ilk açılışta biraz yavaş yüklenir. Giriş yaptığın siteler açık kalır.",
+      "returns": "Evet, tarayıcı gezdikçe kendiliğinden yeniden oluşturur.",
       "actions": [
         { "type": "Delete", "mode": "Recurse", "path": "%LOCALAPPDATA%/Microsoft/Edge/User Data/*/Cache" },
         { "type": "Delete", "mode": "Recurse", "path": "%LOCALAPPDATA%/Microsoft/Edge/User Data/*/Cache2" }
@@ -20,6 +23,9 @@
       "id": "code-cache",
       "label": "Kod Önbelleği",
       "warning": null,
+      "what": "Sitelerin çalıştırdığı kodun hızlandırılmış kopyası.",
+      "ifDeleted": "Siteler ilk açılışta biraz geç açılır. Giriş yaptığın siteler açık kalır.",
+      "returns": "Evet, kendiliğinden yeniden oluşur.",
       "actions": [
         { "type": "Delete", "mode": "Recurse", "path": "%LOCALAPPDATA%/Microsoft/Edge/User Data/*/Code Cache" }
       ]
@@ -28,6 +34,9 @@
       "id": "gpu-cache",
       "label": "GPU Önbelleği",
       "warning": null,
+      "what": "Tarayıcının ekran kartı için sakladığı çizim önbelleği.",
+      "ifDeleted": "Sayfalar ilk açılışta bir an geç çizilebilir. Giriş yaptığın siteler açık kalır.",
+      "returns": "Evet, kendiliğinden yeniden oluşur.",
       "actions": [
         { "type": "Delete", "mode": "Recurse", "path": "%LOCALAPPDATA%/Microsoft/Edge/User Data/*/GPUCache" }
       ]
@@ -36,8 +45,26 @@
       "id": "service-worker-cache",
       "label": "Service Worker Önbelleği",
       "warning": null,
+      "what": "Sitelerin çevrimdışı çalışmak için sakladığı önbellek.",
+      "ifDeleted": "Bu siteler ilk açılışta dosyalarını yeniden indirir. Giriş yaptığın siteler açık kalır.",
+      "returns": "Evet, site açıldıkça yeniden oluşur.",
       "actions": [
         { "type": "Delete", "mode": "Recurse", "path": "%LOCALAPPDATA%/Microsoft/Edge/User Data/*/Service Worker/CacheStorage" }
+      ]
+    },
+    {
+      "id": "cookies",
+      "label": "Çerezleri de sil",
+      "warning": "Sitelerden çıkış yapılır",
+      "what": "Sitelerin seni tanıması için sakladığı küçük oturum dosyaları.",
+      "ifDeleted": "Giriş yaptığın sitelerden çıkış yapılır; yeniden giriş gerekir.",
+      "returns": "Hayır, çerezler geri gelmez; siteye yeniden girince yenileri oluşur.",
+      "sensitive": true,
+      "actions": [
+        { "type": "Delete", "mode": "Glob", "path": "%LOCALAPPDATA%/Microsoft/Edge/User Data/*/Network/Cookies" },
+        { "type": "Delete", "mode": "Glob", "path": "%LOCALAPPDATA%/Microsoft/Edge/User Data/*/Network/Cookies-journal" },
+        { "type": "Delete", "mode": "Glob", "path": "%LOCALAPPDATA%/Microsoft/Edge/User Data/*/Cookies" },
+        { "type": "Delete", "mode": "Glob", "path": "%LOCALAPPDATA%/Microsoft/Edge/User Data/*/Cookies-journal" }
       ]
     }
   ]

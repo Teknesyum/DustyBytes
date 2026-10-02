@@ -75,8 +75,14 @@ public static class QuarantineReader
         var connection = new SqliteConnectionStringBuilder { DataSource = db, Mode = SqliteOpenMode.ReadOnly, Pooling = false }.ToString();
         using var con = new SqliteConnection(connection);
         con.Open();
+        bool session;
+        using (var probe = con.CreateCommand())
+        {
+            probe.CommandText = "SELECT COUNT(*) FROM pragma_table_info('items') WHERE name = 'session_id'";
+            session = Convert.ToInt64(probe.ExecuteScalar()) > 0;
+        }
         using var cmd = con.CreateCommand();
-        cmd.CommandText = "SELECT id, original_path, is_dir, size, volume_id, moved_utc, expires_utc, unit_id, state FROM items WHERE state IN ('pending', 'moving') ORDER BY moved_utc DESC";
+        cmd.CommandText = $"SELECT id, original_path, is_dir, size, volume_id, moved_utc, expires_utc, unit_id, state, {(session ? "session_id" : "NULL")} FROM items WHERE state IN ('pending', 'moving') ORDER BY moved_utc DESC";
         using var r = cmd.ExecuteReader();
         var list = new List<QuarantineEntry>();
         while (r.Read())
@@ -93,6 +99,7 @@ public static class QuarantineReader
                 ExpiresUtc = new DateTime(r.GetInt64(6), DateTimeKind.Utc),
                 UnitId = r.IsDBNull(7) ? null : r.GetString(7),
                 State = r.GetString(8),
+                SessionId = r.IsDBNull(9) ? null : r.GetString(9),
             });
         }
         return list;

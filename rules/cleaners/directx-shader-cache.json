@@ -11,6 +11,9 @@
       "id": "d3dscache",
       "label": "D3D Shader Önbelleği",
       "warning": "Silinince oyunların ilk açılışı yavaşlar, yeniden oluşturulur",
+      "what": "Oyunların ekran kartı için derlenmiş shader dosyalarının önbelleği.",
+      "ifDeleted": "Oyunlar ilk açılışta biraz yavaş açılır, kendiliğinden yeniden oluşur.",
+      "returns": "Evet, oyun oynadıkça yeniden oluşur.",
       "actions": [
         { "type": "Delete", "mode": "Recurse", "path": "%LOCALAPPDATA%/D3DSCache" }
       ]

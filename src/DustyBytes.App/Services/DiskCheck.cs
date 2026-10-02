@@ -1,4 +1,5 @@
 using DustyBytes.Clean.Quarantine;
+using DustyBytes.Core;
 
 namespace DustyBytes.App.Services;
 
@@ -10,6 +11,16 @@ public sealed record DriveSpace(string Root, long TotalBytes, long FreeBytes)
 }
 
 public sealed record FreeNowOffer(DriveSpace Drive, long Bytes, IReadOnlyList<string> Ids);
+
+public sealed record HeldRoot(string? Root, long Bytes, IReadOnlyList<string> Ids);
+
+public sealed record HeldSpace(long Bytes, int Count, int DaysLeft, bool SameDay, IReadOnlyList<HeldRoot> Roots)
+{
+    public IEnumerable<string> Ids => Roots.SelectMany(r => r.Ids);
+
+    public bool SameAs(HeldSpace? other) =>
+        other is not null && other.Bytes == Bytes && other.Count == Count && other.Ids.SequenceEqual(Ids, StringComparer.Ordinal);
+}
 
 public interface INotifier
 {
@@ -35,12 +46,13 @@ public static class DiskCheck
 
     public static string Message(IReadOnlyList<DriveSpace> low) => Title(low) + " · " + Body;
 
-    public static int Run(IEnumerable<DriveSpace> drives, INotifier notifier)
+    public static int Run(IEnumerable<DriveSpace> drives, INotifier notifier, Func<string, string?>? growth = null)
     {
         var low = Low(drives);
         if (low.Count == 0)
             return 0;
-        return notifier.Show(Title(low), Body, LaunchArgs.OpenUri) ? 0 : 1;
+        var sentence = growth is null ? null : low.Select(d => growth(d.Root)).FirstOrDefault(s => s is { Length: > 0 });
+        return notifier.Show(Title(low), sentence is null ? Body : sentence + ". " + Body, LaunchArgs.OpenUri) ? 0 : 1;
     }
 
     public static string? RootOf(QuarantineEntry entry)
@@ -77,6 +89,26 @@ public static class DiskCheck
                 return new FreeNowOffer(drive, bytes, [.. held.Select(e => e.Id)]);
         }
         return null;
+    }
+
+    public static DateTime Due(QuarantineEntry entry)
+    {
+        var byAge = entry.MovedUtc + AppSettings.QuarantineDays;
+        return byAge < entry.ExpiresUtc ? byAge : entry.ExpiresUtc;
+    }
+
+    public static int DaysLeft(QuarantineEntry entry, DateTime nowUtc) => Math.Max(0, (int)Math.Ceiling((Due(entry) - nowUtc).TotalDays));
+
+    public static HeldSpace? Held(IReadOnlyCollection<QuarantineEntry> entries, DateTime nowUtc)
+    {
+        if (entries.Count == 0)
+            return null;
+        var days = entries.Select(e => DaysLeft(e, nowUtc)).ToList();
+        var roots = entries
+            .GroupBy(RootOf, StringComparer.OrdinalIgnoreCase)
+            .Select(g => new HeldRoot(g.Key, g.Sum(e => e.Size), [.. g.Select(e => e.Id)]))
+            .ToList();
+        return new HeldSpace(entries.Sum(e => e.Size), entries.Count, days.Min(), days.Distinct().Count() == 1, roots);
     }
 
     public static IReadOnlyList<DriveSpace> FixedDrives()

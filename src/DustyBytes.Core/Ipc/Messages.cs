@@ -43,6 +43,7 @@ public sealed record WorkerRequest
     public string? Target { get; init; }
     public List<string> Items { get; init; } = [];
     public string? Digest { get; init; }
+    public string? SessionId { get; init; }
 }
 
 public sealed record ItemResult(string Path, bool Ok, string Message, long Bytes = 0);

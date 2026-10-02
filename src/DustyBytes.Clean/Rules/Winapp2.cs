@@ -19,7 +19,7 @@ public static class Winapp2
             if (line.StartsWith('[') && line.EndsWith(']'))
             {
                 if (current is not null)
-                    rules.Add(current);
+                    rules.Add(Explained(current));
                 var section = line[1..^1];
                 current = new CleanerRule
                 {
@@ -66,9 +66,30 @@ public static class Winapp2
         }
 
         if (current is not null)
-            rules.Add(current);
+            rules.Add(Explained(current));
 
         return rules;
+    }
+
+    public const string GenericWhat = "Winapp2 topluluk listesinde önbellek ya da artık olarak işaretlenmiş dosyalar.";
+    public const string GenericIfDeleted = "Uygulama bu dosyaları kaybeder; çoğu kendiliğinden yeniden oluşur, kişisel dosyalarına dokunulmaz.";
+    public const string GenericReturns = "Çoğunlukla evet, uygulama gerektiğinde yeniden oluşturur; oluşturamazsa ayarı sıfırlanabilir.";
+    public const string SessionIfDeleted = "Giriş yaptığın sitelerden ya da hesaplardan çıkış yapılabilir; yeniden giriş gerekir.";
+
+    static CleanerRule Explained(CleanerRule rule)
+    {
+        foreach (var option in rule.Options)
+        {
+            option.What = GenericWhat;
+            option.IfDeleted = GenericIfDeleted;
+            option.Returns = GenericReturns;
+            if (SessionData.Touches(option))
+            {
+                option.Sensitive = true;
+                option.IfDeleted = SessionIfDeleted;
+            }
+        }
+        return rule;
     }
 
     static CleanAction? ParseFileKey(string value)

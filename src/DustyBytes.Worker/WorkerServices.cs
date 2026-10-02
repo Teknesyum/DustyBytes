@@ -38,9 +38,10 @@ public sealed class WorkerServices
         {
             Ops.Ping => Task.FromResult(new WorkerResponse { Id = request.Id, Ok = true, Message = "pong", DryRun = DryRun.Enabled, Payload = Environment.ProcessId.ToString() }),
             Ops.Quarantine when IsDuplicate(request) => Task.Run(() => QuarantineDuplicates(request, progress, ct), ct),
-            Ops.Quarantine => Task.Run(() => PerPath(request, progress, ct, p => Quarantine.Quarantine(p, request.UnitId, request.IncludeUserData)), ct),
+            Ops.Quarantine => Task.Run(() => PerPath(request, progress, ct, p => Quarantine.Quarantine(p, request.UnitId, request.IncludeUserData, request.SessionId)), ct),
             Ops.Delete when QuarantineOnly(request) => Task.FromResult(new WorkerResponse { Id = request.Id, Ok = false, Message = IsDuplicate(request) ? "Kopyalar yalnız karantinaya alınır; kalıcı silinmez" : "Eski indirmeler yalnız karantinaya alınır; kalıcı silinmez" }),
             Ops.Delete => Task.Run(() => PerPath(request, progress, ct, p => Delete.Delete(p, request.IncludeUserData, request.Target == TargetOnReboot)), ct),
+            Ops.Restore when IsSessionRestore(request) => Task.Run(() => RestoreSession(request, progress, ct), ct),
             Ops.Restore => Task.Run(() => PerId(request, progress, ct, Quarantine.Restore), ct),
             Ops.Purge => Task.Run(() => PurgeAsync(request, progress, ct), ct),
             Ops.ListQuarantine => Task.Run(() => ListQuarantine(request), ct),
@@ -55,6 +56,17 @@ public sealed class WorkerServices
     public static bool IsDuplicate(WorkerRequest request) =>
         request.UnitId?.StartsWith(nameof(Core.Model.UnitKind.Duplicate) + "-", StringComparison.Ordinal) == true;
 
+    static bool IsSessionRestore(WorkerRequest request) =>
+        request.SessionId is not null && request.Items.Count == 0 && request.Paths.Count == 0;
+
+    WorkerResponse RestoreSession(WorkerRequest request, IProgress<WorkerProgress> progress, CancellationToken ct)
+    {
+        if (!QuarantineStore.ValidSession(request.SessionId))
+            return new WorkerResponse { Id = request.Id, Ok = false, Message = "Geçersiz oturum kimliği" };
+        var ids = Quarantine.SessionItems(request.SessionId!).Select(e => e.Id).ToList();
+        return Run(request, progress, ct, ids, request.Op, Quarantine.Restore);
+    }
+
     WorkerResponse QuarantineDuplicates(WorkerRequest request, IProgress<WorkerProgress> progress, CancellationToken ct)
     {
         var guard = new DuplicateGuard(request.Target ?? "");
@@ -66,7 +78,7 @@ public sealed class WorkerServices
                 first ??= refusal;
                 return OpResult.Failed(p, OpMethod.Quarantine, refusal);
             }
-            return Quarantine.Quarantine(p, request.UnitId, request.IncludeUserData);
+            return Quarantine.Quarantine(p, request.UnitId, request.IncludeUserData, request.SessionId);
         });
         return first is null ? response : response with { Message = response.Message + ": " + first };
     }
