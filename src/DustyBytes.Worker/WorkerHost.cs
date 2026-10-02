@@ -60,7 +60,8 @@ public static class WorkerHost
                     try
                     {
                         if (AppSettings.Load().AutoPurge)
-                            services.Quarantine.PurgeExpired(maxAge: AppSettings.QuarantineDays);
+                            Clean.Quarantine.AutoPurgeLog.Append(Clean.Quarantine.AutoPurgeLog.Summarize(
+                                services.Quarantine.PurgeExpired(maxAge: AppSettings.QuarantineDays), DateTimeOffset.Now));
                     }
                     catch (Exception)
                     {

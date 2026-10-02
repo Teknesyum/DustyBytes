@@ -455,7 +455,7 @@ public class BildirimOlcumTests
         Assert.Equal("kanca", summary.Session);
         Assert.NotNull(summary.ToFirstCard);
         Assert.NotNull(summary.ToFirstFreed);
-        Assert.Equal(FakeBackend.CleanFreed * 2, summary.FirstFreedBytes);
+        Assert.Equal(FakeBackend.CleanFreed, summary.FirstFreedBytes);
         Assert.Equal(1, summary.Decisions);
         Assert.Equal(1, summary.Clicks);
         Assert.Equal(1, summary.Undos);

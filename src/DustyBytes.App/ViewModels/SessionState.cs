@@ -400,6 +400,13 @@ public sealed partial class SessionState(IAppBackend backend) : ObservableObject
         {
             shell.Fail("Karantina okunamadı: " + e.Message);
         }
+        AbsorbAutoPurges();
+    }
+
+    public void AbsorbAutoPurges()
+    {
+        if (backend.AbsorbAutoPurges() is { } next)
+            Ledger = next;
     }
 
     public void AddFreed(long bytes, string? root = null)

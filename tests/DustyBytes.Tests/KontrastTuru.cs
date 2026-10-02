@@ -175,6 +175,18 @@ static class KontrastTuru
         yield return "Tur İçindekiler";
         turKarti.Contents.ToggleCommand.Execute(null);
         belirsiz.Tour.EndCommand.Execute(null);
+        belirsiz.Tour.Page = new TourSummary(
+            "Gerçekte açılan: 2,4 GB",
+            ["Önbellek ve geçici dosyalar: 2,5 GB", "Yerinde kalan: 2 öğe"],
+            false,
+            "C: önce 48 GB boş, sonra 50,4 GB boş",
+            "Tahmini: 2,5 GB",
+            [
+                new FailureNote("node_modules", "Dosya kullanımda", "Code programını kapatıp yeniden dene"),
+                new FailureNote("Önbellek ve geçici dosyalar", "3 dosya kullanımda", "Açık programları (örneğin tarayıcıyı) kapatıp yeniden dene"),
+            ]);
+        Otur();
+        yield return "Tur Özeti Silinemeyenler";
         belirsiz.Tour.CloseCommand.Execute(null);
 
         belirsiz.GoTo(belirsiz.Offers);

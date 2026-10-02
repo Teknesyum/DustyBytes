@@ -64,6 +64,7 @@ public interface IAppBackend
 
     LedgerData ReadLedger();
     LedgerData AddFreed(long bytes, string? root = null);
+    LedgerData? AbsorbAutoPurges() => null;
 
     IReadOnlyList<DriveSpace> Drives();
     bool WeeklyCheck { get; }

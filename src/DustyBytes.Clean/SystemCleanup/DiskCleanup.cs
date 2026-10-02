@@ -3,7 +3,10 @@ using Microsoft.Win32;
 
 namespace DustyBytes.Clean.SystemCleanup;
 
-public sealed class DiskCleanup : ISystemCleanupTask
+public sealed class DiskCleanup(
+    Func<string, long>? freeSpace = null,
+    Func<string, string, IProgress<string>?, CancellationToken, Task<(int ExitCode, string Output)>>? runner = null,
+    string? windowsDir = null) : ISystemCleanupTask
 {
     public const int SageNumber = 1974;
     public const string VolumeCachesKey = @"HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\VolumeCaches";
@@ -15,16 +18,17 @@ public sealed class DiskCleanup : ISystemCleanupTask
 
     public static string StateFlagsValueName => $"StateFlags{SageNumber:D4}";
 
+    string WindowsDir => windowsDir ?? Environment.GetFolderPath(Environment.SpecialFolder.Windows);
+
+    string SystemDrive => Path.GetPathRoot(WindowsDir) is { Length: > 0 } root ? root : WindowsDir[..3];
+
     public Task<SystemCleanupEstimate> EstimateAsync(CancellationToken ct)
     {
-        var systemDrive = Environment.GetFolderPath(Environment.SpecialFolder.Windows)[..3];
-        var windowsOld = Path.Combine(systemDrive, "Windows.old");
-        var setupTemp = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Windows), "Panther");
-
-        var bytes = FolderSize.Measure(windowsOld) + FolderSize.Measure(setupTemp);
+        var windowsOld = Path.Combine(Path.GetDirectoryName(WindowsDir.TrimEnd('\\', '/')) ?? SystemDrive, "Windows.old");
+        var bytes = FolderSize.Measure(windowsOld);
         return Task.FromResult(new SystemCleanupEstimate(
             Id, bytes, bytes > 0,
-            $"{windowsOld} + {setupTemp} (yaklaşık, gerçek değer cleanmgr /sagerun ile ölçülür)"));
+            $"{windowsOld} (yaklaşık, gerçek değer cleanmgr /sagerun ile ölçülür)"));
     }
 
     public Task<SystemCleanupResult> RunAsync(IProgress<string> progress, CancellationToken ct) =>
@@ -49,11 +53,29 @@ public sealed class DiskCleanup : ISystemCleanupTask
             registryWriter(handler, 2);
         }
 
-        var (exitCode, _) = await ProcessRunner.RunAsync("cleanmgr.exe", BuildSagerunArguments(), progress, ct);
+        var drive = SystemDrive;
+        var before = Free(drive);
+        var (exitCode, _) = await (runner ?? ProcessRunner.RunAsync)("cleanmgr.exe", BuildSagerunArguments(), progress, ct);
+        var after = Free(drive);
+        var freed = before >= 0 && after >= 0 ? Math.Max(0, after - before) : 0;
         return exitCode == 0
-            ? new SystemCleanupResult(Id, true, "Disk temizleme tamamlandı", 0)
-            : new SystemCleanupResult(Id, false, $"cleanmgr çıktı kodu {exitCode}", 0);
+            ? new SystemCleanupResult(Id, true, "Disk temizleme tamamlandı", freed)
+            : new SystemCleanupResult(Id, false, $"cleanmgr çıktı kodu {exitCode}", freed);
     }
+
+    long Free(string root)
+    {
+        try
+        {
+            return (freeSpace ?? MeasureFree)(root);
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException or ArgumentException)
+        {
+            return -1;
+        }
+    }
+
+    static long MeasureFree(string root) => new DriveInfo(root).AvailableFreeSpace;
 
     public static string BuildSagerunArguments() => $"/sagerun:{SageNumber}";
 

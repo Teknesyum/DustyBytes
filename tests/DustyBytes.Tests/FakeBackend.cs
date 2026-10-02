@@ -356,6 +356,18 @@ public sealed class FakeBackend : IAppBackend
         return Ledger = new(Ledger.FreedBytes + bytes, Ledger.Actions + 1, [.. Ledger.Entries, new FreedEntry(DateTimeOffset.Now, bytes, root ?? @"C:\", DriveTotal, DriveFree)]);
     }
 
+    public List<AutoPurgeRecord> AutoPurges { get; } = [];
+
+    public LedgerData? AbsorbAutoPurges()
+    {
+        if (AutoPurges.Count == 0)
+            return null;
+        foreach (var record in AutoPurges)
+            Ledger = new(Ledger.FreedBytes + record.Bytes, Ledger.Actions + 1, [.. Ledger.Entries, new FreedEntry(record.At, record.Bytes, record.Root, DriveTotal, DriveFree)]);
+        AutoPurges.Clear();
+        return Ledger;
+    }
+
     public long DriveTotal { get; set; } = 500_000_000_000;
     public long DriveFree { get; set; } = 200_000_000_000;
 

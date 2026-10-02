@@ -199,7 +199,12 @@ public sealed partial class UnitCard : ObservableObject
     }
 }
 
-public sealed record RemoveOutcome(IReadOnlyList<Unit> Moved, IReadOnlyList<string> Ids, long Freed, bool DryRun, IReadOnlyList<string> Failures, bool Cancelled, string? Error, long Pending = 0);
+public sealed record UnitFailure(Unit Unit, IReadOnlyList<string> Messages);
+
+public sealed record RemoveOutcome(IReadOnlyList<Unit> Moved, IReadOnlyList<string> Ids, long Freed, bool DryRun, IReadOnlyList<string> Failures, bool Cancelled, string? Error, long Pending = 0, IReadOnlyList<UnitFailure>? Problems = null)
+{
+    public IReadOnlyList<UnitFailure> Unfinished => Problems ?? [];
+}
 
 public sealed partial class OffersViewModel : ViewModelBase
 {
@@ -584,6 +589,9 @@ public sealed partial class OffersViewModel : ViewModelBase
         var ids = new List<string>();
         var moved = new List<Unit>();
         var failures = new List<string>();
+        var problems = new List<UnitFailure>();
+        var gone = new List<Unit>();
+        var partial = new List<Unit>();
         var dryRun = false;
         var cancelled = false;
         long freed = 0;
@@ -614,10 +622,23 @@ public sealed partial class OffersViewModel : ViewModelBase
                     pending += response.PendingBytes;
                     var unitIds = IdsOf(response);
                     ids.AddRange(unitIds);
+                    if (!response.DryRun && response.FreedBytes > 0)
+                        _main.Session.AddFreed(response.FreedBytes, RootOf(unit));
                     if (response.Ok)
                         moved.Add(unit);
                     else
+                    {
                         failures.Add($"{unit.Name}: {response.Message}");
+                        var bad = response.Items.Where(i => !i.Ok).ToList();
+                        problems.Add(new UnitFailure(unit, bad.Count > 0 ? [.. bad.Select(i => i.Message)] : [response.Message]));
+                        if (!response.DryRun)
+                        {
+                            if (bad.Count > 0 && bad.All(i => i.Message.StartsWith("NotFound", StringComparison.Ordinal)))
+                                gone.Add(unit);
+                            else if (response.FreedBytes + response.PendingBytes > 0)
+                                partial.Add(unit with { SizeBytes = Math.Max(0, unit.SizeBytes - response.FreedBytes - response.PendingBytes) });
+                        }
+                    }
                     if (PathGap(unit, response) is { } gap)
                         failures.Add($"{unit.Name}: {gap}");
                     if (response.DryRun)
@@ -640,13 +661,29 @@ public sealed partial class OffersViewModel : ViewModelBase
         }
         if (!dryRun)
         {
-            if (freed > 0)
-                _main.Session.AddFreed(freed);
-            if (moved.Count > 0)
-                _main.Session.RemoveUnits(moved.Select(u => u.Id));
+            if (moved.Count + gone.Count > 0)
+                _main.Session.RemoveUnits(moved.Concat(gone).Select(u => u.Id));
+            foreach (var unit in partial)
+                _main.Session.UpdateUnit(unit);
             _ = _main.Session.RefreshQuarantineAsync(_main);
         }
-        return new RemoveOutcome(moved, ids, freed, dryRun, failures, cancelled, null, pending);
+        return new RemoveOutcome(moved, ids, freed, dryRun, failures, cancelled, null, pending, problems);
+    }
+
+    static string? RootOf(Unit unit)
+    {
+        foreach (var path in unit.Paths)
+        {
+            try
+            {
+                if (Path.GetPathRoot(path) is { Length: > 0 } root)
+                    return root;
+            }
+            catch (ArgumentException)
+            {
+            }
+        }
+        return null;
     }
 
     public static string? PathGap(Unit unit, WorkerResponse response)

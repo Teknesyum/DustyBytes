@@ -37,6 +37,17 @@ public static class SafeBreakdown
     public static List<string> SafeKeys(IEnumerable<CleanRuleInfo> rules) =>
         [.. rules.SelectMany(r => r.Rule.Options.Where(o => CleanRuleRow.Safe(r, o)).Select(o => CleanOptionRow.KeyOf(r.Rule.Id, o.Id)))];
 
+    public static Dictionary<string, string> Names(IEnumerable<CleanRuleInfo> rules, IEnumerable<SystemTaskInfo> tasks)
+    {
+        var names = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var info in rules)
+            foreach (var option in info.Rule.Options)
+                names[CleanOptionRow.KeyOf(info.Rule.Id, option.Id)] = Name(info.Rule.Name, option.Label);
+        foreach (var task in tasks)
+            names[task.Id] = task.Name;
+        return names;
+    }
+
     public static List<SafeItem> Rules(IReadOnlyList<CleanRuleInfo> rules, IReadOnlyList<SystemTaskInfo> tasks, CleanPreview? preview, IReadOnlyList<OptionPreview> estimates)
     {
         var items = new List<SafeItem>();

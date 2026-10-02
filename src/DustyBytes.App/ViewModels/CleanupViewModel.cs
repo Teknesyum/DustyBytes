@@ -115,6 +115,7 @@ public sealed class CleanOutcome
     public long Freed { get; set; }
     public bool DryRun { get; set; }
     public List<string> Failures { get; } = [];
+    public List<ItemResult> FailedItems { get; } = [];
     public PathTally? Tally { get; set; }
     public CleanPreview? Shown { get; set; }
     public CleanPreview? Fresh { get; set; }
@@ -446,7 +447,7 @@ public sealed partial class CleanupViewModel : ViewModelBase
         {
             await Progress.RunAsync("Temizlik yapılıyor", async (p, ct) =>
             {
-                await SendAsync(_main.Backend, [.. options.Select(o => o.Key)], [.. tasks.Select(t => t.Id)], outcome, p, ct, preview);
+                await SendAsync(_main.Backend, [.. options.Select(o => o.Key)], [.. tasks.Select(t => t.Id)], outcome, p, ct, preview, bytes => _main.Session.AddFreed(bytes));
                 return true;
             });
         }
@@ -478,8 +479,6 @@ public sealed partial class CleanupViewModel : ViewModelBase
         }
         else
         {
-            if (freed > 0)
-                _main.Session.AddFreed(freed);
             _main.Notify(outcome.Summary is { } line ? $"{line}. {Format.Bytes(freed)} açıldı" : $"Temizlik bitti, {Format.Bytes(freed)} açıldı");
             _previewKey = null;
             _ = MeasureAsync();
@@ -503,10 +502,17 @@ public sealed partial class CleanupViewModel : ViewModelBase
 
     public static async Task<(List<string> Options, List<string> Tasks)> SafeDefaultsAsync(IAppBackend backend, CancellationToken ct)
     {
+        var (options, tasks, _) = await SafeChoicesAsync(backend, ct);
+        return (options, tasks);
+    }
+
+    public static async Task<(List<string> Options, List<string> Tasks, Dictionary<string, string> Names)> SafeChoicesAsync(IAppBackend backend, CancellationToken ct)
+    {
         var rules = await backend.CleanRulesAsync(ct);
         var tasks = await backend.SystemTasksAsync(ct);
         return (SafeBreakdown.SafeKeys(rules),
-            [.. tasks.Where(SystemTaskRow.SilentSafe).Select(t => t.Id)]);
+            [.. tasks.Where(SystemTaskRow.SilentSafe).Select(t => t.Id)],
+            SafeBreakdown.Names(rules, tasks));
     }
 
     public static string ChangedText(CleanPreview shown, CleanPreview fresh) =>
@@ -516,7 +522,7 @@ public sealed partial class CleanupViewModel : ViewModelBase
 
     const string WorkerStaleText = global::DustyBytes.Clean.SystemCleanup.WorkerCleanHandlers.StaleMessage;
 
-    public static async Task SendAsync(IAppBackend backend, IReadOnlyList<string> options, IReadOnlyList<string> tasks, CleanOutcome outcome, IProgress<TaskStep> p, CancellationToken ct, CleanPreview? shown = null)
+    public static async Task SendAsync(IAppBackend backend, IReadOnlyList<string> options, IReadOnlyList<string> tasks, CleanOutcome outcome, IProgress<TaskStep> p, CancellationToken ct, CleanPreview? shown = null, Action<long>? stepFreed = null)
     {
         if (options.Count > 0)
         {
@@ -536,18 +542,25 @@ public sealed partial class CleanupViewModel : ViewModelBase
                 return;
             }
             outcome.Tally = response.Tally;
-            outcome.Freed += response.FreedBytes;
-            outcome.DryRun |= response.DryRun;
-            outcome.Failures.AddRange(response.Items.Where(i => !i.Ok).Select(i => $"{i.Path}: {i.Message}"));
+            Take(response, outcome, stepFreed);
             if (!response.Ok)
                 outcome.Failures.Add(response.Message);
         }
-        if (tasks.Count > 0)
+        foreach (var task in tasks)
         {
-            var response = await backend.SendAsync(new WorkerRequest { Op = Ops.SystemClean, UserApproved = true, Items = [.. tasks] }, p, ct);
-            outcome.Freed += response.FreedBytes;
-            outcome.DryRun |= response.DryRun;
-            outcome.Failures.AddRange(response.Items.Where(i => !i.Ok).Select(i => $"{i.Path}: {i.Message}"));
+            var response = await backend.SendAsync(new WorkerRequest { Op = Ops.SystemClean, UserApproved = true, Items = [task] }, p, ct);
+            Take(response, outcome, stepFreed);
         }
+    }
+
+    static void Take(WorkerResponse response, CleanOutcome outcome, Action<long>? stepFreed)
+    {
+        outcome.Freed += response.FreedBytes;
+        outcome.DryRun |= response.DryRun;
+        var failed = response.Items.Where(i => !i.Ok).ToList();
+        outcome.FailedItems.AddRange(failed);
+        outcome.Failures.AddRange(failed.Select(i => $"{i.Path}: {i.Message}"));
+        if (!response.DryRun && response.FreedBytes > 0)
+            stepFreed?.Invoke(response.FreedBytes);
     }
 }

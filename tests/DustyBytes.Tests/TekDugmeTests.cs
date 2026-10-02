@@ -103,7 +103,12 @@ public class TekDugmeTests
     [AvaloniaFact]
     public async Task Safe_Clean_Runs_Only_The_Silent_Half_And_Counts_Real_Bytes()
     {
-        var (vm, backend) = await Ready();
+        var (vm, backend) = await Ready(b => b.BeforeRespond = (r, _) =>
+        {
+            b.DriveFree += r.Op == Ops.Delete ? FakeBackend.DeleteFreed : r.Op is Ops.Clean or Ops.SystemClean ? FakeBackend.CleanFreed : 0;
+            return Task.CompletedTask;
+        });
+        var before = backend.DriveFree;
         await vm.Overview.SafeCleanCommand.ExecuteAsync(null);
         await Settle();
 
@@ -118,7 +123,9 @@ public class TekDugmeTests
         var real = FakeBackend.CleanFreed * 2 + FakeBackend.DeleteFreed;
         Assert.Equal(real, tour.FreedBytes);
         Assert.Equal(0, tour.HeldBytes);
-        Assert.Equal($"{Format.Bytes(real)} boşaldı", tour.Summary!.FreedText);
+        Assert.Equal($"Gerçekte açılan: {Format.Bytes(real)}", tour.Summary!.FreedText);
+        Assert.Equal($"C: önce {Format.Bytes(before)} boş, sonra {Format.Bytes(before + real)} boş", tour.Summary.DriveText);
+        Assert.Equal($"Tahmini: {Format.Bytes(real)}", tour.Summary.EstimateText);
         Assert.Equal(real, vm.Overview.NowFreedBytes);
         Assert.StartsWith($"Şimdi boşalan {Format.Bytes(real)} · Karantinada ", vm.Overview.CounterText);
     }

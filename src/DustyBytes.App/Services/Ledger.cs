@@ -50,4 +50,15 @@ public sealed class Ledger(string? path = null)
             return next;
         }
     }
+
+    public LedgerData Absorb(IReadOnlyList<Clean.Quarantine.AutoPurgeRecord> records, Func<string, DriveSpace?> measure)
+    {
+        lock (_lock)
+        {
+            var current = Read();
+            foreach (var record in records.Where(r => r.Bytes > 0).OrderBy(r => r.At))
+                current = Add(record.Bytes, record.Root.Length > 0 ? measure(record.Root) : null, record.At);
+            return current;
+        }
+    }
 }

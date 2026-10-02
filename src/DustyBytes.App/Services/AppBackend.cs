@@ -625,6 +625,8 @@ public sealed class AppBackend : IAppBackend, IAsyncDisposable
 
     public LedgerData AddFreed(long bytes, string? root = null) => _ledger.Add(bytes, DiskCheck.Measure(root ?? ScanRoot));
 
+    public LedgerData? AbsorbAutoPurges() => Clean.Quarantine.AutoPurgeLog.Take() is { Count: > 0 } records ? _ledger.Absorb(records, DiskCheck.Measure) : null;
+
     public IReadOnlyList<DriveSpace> Drives() => DiskCheck.FixedDrives();
 
     public bool WeeklyCheck => AppSettings.Load().WeeklyCheck;

@@ -36,12 +36,20 @@ public enum ClusterChoice
     Keep,
 }
 
-public sealed class TourSummary(string freedText, IReadOnlyList<string> lines, bool dryRun)
+public sealed class TourSummary(string freedText, IReadOnlyList<string> lines, bool dryRun, string? driveText = null, string? estimateText = null, IReadOnlyList<FailureNote>? problems = null)
 {
     public string FreedText { get; } = freedText;
     public IReadOnlyList<string> Lines { get; } = lines;
     public bool IsDryRun { get; } = dryRun;
     public string DryRunText => "Prova kipi: hiçbir dosya silinmedi, sayılar tahmindir";
+    public string DriveText { get; } = driveText ?? "";
+    public bool HasDriveText => DriveText.Length > 0;
+    public string EstimateText { get; } = estimateText ?? "";
+    public bool HasEstimate => EstimateText.Length > 0;
+    public IReadOnlyList<FailureNote> Problems { get; } = problems ?? [];
+    public IReadOnlyList<string> ProblemLines => [.. Problems.Select(p => p.Text)];
+    public bool HasProblems => Problems.Count > 0;
+    public string ProblemsTitle => $"Silinemeyenler ({Format.Count(Problems.Count)})";
 }
 
 public sealed partial class ClusterItem(TourCluster owner, UnitCard card) : ObservableObject
@@ -132,6 +140,8 @@ public sealed partial class TourViewModel : ViewModelBase
     int _skipped;
     bool _dryRun;
     bool _ranSafe;
+    SpaceMeter? _meter;
+    readonly List<FailureNote> _problems = [];
     TourMode _mode;
     TargetPlan? _plan;
 
@@ -248,6 +258,8 @@ public sealed partial class TourViewModel : ViewModelBase
     async Task RunAsync(TourMode mode, TargetPlan? plan, bool purge)
     {
         _main.Sessions.Begin(mode == TourMode.Target ? "Hedef" : "Tur", this);
+        _meter = SpaceMeter.Start(_main.Backend);
+        _problems.Clear();
         var units = _main.Session.Snapshot?.Units ?? [];
         var now = DateTimeOffset.Now;
         _mode = mode;
@@ -295,16 +307,23 @@ public sealed partial class TourViewModel : ViewModelBase
     {
         _ranSafe = true;
         var outcome = new CleanOutcome();
+        Dictionary<string, string> names = new(StringComparer.OrdinalIgnoreCase);
+        _meter?.Touch(_main.Backend.ScanRoot);
         try
         {
             await Progress.RunAsync("Güvenli artıklar temizleniyor", async (p, ct) =>
             {
                 p.Report(new TaskStep("Önbellek ve geçici dosyalar bulunuyor", 5, null));
-                var (allOptions, allTasks) = await CleanupViewModel.SafeDefaultsAsync(_main.Backend, ct);
+                var (allOptions, allTasks, found) = await CleanupViewModel.SafeChoicesAsync(_main.Backend, ct);
+                names = found;
                 var (options, tasks) = SafeBreakdown.Scope(allOptions, allTasks, skips);
                 _skipped += allOptions.Count - options.Count + allTasks.Count - tasks.Count;
                 p.Report(new TaskStep("Önbellek ve geçici dosyalar siliniyor", 30, null));
-                await CleanupViewModel.SendAsync(_main.Backend, options, tasks, outcome, p, ct);
+                await CleanupViewModel.SendAsync(_main.Backend, options, tasks, outcome, p, ct, stepFreed: bytes =>
+                {
+                    _cleaned += bytes;
+                    _main.Session.AddFreed(bytes);
+                });
                 return true;
             });
         }
@@ -319,18 +338,19 @@ public sealed partial class TourViewModel : ViewModelBase
         _dryRun |= outcome.DryRun;
         _cleanLine = outcome.Summary;
         _main.Sessions.Cleaned(outcome.Tally);
-        if (!outcome.DryRun)
-        {
-            _cleaned += outcome.Freed;
-            if (outcome.Freed > 0)
-                _main.Session.AddFreed(outcome.Freed);
-        }
+        foreach (var item in outcome.FailedItems)
+            if (FailureAdvice.For(names.TryGetValue(item.Path, out var name) ? name : item.Path, item.Message) is { } note)
+                _problems.Add(note);
+        _problems.AddRange(FailureAdvice.ForTally(outcome.Tally));
         foreach (var failure in outcome.Failures.Take(MainViewModel.toastMax))
             _main.Fail(failure);
 
         if (direct.Count > 0)
         {
+            foreach (var card in direct)
+                _meter?.Touch(card.Unit);
             var removed = await _main.Offers.RemoveCoreAsync(direct, false, Progress, "Kendiliğinden yeniden oluşan dosyalar temizleniyor");
+            Note(removed);
             if (removed.Error is { } error)
                 _main.Fail("İşlem yapılamadı: " + error);
             _dryRun |= removed.DryRun;
@@ -480,8 +500,21 @@ public sealed partial class TourViewModel : ViewModelBase
             cluster.IsExpanded = !cluster.IsExpanded;
     }
 
+    void Note(RemoveOutcome outcome)
+    {
+        if (outcome.DryRun)
+            return;
+        foreach (var failure in outcome.Unfinished)
+            foreach (var message in failure.Messages.Distinct(StringComparer.Ordinal))
+                if (FailureAdvice.For(failure.Unit.Name, message) is { } note && !_problems.Contains(note))
+                    _problems.Add(note);
+    }
+
     void Count(RemoveOutcome outcome, IReadOnlyList<UnitCard> cards, bool purge)
     {
+        foreach (var card in cards)
+            _meter?.Touch(card.Unit);
+        Note(outcome);
         if (outcome.Error is { } error)
         {
             _main.Fail("İşlem yapılamadı: " + error);
@@ -590,7 +623,12 @@ public sealed partial class TourViewModel : ViewModelBase
             lines.Add($"Kalıcı silinen: {_purgedCount} öğe, {Format.Bytes(_purged)}");
         if (_kept > 0)
             lines.Add($"Yerinde kalan: {_kept} öğe");
-        Summary = new TourSummary($"{Format.Bytes(FreedBytes)} boşaldı", lines, _dryRun);
+        IReadOnlyList<DriveDelta> deltas = _dryRun || _meter is null ? [] : _meter.Finish();
+        _meter = null;
+        Summary = deltas.Count > 0
+            ? new TourSummary($"Gerçekte açılan: {Format.Bytes(SpaceMeter.Total(deltas))}", lines, _dryRun, SpaceMeter.Describe(deltas), $"Tahmini: {Format.Bytes(FreedBytes)}", [.. _problems])
+            : new TourSummary($"{Format.Bytes(FreedBytes)} boşaldı", lines, _dryRun, problems: [.. _problems]);
+        _ = _main.Overview.EstimateAsync();
         Current = null;
         Cluster = null;
         Page = Summary;

@@ -155,6 +155,8 @@
               <StackPanel Spacing="{StaticResource FieldStack}">
                 <TextBlock Theme="{StaticResource H3}" Text="Tur bitti"/>
                 <TextBlock Theme="{StaticResource Hero}" Classes="data" Text="{Binding FreedText}"/>
+                <TextBlock Name="SummaryDrives" Theme="{StaticResource Body}" Text="{Binding DriveText}" TextWrapping="Wrap" IsVisible="{Binding HasDriveText}"/>
+                <TextBlock Name="SummaryEstimate" Theme="{StaticResource Hint}" Text="{Binding EstimateText}" IsVisible="{Binding HasEstimate}"/>
                 <ItemsControl ItemsSource="{Binding Lines}">
                   <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate>
@@ -167,6 +169,21 @@
                     </DataTemplate>
                   </ItemsControl.ItemTemplate>
                 </ItemsControl>
+                <StackPanel Name="SummaryProblems" Spacing="{StaticResource Space2}" IsVisible="{Binding HasProblems}">
+                  <TextBlock Theme="{StaticResource Label}" Text="{Binding ProblemsTitle}"/>
+                  <ItemsControl ItemsSource="{Binding ProblemLines}">
+                    <ItemsControl.ItemsPanel>
+                      <ItemsPanelTemplate>
+                        <StackPanel Spacing="{StaticResource Space2}"/>
+                      </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate x:DataType="x:String">
+                        <TextBlock Theme="{StaticResource Body}" Text="{Binding}" TextWrapping="Wrap"/>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                </StackPanel>
                 <TextBlock Theme="{StaticResource Hint}" Text="{Binding DryRunText}" IsVisible="{Binding IsDryRun}"/>
               </StackPanel>
             </Border>
