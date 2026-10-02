@@ -64,7 +64,11 @@
                 </TextBlock>
                 <TextBlock Name="SharedNote" Theme="{StaticResource Hint}" Text="{Binding SharedNote}" IsVisible="{Binding IsShared}" TextWrapping="Wrap"/>
               </StackPanel>
-              <TextBlock Grid.Column="2" Theme="{StaticResource MonoValue}" Classes="data" Text="{Binding SizeText}" VerticalAlignment="Center" Margin="12,0,0,0"/>
+              <StackPanel Grid.Column="2" VerticalAlignment="Center" Margin="12,0,0,0" Spacing="2">
+                <TextBlock Theme="{StaticResource MonoValue}" Classes="data" Text="{Binding SizeText}" HorizontalAlignment="Right"/>
+                <TextBlock Name="RemovalBadge" Theme="{StaticResource Label}" Text="{Binding Badge}" IsVisible="{Binding HasBadge}"
+                           HorizontalAlignment="Right" ToolTip.Tip="{Binding BadgeTip}"/>
+              </StackPanel>
             </Grid>
           </DataTemplate>
         </ListBox.ItemTemplate>

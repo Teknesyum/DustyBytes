@@ -24,6 +24,13 @@ public sealed partial class ProgramRow(ProgramInfo info, DateTimeOffset now) : O
     public bool IsShared { get; } = SharedRuntimes.IsShared(info.Program);
     public string SharedNote => IsShared ? SharedRuntimes.Note : "";
 
+    public UninstallPlan Plan { get; } = Uninstaller.Plan(info.Program);
+    public string Badge => Plan.Badge;
+    public bool HasBadge => Badge.Length > 0;
+    public string BadgeTip => Plan.IsSilent
+        ? "Kaldırıcı arka planda, pencere açmadan çalışır"
+        : Plan.OpensWindow ? "Programın kendi kaldırma penceresi açılır; sihirbazı siz bitirirsiniz" : "";
+
     public bool CanForceAfter(bool vendorFailed, bool uninstalled) =>
         ForceUninstall.Refusal(Info.Program) is null && (UninstallerMissing && !uninstalled || vendorFailed);
 
@@ -166,6 +173,22 @@ public sealed partial class ProgramsViewModel : ViewModelBase
         _main.Navigation.Push(page);
     }
 
+    public static string BulkBody(IReadOnlyCollection<ProgramRow> rows)
+    {
+        var silent = rows.Count(r => r.Plan.IsSilent);
+        var windows = rows.Count - silent;
+        var plan = windows == 0
+            ? $"{Format.Count(silent)} programın hepsi sessiz kaldırılır; hiçbir pencere açılmaz."
+            : silent == 0
+                ? $"{Format.Count(windows)} programın hepsinin kendi kaldırıcı penceresi açılır; onları sırayla siz bitirirsiniz."
+                : $"{Format.Count(silent)} program sessiz kaldırılır, pencere açılmaz. {Format.Count(windows)} programın kendi kaldırıcı penceresi açılır; onları sırayla siz bitirirsiniz.";
+        var body = plan + " İlkinden önce bir geri yükleme noktası oluşturulur. "
+            + "Her programdan sonra kesin kalıntılar kayıt yedeği alınıp 7 gün karantinada tutularak temizlenir. ";
+        if (silent > 0)
+            body += "Sessiz kaldırıcı beklenenden uzun sürerse size \"Görünür çalıştır\" seçeneği sunulur. ";
+        return body + "İptal ederseniz o anki program bitince sıra durur.";
+    }
+
     bool CanBulk() => HasChecked && !Progress.IsRunning;
 
     [RelayCommand(CanExecute = nameof(CanBulk))]
@@ -174,9 +197,7 @@ public sealed partial class ProgramsViewModel : ViewModelBase
         var rows = _all.Where(r => r.IsChecked).ToList();
         if (rows.Count == 0)
             return;
-        var body = "Programlar sırayla, kendi kaldırıcılarıyla sessiz kaldırılır. İlkinden önce bir geri yükleme noktası oluşturulur. "
-            + "Her programdan sonra kesin kalıntılar kayıt yedeği alınıp 7 gün karantinada tutularak temizlenir. "
-            + "Sessiz kaldırılamayan programın penceresini siz bitirirsiniz; iptal ederseniz o anki program bitince sıra durur.";
+        var body = BulkBody(rows);
         var shared = rows.Where(r => r.IsShared).ToList();
         if (shared.Count > 0)
             body += $"\n\n{SharedRuntimes.Note}: {string.Join(", ", shared.Take(5).Select(r => r.Name))}{(shared.Count > 5 ? $" ve {Format.Count(shared.Count - 5)} tane daha" : "")}. Emin değilseniz bunların işaretini kaldırın.";

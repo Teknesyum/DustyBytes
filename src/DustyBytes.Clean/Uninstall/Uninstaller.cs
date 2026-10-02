@@ -4,7 +4,14 @@ namespace DustyBytes.Clean.Uninstall;
 
 public sealed record VendorCommand(string CommandLine, bool Silent, string Description);
 
-public sealed record VendorResult(bool Ok, bool Ran, int ExitCode, string Message, bool RebootRequired = false);
+public sealed record VendorResult(bool Ok, bool Ran, int ExitCode, string Message, bool RebootRequired = false, bool NeedsVisible = false, bool TimedOut = false);
+
+public enum VendorRunMode
+{
+    Auto,
+    SilentOnly,
+    VisibleOnly,
+}
 
 public sealed class Uninstaller
 {
@@ -14,6 +21,7 @@ public sealed class Uninstaller
 
     public const string SilentStep = "Sessiz kaldırıcı";
     public const string VisibleStep = "Görünür kaldırıcı";
+    public const string RebootNote = "yeniden başlatma gerekiyor";
     public const string VisibleCard = "Üreticinin kaldırıcısı açıldı, sihirbazı siz bitirin; biz bekliyoruz";
 
     public Func<RunRequest, CancellationToken, Task<ProcessRunResult>> Runner { get; init; } = ProcessTree.Run;
@@ -42,6 +50,19 @@ public sealed class Uninstaller
     }
 
     public static VendorCommand? BuildCommand(InstalledProgram p) => SilentCommand(p) ?? VisibleCommand(p);
+
+    public static UninstallPlan Plan(InstalledProgram p)
+    {
+        if (p.NoRemove || p.UninstallerMissing || !p.CanUninstall)
+            return new UninstallPlan(UninstallMode.None, p.Installer, "");
+        if (p.Source == ProgramSource.Msix)
+            return new UninstallPlan(UninstallMode.Silent, InstallerType.Msix, "Store paketi, pencere açmaz");
+        if (SilentCommand(p) is { } silent)
+            return new UninstallPlan(UninstallMode.Silent, p.Installer, silent.Description);
+        if (VisibleCommand(p) is { } visible)
+            return new UninstallPlan(UninstallMode.Visible, p.Installer, visible.Description);
+        return new UninstallPlan(UninstallMode.None, p.Installer, "");
+    }
 
     static string? MsiCode(InstalledProgram p) =>
         p.ProductCode is { } pc && MsiGuid.TryParseBraced(pc, out _)
@@ -114,7 +135,7 @@ public sealed class Uninstaller
         }
     }
 
-    public async Task<VendorResult> RunVendorUninstaller(InstalledProgram program, IProgress<ScanProgress>? progress = null, CancellationToken ct = default)
+    public async Task<VendorResult> RunVendorUninstaller(InstalledProgram program, IProgress<ScanProgress>? progress = null, CancellationToken ct = default, VendorRunMode mode = VendorRunMode.Auto, TimeSpan? silentTimeout = null)
     {
         if (program.NoRemove)
             return new(false, false, -1, "Program kaldırılamaz olarak işaretli (NoRemove)");
@@ -134,6 +155,14 @@ public sealed class Uninstaller
         var visible = VisibleCommand(program);
         if (silent is null && visible is null)
             return new(false, false, -1, "Kaldırma komutu yok");
+        if (mode == VendorRunMode.VisibleOnly && visible is not null)
+            silent = null;
+        if (mode == VendorRunMode.SilentOnly)
+        {
+            if (silent is null)
+                return new(false, false, -1, "Kaldırıcı türü tanınmadı; sessiz denenmedi, görünür çalıştırılması gerekiyor", NeedsVisible: true);
+            visible = null;
+        }
         if (DryRun.Enabled)
             return new(true, false, 0, $"Prova kipi: çalıştırılmadı: {(silent ?? visible)!.CommandLine}");
 
@@ -141,13 +170,19 @@ public sealed class Uninstaller
         if (silent is not null)
         {
             progress?.Report(new ScanProgress(SilentStep, 0, silent.Description + ": " + silent.CommandLine));
-            var run = await Run(silent, SilentStep, SilentTimeout, progress, ct).ConfigureAwait(false);
+            var run = await Run(silent, SilentStep, silentTimeout ?? SilentTimeout, progress, ct).ConfigureAwait(false);
             first = Result(program, run);
             if (run.Completed && !_scanner.IsStillInstalled(program))
             {
                 var done = first.Ok ? first : first with { Ok = true, Message = $"{first.Message}; program kaldırılmış görünüyor" };
                 progress?.Report(new ScanProgress(SilentStep, 100, done.Message));
                 return done;
+            }
+            if (mode == VendorRunMode.SilentOnly && !ct.IsCancellationRequested)
+            {
+                var busy = run is { Completed: true, ExitCode: 1602 or 1618 };
+                var message = first.Ok ? $"{first.Message}; program hâlâ kurulu görünüyor" : first.Message;
+                return first with { Ok = false, Message = message, NeedsVisible = !busy };
             }
             if (ct.IsCancellationRequested || visible is null || run is { Completed: true, ExitCode: 1602 or 1618 })
                 return first;
@@ -167,7 +202,7 @@ public sealed class Uninstaller
         if (!run.Started)
             return new(false, false, -1, run.Message);
         if (!run.Completed)
-            return new(false, true, -1, run.Message);
+            return new(false, true, -1, run.Message, TimedOut: run.TimedOut);
         var (ok, reboot, message) = Interpret(program, run.ExitCode);
         return new(ok, true, run.ExitCode, message, reboot);
     }
@@ -175,14 +210,37 @@ public sealed class Uninstaller
     public static (bool Ok, bool Reboot, string Message) Interpret(InstalledProgram p, int code)
     {
         var msi = p.WindowsInstaller || p.Installer == InstallerType.Msi;
-        return code switch
+        if (msi)
+            return code switch
+            {
+                0 => (true, false, "Kaldırıcı başarıyla bitti"),
+                3010 or 1641 => (true, true, "Kaldırıldı; " + RebootNote),
+                1605 or 1614 => (true, false, "Ürün zaten kurulu değil"),
+                1602 => (false, false, "Kullanıcı kaldırmayı iptal etti"),
+                1618 => (false, false, "Başka bir kurulum sürüyor; sonra yeniden deneyin"),
+                1603 => (false, false, "Windows Installer ölümcül hata verdi (1603)"),
+                1601 => (false, false, "Windows Installer hizmetine ulaşılamadı (1601)"),
+                1619 or 1620 => (false, false, $"Kurulum paketi açılamadı ({code})"),
+                1625 => (false, false, "Sistem ilkesi bu kaldırmayı engelliyor (1625)"),
+                1612 => (false, false, "Kurulum kaynağı bulunamadı (1612)"),
+                _ => (false, false, $"Kaldırıcı {code} koduyla bitti"),
+            };
+        return p.Installer switch
         {
-            0 => (true, false, "Kaldırıcı başarıyla bitti"),
-            3010 or 1641 when msi => (true, true, "Kaldırıldı; yeniden başlatma gerekiyor"),
-            1605 when msi => (true, false, "Ürün zaten kurulu değil"),
-            1602 when msi => (false, false, "Kullanıcı kaldırmayı iptal etti"),
-            1618 when msi => (false, false, "Başka bir kurulum sürüyor; sonra yeniden deneyin"),
-            _ => (false, false, $"Kaldırıcı {code} koduyla bitti"),
+            InstallerType.Inno => code switch
+            {
+                0 => (true, false, "Kaldırıcı başarıyla bitti"),
+                1 or 2 => (false, false, $"Inno kaldırıcısı başlatılamadı ya da iptal edildi ({code})"),
+                _ => (false, false, $"Kaldırıcı {code} koduyla bitti"),
+            },
+            InstallerType.Nsis => code switch
+            {
+                0 => (true, false, "Kaldırıcı başarıyla bitti"),
+                1 => (false, false, "NSIS kaldırıcısı iptal edildi (1)"),
+                2 => (false, false, "NSIS kaldırıcısı betik tarafından durduruldu (2)"),
+                _ => (false, false, $"Kaldırıcı {code} koduyla bitti"),
+            },
+            _ => code == 0 ? (true, false, "Kaldırıcı başarıyla bitti") : (false, false, $"Kaldırıcı {code} koduyla bitti"),
         };
     }
 }

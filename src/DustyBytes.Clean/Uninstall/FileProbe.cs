@@ -10,6 +10,7 @@ public interface IFileProbe
     bool DirectoryExists(string path);
     FileIdentity? Identity(string file);
     byte[]? ReadHead(string file, int max);
+    string? VersionText(string file) => null;
 }
 
 public sealed class FileProbe : IFileProbe
@@ -53,6 +54,22 @@ public sealed class FileProbe : IFileProbe
         lock (_gate)
             _cache[file] = result;
         return result;
+    }
+
+    public string? VersionText(string file)
+    {
+        try
+        {
+            if (!File.Exists(file))
+                return null;
+            var info = FileVersionInfo.GetVersionInfo(file);
+            var text = string.Join(' ', new[] { info.CompanyName, info.ProductName, info.FileDescription, info.Comments, info.OriginalFilename }.Where(v => !string.IsNullOrWhiteSpace(v)));
+            return text.Length == 0 ? null : text;
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException or FileNotFoundException)
+        {
+            return null;
+        }
     }
 
     public byte[]? ReadHead(string file, int max)

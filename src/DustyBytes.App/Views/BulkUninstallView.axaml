@@ -8,6 +8,7 @@
     <StackPanel DockPanel.Dock="Top" Margin="24,24,24,12" Spacing="{StaticResource FieldGap}">
       <TextBlock Theme="{StaticResource H2}" Text="{Binding Heading}" TextTrimming="CharacterEllipsis"/>
       <TextBlock Theme="{StaticResource Body}" Text="{Binding StatusText}" TextWrapping="Wrap"/>
+      <TextBlock Name="BulkPlan" Theme="{StaticResource Hint}" Text="{Binding PlanText}" TextWrapping="Wrap"/>
     </StackPanel>
 
     <Border DockPanel.Dock="Bottom" Background="{StaticResource Surface}" BorderBrush="{StaticResource BorderDecorative}"
@@ -37,10 +38,22 @@
           </StackPanel>
         </Border>
 
+        <Border Name="ChoiceCard" Theme="{StaticResource Panel}" IsVisible="{Binding ChoiceVisible}">
+          <StackPanel Spacing="{StaticResource FieldGap}">
+            <TextBlock Theme="{StaticResource H3}" Text="Bekliyor…"/>
+            <TextBlock Theme="{StaticResource Body}" Text="{Binding ChoiceText}" TextWrapping="Wrap"/>
+            <StackPanel Orientation="Horizontal" Spacing="{StaticResource FieldGap}">
+              <Button Name="RunVisibleButton" Classes="primary" Content="Görünür çalıştır" Command="{Binding RunVisibleCommand}"/>
+              <Button Name="SkipWaitingButton" Classes="ghost" Content="Atla" Command="{Binding SkipWaitingCommand}"/>
+            </StackPanel>
+          </StackPanel>
+        </Border>
+
         <Border Name="BulkSummary" Theme="{StaticResource Panel}" IsVisible="{Binding Finished}">
           <StackPanel Spacing="{StaticResource FieldGap}">
             <TextBlock Theme="{StaticResource H3}" Text="Özet"/>
             <TextBlock Theme="{StaticResource Body}" Text="{Binding Summary}" TextWrapping="Wrap"/>
+            <TextBlock Theme="{StaticResource Hint}" Text="{Binding ReportText}" TextWrapping="Wrap"/>
             <TextBlock Theme="{StaticResource Hint}" Text="{Binding FreedText}" TextWrapping="Wrap"/>
           </StackPanel>
         </Border>
@@ -57,6 +70,7 @@
                       <TextBlock Theme="{StaticResource Hint}" Text="{Binding Detail}" TextWrapping="Wrap"
                                  IsVisible="{Binding Detail, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
                       <TextBlock Theme="{StaticResource Hint}" Text="{Binding SharedNote}" IsVisible="{Binding IsShared}" TextWrapping="Wrap"/>
+                      <TextBlock Theme="{StaticResource Hint}" Text="{Binding Badge}" IsVisible="{Binding HasBadge}"/>
                     </StackPanel>
                     <TextBlock Grid.Column="1" Theme="{StaticResource MonoValue}" Classes="data" Text="{Binding SizeText}" VerticalAlignment="Center" Margin="12,0"/>
                     <TextBlock Grid.Column="2" Theme="{StaticResource Label}" Text="{Binding StateText}" VerticalAlignment="Center"/>

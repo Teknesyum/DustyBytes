@@ -24,9 +24,19 @@ public sealed partial class BulkItem(ProgramRow row) : ObservableObject
     [ObservableProperty]
     private string _detail = "";
 
-    public long Freed { get; set; }
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(StateText))]
+    private bool _awaitingChoice;
 
-    public string StateText => State switch
+    public UninstallPlan Plan => Row.Plan;
+    public string Badge => Plan.Badge;
+    public bool HasBadge => Badge.Length > 0;
+    public long Freed { get; set; }
+    public int LeftoversRemoved { get; set; }
+    public int LeftoversKept { get; set; }
+    public bool RebootRequired { get; set; }
+
+    public string StateText => AwaitingChoice ? "Bekliyor…" : State switch
     {
         StepState.Running => "Sürüyor",
         StepState.Done => "Kaldırıldı",
@@ -49,13 +59,37 @@ public sealed partial class BulkUninstallViewModel : ViewModelBase
         _main = main;
         _owner = owner;
         Progress = main.NewProgress();
-        Items = [.. rows.Select(r => new BulkItem(r))];
+        var items = rows.Select(r => new BulkItem(r)).ToList();
+        Items = [.. items.Where(i => i.Plan.IsSilent), .. items.Where(i => !i.Plan.IsSilent)];
     }
+
+    public static readonly TimeSpan SilentPatience = TimeSpan.FromMinutes(5);
+
+    TaskCompletionSource<bool>? _choice;
 
     public TaskProgressViewModel Progress { get; }
     public ObservableCollection<BulkItem> Items { get; }
     public Task Completion { get; private set; } = Task.CompletedTask;
     public string Heading => $"{Format.Count(Items.Count)} program sırayla kaldırılıyor";
+    public int SilentCount => Items.Count(i => i.Plan.IsSilent);
+    public int WindowCount => Items.Count - SilentCount;
+    public string PlanText => WindowCount == 0
+        ? $"{Format.Count(SilentCount)} program sessiz kaldırılır; pencere açılmaz."
+        : SilentCount == 0
+            ? $"{Format.Count(WindowCount)} programın kendi kaldırıcı penceresi sırayla açılır."
+            : $"{Format.Count(SilentCount)} program önce sessiz kaldırılır, sonra {Format.Count(WindowCount)} programın kaldırıcı penceresi sırayla açılır.";
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(StatusText))]
+    [NotifyCanExecuteChangedFor(nameof(RunVisibleCommand))]
+    [NotifyCanExecuteChangedFor(nameof(SkipWaitingCommand))]
+    private bool _choiceVisible;
+
+    [ObservableProperty]
+    private string _choiceText = "";
+
+    [ObservableProperty]
+    private string _reportText = "";
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(WizardText))]
@@ -92,6 +126,7 @@ public sealed partial class BulkUninstallViewModel : ViewModelBase
 
     public string StatusText =>
         Finished ? "Sıra bitti"
+        : ChoiceVisible ? "Bekliyor…: sessiz kaldırılamayan programlar için seçiminiz gerekiyor"
         : StopRequested ? $"İptal istendi; {Current} bitince sıra durur"
         : Current.Length > 0 ? $"Şimdi: {Current}"
         : "Sıra hazırlanıyor";
@@ -107,33 +142,74 @@ public sealed partial class BulkUninstallViewModel : ViewModelBase
 
     public async Task RunAsync()
     {
-        foreach (var item in Items)
-        {
-            if (StopRequested)
-            {
-                item.State = StepState.Skipped;
-                item.Detail = "İptal edildi; bu programa dokunulmadı";
-                continue;
-            }
-            if (!item.Row.CanUninstall || item.Row.UninstallerMissing)
-            {
-                item.State = StepState.Failed;
-                item.Detail = "Kaldırıcısı yok ya da bozuk; programı tek başına açıp zorla kaldırmayı deneyin";
-                continue;
-            }
-            Current = item.Name;
-            await RunOneAsync(item);
-        }
+        var silentFlags = new[] { UninstallHandlers.SilentOnly, UninstallHandlers.Patience(SilentPatience) };
+        foreach (var item in Items.Where(i => i.Plan.IsSilent).ToList())
+            await Step(item, silentFlags);
+
+        var chosen = await DecideAsync();
+
+        foreach (var item in Items.Where(i => !i.Plan.IsSilent).ToList())
+            await Step(item, []);
+        foreach (var item in chosen)
+            await Step(item, [UninstallHandlers.VisibleOnly]);
+
         WizardVisible = false;
         Current = "";
         Finish();
     }
 
-    async Task RunOneAsync(BulkItem item)
+    async Task Step(BulkItem item, IReadOnlyList<string> extra)
+    {
+        if (StopRequested)
+        {
+            item.AwaitingChoice = false;
+            item.State = StepState.Skipped;
+            item.Detail = "İptal edildi; bu programa dokunulmadı";
+            return;
+        }
+        if (!item.Row.CanUninstall || item.Row.UninstallerMissing)
+        {
+            item.State = StepState.Failed;
+            item.Detail = "Kaldırıcısı yok ya da bozuk; programı tek başına açıp zorla kaldırmayı deneyin";
+            return;
+        }
+        item.AwaitingChoice = false;
+        Current = item.Name;
+        await RunOneAsync(item, extra);
+    }
+
+    async Task<List<BulkItem>> DecideAsync()
+    {
+        var waiting = Items.Where(i => i.AwaitingChoice).ToList();
+        if (waiting.Count == 0)
+            return [];
+        if (!StopRequested)
+        {
+            Current = "";
+            ChoiceText = $"{Format.Count(waiting.Count)} program sessiz kaldırılamadı ya da süresinde bitmedi: "
+                + string.Join(", ", waiting.Take(5).Select(i => i.Name)) + (waiting.Count > 5 ? $" ve {Format.Count(waiting.Count - 5)} tane daha" : "")
+                + ". Görünür çalıştırırsanız kaldırıcıların kendi pencereleri sırayla açılır ve onları siz bitirirsiniz.";
+            _choice = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            ChoiceVisible = true;
+            var run = await _choice.Task;
+            ChoiceVisible = false;
+            if (run && !StopRequested)
+                return waiting;
+        }
+        foreach (var item in waiting)
+        {
+            item.AwaitingChoice = false;
+            item.State = StepState.Failed;
+            item.Detail = StopRequested ? "İptal edildi; sessiz kaldırma tamamlanmadı" : $"{item.Detail}; görünür çalıştırılmadı";
+        }
+        return [];
+    }
+
+    async Task RunOneAsync(BulkItem item, IReadOnlyList<string> extra)
     {
         item.State = StepState.Running;
         item.Detail = "";
-        var flags = new List<string> { UninstallHandlers.AutoClean };
+        List<string> flags = [UninstallHandlers.AutoClean, .. extra];
         if (_restoreDone || _noRestorePoint)
             flags.Add(UninstallHandlers.SkipRestorePoint);
         while (true)
@@ -200,10 +276,20 @@ public sealed partial class BulkUninstallViewModel : ViewModelBase
             item.Detail = "Prova kipi: kaldırıcı çalışmadı";
             return;
         }
+        if (response.Items.Any(i => i.Path == UninstallHandlers.SilentGaveUp) && after is not { ProgramStillInstalled: false })
+        {
+            item.State = StepState.Waiting;
+            item.AwaitingChoice = true;
+            item.Detail = response.Message;
+            return;
+        }
         if (response.Ok && after is { ProgramStillInstalled: false })
         {
             item.State = StepState.Done;
             item.Freed = FreedBytes(item.Row, after);
+            item.LeftoversRemoved = after.AutoRemoved.Count(i => i.Ok);
+            item.LeftoversKept = after.Candidates.Count(c => c.Tier != ConfidenceTier.Low);
+            item.RebootRequired = response.Message.Contains(Uninstaller.RebootNote, StringComparison.Ordinal);
             item.Detail = auto?.Message is { Length: > 0 } m ? $"{response.Message}. {m}" : response.Message;
             _owner.Removed(item.Row);
             return;
@@ -234,6 +320,13 @@ public sealed partial class BulkUninstallViewModel : ViewModelBase
         FreedText = removed > 0
             ? $"Açılan yer yaklaşık {Format.Bytes(freed)}. Temizlenen kalıntılar 7 gün karantinada kalır."
             : "Yer açılmadı.";
+        var cleaned = Items.Sum(i => i.LeftoversRemoved);
+        var kept = Items.Sum(i => i.LeftoversKept);
+        var reboot = Items.Count(i => i.RebootRequired);
+        var report = $"Kalıntı: {Format.Count(cleaned)} kalıntı temizlendi, {Format.Count(kept)} kalıntı incelemenizi bekliyor.";
+        if (reboot > 0)
+            report += $" {Format.Count(reboot)} program için yeniden başlatma gerekiyor.";
+        ReportText = report;
         Finished = true;
         if (removed > 0)
             _ = _main.Session.RefreshQuarantineAsync(_main);
@@ -246,7 +339,19 @@ public sealed partial class BulkUninstallViewModel : ViewModelBase
     bool CanCancel() => !StopRequested && !Finished;
 
     [RelayCommand(CanExecute = nameof(CanCancel))]
-    private void Cancel() => StopRequested = true;
+    private void Cancel()
+    {
+        StopRequested = true;
+        _choice?.TrySetResult(false);
+    }
+
+    bool CanChoose() => ChoiceVisible;
+
+    [RelayCommand(CanExecute = nameof(CanChoose))]
+    private void RunVisible() => _choice?.TrySetResult(true);
+
+    [RelayCommand(CanExecute = nameof(CanChoose))]
+    private void SkipWaiting() => _choice?.TrySetResult(false);
 
     bool CanBack() => Finished;
 

@@ -36,6 +36,8 @@ public static partial class InstallerDetector
             return InstallerType.Inno;
         if (reg is not null && key is not null && reg.ValueExists(key, "Inno Setup: App Path"))
             return InstallerType.Inno;
+        if (reg is not null && key is not null && reg.GetValueNames(key).Any(n => n.StartsWith("NSIS:", StringComparison.OrdinalIgnoreCase)))
+            return InstallerType.Nsis;
 
         if (command is not null && (command.Contains("InstallShield Installation Information", StringComparison.OrdinalIgnoreCase)
             || command.Contains("-runfromtemp", StringComparison.OrdinalIgnoreCase)
@@ -55,6 +57,15 @@ public static partial class InstallerDetector
                 return InstallerType.Inno;
             if (IndexOf(head, InstallShieldAscii) >= 0)
                 return InstallerType.InstallShield;
+            if (probe.VersionText(exe) is { } version)
+            {
+                if (version.Contains("Inno Setup", StringComparison.OrdinalIgnoreCase))
+                    return InstallerType.Inno;
+                if (version.Contains("Nullsoft", StringComparison.OrdinalIgnoreCase) || version.Contains("NSIS", StringComparison.Ordinal))
+                    return InstallerType.Nsis;
+                if (version.Contains("InstallShield", StringComparison.OrdinalIgnoreCase))
+                    return InstallerType.InstallShield;
+            }
         }
 
         if (NsisName().IsMatch(name))

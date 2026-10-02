@@ -106,6 +106,10 @@ public sealed class FakeProbe : IFileProbe
     public FileIdentity? Identity(string file) => Identities.GetValueOrDefault(file);
 
     public byte[]? ReadHead(string file, int max) => Heads.GetValueOrDefault(file);
+
+    public Dictionary<string, string> Versions { get; } = new(StringComparer.OrdinalIgnoreCase);
+
+    public string? VersionText(string file) => Versions.GetValueOrDefault(file);
 }
 
 public sealed class FakeSystemActions : ISystemActions

@@ -12,6 +12,27 @@ public sealed class UninstallHandlers
     public const string ContinueWithoutRestorePoint = "continue-without-restore-point";
     public const string AutoClean = "auto-clean";
     public const string KeepSettings = "keep-settings";
+    public const string SilentOnly = "silent-only";
+    public const string VisibleOnly = "visible-only";
+    public const string SilentPatiencePrefix = "silent-patience:";
+    public const string SilentGaveUp = "silent-gave-up";
+    public const int MinPatienceSeconds = 10;
+    public const int MaxPatienceSeconds = 1800;
+
+    public static string Patience(TimeSpan span) => SilentPatiencePrefix + (int)Math.Clamp(span.TotalSeconds, MinPatienceSeconds, MaxPatienceSeconds);
+
+    public static VendorRunMode ModeOf(IReadOnlyCollection<string> flags) =>
+        flags.Contains(SilentOnly) ? VendorRunMode.SilentOnly
+        : flags.Contains(VisibleOnly) ? VendorRunMode.VisibleOnly
+        : VendorRunMode.Auto;
+
+    public static TimeSpan? PatienceOf(IReadOnlyCollection<string> flags)
+    {
+        foreach (var f in flags)
+            if (f.StartsWith(SilentPatiencePrefix, StringComparison.Ordinal) && int.TryParse(f.AsSpan(SilentPatiencePrefix.Length), out var seconds))
+                return TimeSpan.FromSeconds(Math.Clamp(seconds, MinPatienceSeconds, MaxPatienceSeconds));
+        return null;
+    }
 
     readonly ProtectedList _protection;
     readonly IRegistryView _reg;
@@ -76,8 +97,10 @@ public sealed class UninstallHandlers
         var before = uninstaller.Snapshot(program, p, ct);
         items.Add(new ItemResult("snapshot", true, $"{before.Candidates.Count} aday kaydedildi"));
 
-        var vendor = await uninstaller.RunVendorUninstaller(program, p, ct).ConfigureAwait(false);
+        var vendor = await uninstaller.RunVendorUninstaller(program, p, ct, ModeOf(request.Items), PatienceOf(request.Items)).ConfigureAwait(false);
         items.Add(new ItemResult("vendor", vendor.Ok, vendor.Message));
+        if (vendor.NeedsVisible)
+            items.Add(new ItemResult(SilentGaveUp, false, vendor.TimedOut ? "Sessiz kaldırıcı süresinde bitmedi" : vendor.Message));
         if (restore is { Ok: true, Sequence: > 0 } r)
             _ = vendor.Ran ? RestorePoint.Complete(r.Sequence) : RestorePoint.Cancel(r.Sequence);
 
@@ -99,7 +122,7 @@ public sealed class UninstallHandlers
         {
             Id = request.Id,
             Ok = vendor.Ok,
-            Message = vendor.Message + (vendor.RebootRequired ? " (yeniden başlatma gerekiyor)" : ""),
+            Message = vendor.Message + (vendor.RebootRequired && !vendor.Message.Contains(Uninstaller.RebootNote) ? $" ({Uninstaller.RebootNote})" : ""),
             DryRun = DryRun.Enabled,
             Items = items,
             PendingBytes = freed,
