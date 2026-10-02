@@ -1,3 +1,4 @@
+using System.Text.Json;
 using DustyBytes.Clean.Rules;
 using DustyBytes.Core;
 using DustyBytes.Core.Ipc;
@@ -7,20 +8,33 @@ namespace DustyBytes.Clean.SystemCleanup;
 
 public sealed class RealFileDeleter : ICleanupDeleter
 {
-    public bool DeleteFile(string path)
+    public bool DeleteFile(string path) => TryDeleteFile(path) == DeleteOutcome.Deleted;
+
+    public DeleteOutcome TryDeleteFile(string path)
     {
+        var target = Paths.ToLong(path);
+        if (!File.Exists(target))
+            return DeleteOutcome.Vanished;
         try
         {
-            File.Delete(Paths.ToLong(path));
-            return true;
+            File.Delete(target);
+            return DeleteOutcome.Deleted;
+        }
+        catch (Exception e) when (e is FileNotFoundException or DirectoryNotFoundException)
+        {
+            return DeleteOutcome.Vanished;
+        }
+        catch (IOException e) when ((e.HResult & 0xFFFF) is 32 or 33)
+        {
+            return DeleteOutcome.Locked;
         }
         catch (IOException)
         {
-            return false;
+            return DeleteOutcome.Failed;
         }
         catch (UnauthorizedAccessException)
         {
-            return false;
+            return DeleteOutcome.Failed;
         }
     }
 
@@ -64,14 +78,15 @@ public static class WorkerCleanHandlers
         if (!request.UserApproved)
             return new WorkerResponse { Id = request.Id, Ok = false, Message = "Kullanıcı onayı yok" };
 
-        var selection = request.Items
-            .Select(item => item.Split('/', 2))
-            .Where(parts => parts.Length == 2)
-            .GroupBy(parts => parts[0])
-            .Select(g => new RuleSelection(g.Key, [.. g.Select(p => p[1])]))
-            .ToList();
+        if (string.IsNullOrEmpty(request.Digest))
+            return new WorkerResponse { Id = request.Id, Ok = false, DryRun = DryRun.Enabled, Message = "Önizleme yok; temizlik yalnız gösterilen listeyle yapılır" };
 
-        var results = catalog.Execute(selection, deleter);
+        if (!string.Equals(PreviewDigest.Of(request.Paths), request.Digest, StringComparison.OrdinalIgnoreCase))
+            return new WorkerResponse { Id = request.Id, Ok = false, DryRun = DryRun.Enabled, Message = "Gönderilen liste önizleme özetiyle tutmuyor; temizlik yapılmadı" };
+
+        progress?.Report(new WorkerProgress(request.Id, "Temizlik", -1, $"{Core.Model.Format.Count(request.Paths.Count)} gösterilen dosya"));
+        var run = catalog.Execute(CleanerCatalog.Selection(request.Items), request.Paths, deleter, ct);
+        var results = run.Options;
 
         var items = results.Select(r => new ItemResult(
             $"{r.RuleId}/{r.OptionId}",
@@ -79,16 +94,30 @@ public static class WorkerCleanHandlers
             r.Ran ? $"{r.DeletedFiles} dosya, {Core.Model.Format.Bytes(r.DeletedBytes)}" : r.SkipReason ?? "Atlandı",
             r.DeletedBytes)).ToList();
 
-        var freed = results.Sum(r => r.DeletedBytes);
+        var summary = run.Tally.Describe(verb: DryRun.Enabled ? "silinecek" : "silinen");
 
+        return new WorkerResponse
+        {
+            Id = request.Id,
+            Ok = run.Error is null,
+            DryRun = DryRun.Enabled,
+            Items = items,
+            FreedBytes = run.Tally.ProcessedBytes,
+            Tally = run.Tally,
+            Message = run.Error ?? (DryRun.Enabled ? "Prova kipi: silme yapılmadı. " + summary : summary),
+        };
+    }
+
+    public static WorkerResponse HandleCleanPreview(WorkerRequest request, CleanerCatalog catalog, CancellationToken ct = default)
+    {
+        var preview = catalog.Plan(CleanerCatalog.Selection(request.Items), ct).ToPreview();
         return new WorkerResponse
         {
             Id = request.Id,
             Ok = true,
             DryRun = DryRun.Enabled,
-            Items = items,
-            FreedBytes = freed,
-            Message = DryRun.Enabled ? "Prova kipi: silme yapılmadı" : "Temizlik tamamlandı",
+            Message = $"{Core.Model.Format.Count(preview.Count)} dosya, {Core.Model.Format.Bytes(preview.Bytes)}",
+            Payload = JsonSerializer.Serialize(preview, IpcJson.Default.CleanPreview),
         };
     }
 

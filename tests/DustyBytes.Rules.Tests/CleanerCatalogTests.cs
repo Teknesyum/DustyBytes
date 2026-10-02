@@ -76,7 +76,8 @@ public class CleanerCatalogTests : IDisposable
     {
         var catalog = CleanerCatalog.Load(_rulesDir, EmptyProtection());
         var deleter = new FakeDeleter();
-        var results = catalog.Execute([new RuleSelection("sample-app", ["cache"])], deleter);
+        RuleSelection[] selection = [new RuleSelection("sample-app", ["cache"])];
+        var results = catalog.Execute(selection, catalog.Plan(selection).ToPreview().Paths(), deleter).Options;
         var result = Assert.Single(results);
         Assert.False(result.Ran);
         Assert.Empty(deleter.Deleted);
@@ -104,7 +105,8 @@ public class CleanerCatalogTests : IDisposable
 
         var catalog = CleanerCatalog.Load(loneRuleDir, protectedList);
         var deleter = new FakeDeleter();
-        var results = catalog.Execute([new RuleSelection("idle-app", ["cache"])], deleter);
+        RuleSelection[] selection = [new RuleSelection("idle-app", ["cache"])];
+        var results = catalog.Execute(selection, catalog.Plan(selection).ToPreview().Paths(), deleter).Options;
         var result = Assert.Single(results);
         Assert.True(result.Ran);
         Assert.Equal(2, result.DeletedFiles);
@@ -136,7 +138,8 @@ public class CleanerCatalogTests : IDisposable
 
         var catalog = CleanerCatalog.Load(loneRuleDir, protectedList);
         var deleter = new FakeDeleter();
-        var results = catalog.Execute([new RuleSelection("protected-app", ["cache"])], deleter);
+        RuleSelection[] selection = [new RuleSelection("protected-app", ["cache"])];
+        var results = catalog.Execute(selection, catalog.Plan(selection).ToPreview().Paths(), deleter).Options;
         var result = Assert.Single(results);
         Assert.True(result.Ran);
         Assert.Equal(0, result.DeletedFiles);

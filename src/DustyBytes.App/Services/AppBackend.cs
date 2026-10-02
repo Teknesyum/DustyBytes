@@ -508,6 +508,19 @@ public sealed class AppBackend : IAppBackend, IAsyncDisposable
     public Task<IReadOnlyList<OptionPreview>> PreviewCleanAsync(IReadOnlyList<RuleSelection> selection, CancellationToken ct) =>
         Task.Run(() => Catalog().Preview(selection), ct);
 
+    public async Task<CleanPreview> PreviewCleanFilesAsync(IReadOnlyList<string> optionKeys, CancellationToken ct)
+    {
+        if (optionKeys.Count == 0)
+            return CleanPreview.Of([]);
+        if (WorkerRunning)
+        {
+            var response = await SendAsync(new WorkerRequest { Op = Ops.CleanPreview, Items = [.. optionKeys] }, new Progress<TaskStep>(), ct).ConfigureAwait(false);
+            if (response.Ok && response.Payload is { Length: > 0 } json && System.Text.Json.JsonSerializer.Deserialize(json, IpcJson.Default.CleanPreview) is { } remote)
+                return remote;
+        }
+        return await Task.Run(() => Catalog().Plan(CleanerCatalog.Selection(optionKeys), ct).ToPreview(), ct).ConfigureAwait(false);
+    }
+
     public async Task<IReadOnlyList<SystemTaskInfo>> SystemTasksAsync(CancellationToken ct)
     {
         var list = new List<SystemTaskInfo>();

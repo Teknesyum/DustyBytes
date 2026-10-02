@@ -272,6 +272,19 @@ public sealed class FakeBackend : IAppBackend
     public Task<IReadOnlyList<OptionPreview>> PreviewCleanAsync(IReadOnlyList<RuleSelection> selection, CancellationToken ct) =>
         Task.FromResult<IReadOnlyList<OptionPreview>>([.. selection.SelectMany(s => s.OptionIds.Select(o => new OptionPreview(s.RuleId, o, 3, 1_000_000)))]);
 
+    public List<IReadOnlyList<string>> PreviewCalls { get; } = [];
+    public Func<IReadOnlyList<string>, CleanPreview>? CleanFiles { get; set; }
+
+    public static CleanPreview FakeCleanFiles(IReadOnlyList<string> keys, int perOption = 3) =>
+        CleanPreview.Of(keys.SelectMany(k => Enumerable.Range(0, perOption).Select(i =>
+            new PreviewFile($@"C:\Önbellek\{k.Replace('/', '\\')}\{i}.tmp", 333_333, new DateTime(2026, 9, 1, 12, 0, 0, DateTimeKind.Utc), k))));
+
+    public Task<CleanPreview> PreviewCleanFilesAsync(IReadOnlyList<string> optionKeys, CancellationToken ct)
+    {
+        PreviewCalls.Add([.. optionKeys]);
+        return Task.FromResult(CleanFiles?.Invoke(optionKeys) ?? FakeCleanFiles(optionKeys));
+    }
+
     public Task<IReadOnlyList<SystemTaskInfo>> SystemTasksAsync(CancellationToken ct) => Task.FromResult<IReadOnlyList<SystemTaskInfo>>(Tasks);
 
     public Task<QuarantineSnapshot> ReadQuarantineAsync(CancellationToken ct) => Task.FromResult(Quarantine);

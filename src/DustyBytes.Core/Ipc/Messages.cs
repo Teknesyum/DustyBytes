@@ -14,6 +14,7 @@ public static class Ops
     public const string RemoveLeftovers = "remove-leftovers";
     public const string ForceUninstall = "force-uninstall";
     public const string Clean = "clean";
+    public const string CleanPreview = "clean-preview";
     public const string SystemClean = "system-clean";
     public const string FastScan = "fast-scan";
     public const string UsnRefresh = "usn-refresh";
@@ -41,6 +42,7 @@ public sealed record WorkerRequest
     public string? UnitId { get; init; }
     public string? Target { get; init; }
     public List<string> Items { get; init; } = [];
+    public string? Digest { get; init; }
 }
 
 public sealed record ItemResult(string Path, bool Ok, string Message, long Bytes = 0);
@@ -55,6 +57,7 @@ public sealed record WorkerResponse
     public long PendingBytes { get; init; }
     public long FreedBytes { get; init; }
     public string? Payload { get; init; }
+    public PathTally? Tally { get; init; }
 }
 
 public sealed record WorkerProgress(string Id, string Step, double Percent, string? Line);
@@ -63,4 +66,5 @@ public sealed record WorkerProgress(string Id, string Step, double Percent, stri
 [JsonSerializable(typeof(WorkerRequest))]
 [JsonSerializable(typeof(WorkerResponse))]
 [JsonSerializable(typeof(WorkerProgress))]
+[JsonSerializable(typeof(CleanPreview))]
 public partial class IpcJson : JsonSerializerContext;

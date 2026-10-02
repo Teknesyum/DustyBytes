@@ -16,6 +16,7 @@
         <StackPanel VerticalAlignment="Center">
           <TextBlock Theme="{StaticResource Body}"><Run Text="{Binding TotalText}"/><Run Text="{Binding TotalSize}" FontFamily="{StaticResource FontMono}"/></TextBlock>
           <TextBlock Theme="{StaticResource Hint}" Text="{Binding Winapp2Text}" IsVisible="{Binding Winapp2}"/>
+          <TextBlock Name="CleanResult" Theme="{StaticResource Body}" Text="{Binding ResultText}" IsVisible="{Binding HasResult}" TextWrapping="Wrap"/>
         </StackPanel>
         <Button Name="CleanButton" Grid.Column="1" Classes="primary" Content="Seçilenleri temizle"
                 Command="{Binding CleanCommand}"
@@ -41,6 +42,35 @@
           <StackPanel Spacing="{StaticResource FieldGap}">
             <TextBlock Theme="{StaticResource H3}" Text="Temizlenecek bir şey yok"/>
             <TextBlock Theme="{StaticResource Hint}" Text="Bu bilgisayarda tanınan önbellek bulunamadı."/>
+          </StackPanel>
+        </Border>
+
+        <Border Name="PreviewPanel" Theme="{StaticResource Panel}" Padding="{StaticResource PanelPadding}" IsVisible="{Binding HasPreviewPanel}">
+          <StackPanel Spacing="{StaticResource FieldGap}">
+            <DockPanel>
+              <TextBlock DockPanel.Dock="Right" Theme="{StaticResource MonoValue}" Classes="data" Text="{Binding PreviewText}" VerticalAlignment="Center"/>
+              <StackPanel Spacing="{StaticResource Space1}">
+                <TextBlock Theme="{StaticResource H3}" Text="Silinecek dosyalar"/>
+                <TextBlock Theme="{StaticResource Hint}" Text="Temizlik yalnız bu listedeki dosyalara dokunur; sonradan çıkan dosyalar atlanır." TextWrapping="Wrap"/>
+              </StackPanel>
+            </DockPanel>
+            <Button Name="PreviewToggle" Classes="ghost" HorizontalAlignment="Left" Content="{Binding FilesToggleText}"
+                    Command="{Binding ToggleFilesCommand}" IsVisible="{Binding HasPreview}"/>
+            <ItemsControl ItemsSource="{Binding PreviewLines}" IsVisible="{Binding ShowFiles}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:PreviewLine">
+                  <DockPanel>
+                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="{StaticResource FieldGap}">
+                      <TextBlock Theme="{StaticResource Hint}" Text="{Binding When}" VerticalAlignment="Center"/>
+                      <TextBlock Theme="{StaticResource MonoValue}" Classes="data" Text="{Binding Size}" VerticalAlignment="Center"/>
+                    </StackPanel>
+                    <TextBlock Theme="{StaticResource Hint}" Text="{Binding Path}" TextTrimming="CharacterEllipsis"
+                               ToolTip.Tip="{Binding Path}" Background="Transparent" VerticalAlignment="Center"/>
+                  </DockPanel>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <TextBlock Theme="{StaticResource Hint}" Text="{Binding PreviewMore}" IsVisible="{Binding ShowMore}"/>
           </StackPanel>
         </Border>
 

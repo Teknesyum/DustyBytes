@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using DustyBytes.Core;
+using DustyBytes.Core.Ipc;
 using DustyBytes.Core.Protection;
 using Microsoft.Win32;
 
@@ -7,6 +8,8 @@ namespace DustyBytes.Clean.Rules;
 
 public sealed class CleanerCatalog
 {
+    public const string RegistryPrefix = "reg:";
+
     readonly List<CleanerRule> _rules;
     readonly ProtectedList _protected;
 
@@ -29,6 +32,16 @@ public sealed class CleanerCatalog
                 rules.Add(CleanerRule.Load(file));
         return new CleanerCatalog(rules, protectedList);
     }
+
+    public static string RegistryEntry(string key, string? value) =>
+        value is null ? RegistryPrefix + key : $"{RegistryPrefix}{key}|{value}";
+
+    public static IReadOnlyList<RuleSelection> Selection(IEnumerable<string> optionKeys) =>
+        [.. optionKeys
+            .Select(item => item.Split('/', 2))
+            .Where(parts => parts.Length == 2)
+            .GroupBy(parts => parts[0])
+            .Select(g => new RuleSelection(g.Key, [.. g.Select(p => p[1])]))];
 
     public CleanerRule? Find(string ruleId) =>
         _rules.FirstOrDefault(r => r.Id.Equals(ruleId, StringComparison.OrdinalIgnoreCase));
@@ -57,9 +70,8 @@ public sealed class CleanerCatalog
         return (false, null);
     }
 
-    public IReadOnlyList<OptionPreview> Preview(IEnumerable<RuleSelection> selection)
+    IEnumerable<(CleanerRule Rule, CleanerOption Option)> Selected(IEnumerable<RuleSelection> selection)
     {
-        var results = new List<OptionPreview>();
         foreach (var sel in selection)
         {
             var rule = Find(sel.RuleId);
@@ -68,75 +80,141 @@ public sealed class CleanerCatalog
             foreach (var optionId in sel.OptionIds)
             {
                 var option = rule.Options.FirstOrDefault(o => o.Id.Equals(optionId, StringComparison.OrdinalIgnoreCase));
-                if (option is null)
-                    continue;
-                var (files, bytes) = PreviewOption(option);
-                results.Add(new OptionPreview(rule.Id, option.Id, files, bytes));
+                if (option is not null)
+                    yield return (rule, option);
             }
+        }
+    }
+
+    public IReadOnlyList<OptionPreview> Preview(IEnumerable<RuleSelection> selection)
+    {
+        var results = new List<OptionPreview>();
+        foreach (var (rule, option) in Selected(selection))
+        {
+            long files = 0, bytes = 0;
+            foreach (var file in PlanOption(rule.Id, option, [], CancellationToken.None))
+            {
+                files++;
+                bytes += file.Bytes;
+            }
+            results.Add(new OptionPreview(rule.Id, option.Id, files, bytes));
         }
         return results;
     }
 
-    (long Files, long Bytes) PreviewOption(CleanerOption option)
+    public CleanPlan Plan(IEnumerable<RuleSelection> selection, CancellationToken ct = default)
     {
-        long files = 0, bytes = 0;
+        var files = new List<PlannedFile>();
+        var excluded = new List<SkippedPath>();
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var (rule, option) in Selected(selection))
+            foreach (var file in PlanOption(rule.Id, option, excluded, ct))
+                if (seen.Add(file.Path))
+                    files.Add(file);
+        return new CleanPlan(files, excluded);
+    }
+
+    IEnumerable<PlannedFile> PlanOption(string ruleId, CleanerOption option, List<SkippedPath> excluded, CancellationToken ct)
+    {
         foreach (var action in option.Actions)
         {
+            ct.ThrowIfCancellationRequested();
             if (action.Type == CleanActionType.RegistryDelete)
             {
                 if (RegistryTargetExists(action))
-                    files++;
+                    yield return new PlannedFile(ruleId, option.Id, RegistryEntry(action.Key!, action.Value), 0, default, CleanActionType.RegistryDelete, action.Key, action.Value);
                 continue;
             }
 
-            if (action.Path is null)
-                continue;
-
-            foreach (var path in ResolveTargets(action))
+            foreach (var resolved in ResolveTargets(action))
             {
-                if (!_protected.Check(path).Allowed)
+                var target = LongForm(resolved);
+                var verdict = Allow(target);
+                if (!verdict.Allowed)
+                {
+                    excluded.Add(new SkippedPath(target, verdict.Reason));
                     continue;
-                (var f, var b) = MeasurePath(path, action.Mode);
-                files += f;
-                bytes += b;
+                }
+
+                if (File.Exists(target))
+                {
+                    if (Measure(ruleId, option.Id, target) is { } single)
+                        yield return single;
+                    continue;
+                }
+
+                if (!Directory.Exists(target))
+                    continue;
+
+                var searchOption = action.Mode == DeleteMode.FilesOnly ? SearchOption.TopDirectoryOnly : SearchOption.AllDirectories;
+                var ancestors = new Dictionary<string, FileAttributes?>(StringComparer.OrdinalIgnoreCase);
+                foreach (var file in EnumerateSafely(target, searchOption))
+                {
+                    ct.ThrowIfCancellationRequested();
+                    var fileVerdict = Allow(file, ancestors);
+                    if (!fileVerdict.Allowed)
+                    {
+                        excluded.Add(new SkippedPath(file, fileVerdict.Reason));
+                        continue;
+                    }
+                    if (Measure(ruleId, option.Id, file) is { } planned)
+                        yield return planned;
+                }
             }
         }
-        return (files, bytes);
     }
 
-    static (long Files, long Bytes) MeasurePath(string path, DeleteMode? mode)
+    (bool Allowed, string Reason) Allow(string path, Dictionary<string, FileAttributes?>? ancestors = null)
     {
         try
         {
-            if (File.Exists(path))
-                return (1, new FileInfo(path).Length);
-
-            if (!Directory.Exists(path))
-                return (0, 0);
-
-            long files = 0, bytes = 0;
-            var searchOption = mode == DeleteMode.FilesOnly ? SearchOption.TopDirectoryOnly : SearchOption.AllDirectories;
-            foreach (var f in EnumerateSafely(path, searchOption))
-            {
-                try
-                {
-                    var info = new FileInfo(f);
-                    files++;
-                    bytes += info.Length;
-                }
-                catch (IOException)
-                {
-                }
-            }
-            return (files, bytes);
+            var verdict = ancestors is null ? _protected.Check(path) : CachedCheck(path, ancestors);
+            return (verdict.Allowed, verdict.Reason);
         }
-        catch (IOException)
+        catch (Exception e) when (e is ArgumentException or NotSupportedException or PathTooLongException or IOException or UnauthorizedAccessException)
         {
-            return (0, 0);
+            return (false, "Yol denetlenemedi: " + e.Message);
         }
-        catch (UnauthorizedAccessException)
+    }
+
+    Verdict CachedCheck(string path, Dictionary<string, FileAttributes?> ancestors)
+    {
+        var byPath = _protected.CheckPath(path);
+        if (!byPath.Allowed)
+            return byPath;
+        var provider = _protected.AttributeProvider;
+        return ProtectedList.CheckFileSystem(path, p =>
         {
-            return (0, 0);
+            if (p.Equals(path, StringComparison.OrdinalIgnoreCase))
+                return provider(p);
+            if (!ancestors.TryGetValue(p, out var attributes))
+                ancestors[p] = attributes = provider(p);
+            return attributes;
+        });
+    }
+
+    static string LongForm(string path)
+    {
+        try
+        {
+            return Paths.Normalize(path);
+        }
+        catch (Exception e) when (e is ArgumentException or NotSupportedException or PathTooLongException or IOException)
+        {
+            return path;
+        }
+    }
+
+    static PlannedFile? Measure(string ruleId, string optionId, string path)
+    {
+        try
+        {
+            var info = new FileInfo(path);
+            return info.Exists ? new PlannedFile(ruleId, optionId, path, info.Length, info.LastWriteTimeUtc) : null;
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException)
+        {
+            return null;
         }
     }
 
@@ -147,7 +225,7 @@ public sealed class CleanerCatalog
             IEnumerable<string> top;
             try
             {
-                top = Directory.EnumerateFiles(dir);
+                top = Directory.EnumerateFiles(dir).ToList();
             }
             catch (IOException)
             {
@@ -186,7 +264,16 @@ public sealed class CleanerCatalog
                 yield return f;
             foreach (var d in subdirs)
             {
-                if ((File.GetAttributes(d) & FileAttributes.ReparsePoint) != 0)
+                FileAttributes attributes;
+                try
+                {
+                    attributes = File.GetAttributes(d);
+                }
+                catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+                {
+                    continue;
+                }
+                if ((attributes & FileAttributes.ReparsePoint) != 0)
                     continue;
                 stack.Push(d);
             }
@@ -224,121 +311,131 @@ public sealed class CleanerCatalog
         }
     }
 
-    public IReadOnlyList<OptionExecutionResult> Execute(IEnumerable<RuleSelection> selection, ICleanupDeleter deleter)
+    public CleanRun Execute(IEnumerable<RuleSelection> selection, IEnumerable<string> shownPaths, ICleanupDeleter deleter, CancellationToken ct = default)
     {
         var dryRun = DryRun.Enabled;
+        var shown = new HashSet<string>(shownPaths, StringComparer.OrdinalIgnoreCase);
+        var guard = new ShownOnlyDeleter(deleter, shown);
+        var handled = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var results = new List<OptionExecutionResult>();
+        int processed = 0, vanished = 0, locked = 0, failed = 0, notShown = 0, protectedCount = 0;
+        long processedBytes = 0;
+        string? error = null;
 
-        foreach (var sel in selection)
+        try
         {
-            var rule = Find(sel.RuleId);
-            if (rule is null)
-                continue;
-
-            var (running, reason) = IsRunning(rule);
-
-            foreach (var optionId in sel.OptionIds)
+            foreach (var group in Selected(selection).GroupBy(s => s.Rule))
             {
-                var option = rule.Options.FirstOrDefault(o => o.Id.Equals(optionId, StringComparison.OrdinalIgnoreCase));
-                if (option is null)
-                    continue;
-
-                if (running)
+                var (running, reason) = IsRunning(group.Key);
+                foreach (var (rule, option) in group)
                 {
-                    results.Add(new OptionExecutionResult(rule.Id, option.Id, false, reason, 0, 0, [], dryRun));
-                    continue;
-                }
+                    var excluded = new List<SkippedPath>();
+                    var current = PlanOption(rule.Id, option, excluded, ct).ToList();
 
-                results.Add(ExecuteOption(rule.Id, option, deleter, dryRun));
-            }
-        }
-
-        return results;
-    }
-
-    OptionExecutionResult ExecuteOption(string ruleId, CleanerOption option, ICleanupDeleter deleter, bool dryRun)
-    {
-        long deletedFiles = 0, deletedBytes = 0;
-        var skipped = new List<SkippedPath>();
-
-        foreach (var action in option.Actions)
-        {
-            if (action.Type == CleanActionType.RegistryDelete)
-            {
-                if (!RegistryTargetExists(action))
-                    continue;
-                if (dryRun)
-                {
-                    deletedFiles++;
-                    continue;
-                }
-                if (deleter.DeleteRegistryValue(action.Key!, action.Value))
-                    deletedFiles++;
-                continue;
-            }
-
-            foreach (var path in ResolveTargets(action))
-            {
-                var verdict = _protected.Check(path);
-                if (!verdict.Allowed)
-                {
-                    skipped.Add(new SkippedPath(path, verdict.Reason));
-                    continue;
-                }
-
-                if (File.Exists(path))
-                {
-                    DeleteOneFile(path, deleter, dryRun, ref deletedFiles, ref deletedBytes, skipped);
-                    continue;
-                }
-
-                if (!Directory.Exists(path))
-                    continue;
-
-                var searchOption = action.Mode == DeleteMode.FilesOnly ? SearchOption.TopDirectoryOnly : SearchOption.AllDirectories;
-                foreach (var file in EnumerateSafely(path, searchOption))
-                {
-                    var fileVerdict = _protected.Check(file);
-                    if (!fileVerdict.Allowed)
+                    if (running)
                     {
-                        skipped.Add(new SkippedPath(file, fileVerdict.Reason));
+                        locked += current.Count(f => shown.Contains(f.Path) && handled.Add(f.Path));
+                        results.Add(new OptionExecutionResult(rule.Id, option.Id, false, reason, 0, 0, [], dryRun));
                         continue;
                     }
-                    DeleteOneFile(file, deleter, dryRun, ref deletedFiles, ref deletedBytes, skipped);
+
+                    long files = 0, bytes = 0;
+                    var skipped = new List<SkippedPath>(excluded);
+                    foreach (var file in current)
+                    {
+                        ct.ThrowIfCancellationRequested();
+                        if (!shown.Contains(file.Path))
+                        {
+                            notShown++;
+                            continue;
+                        }
+                        if (!handled.Add(file.Path))
+                            continue;
+
+                        var (outcome, size) = file.IsRegistry ? DeleteRegistry(file, guard, dryRun) : DeleteOneFile(file.Path, guard, dryRun);
+                        switch (outcome)
+                        {
+                            case DeleteOutcome.Deleted:
+                                processed++;
+                                processedBytes += size;
+                                files++;
+                                bytes += size;
+                                break;
+                            case DeleteOutcome.Vanished:
+                                vanished++;
+                                break;
+                            case DeleteOutcome.Locked:
+                                locked++;
+                                skipped.Add(new SkippedPath(file.Path, "Kullanımda"));
+                                break;
+                            default:
+                                failed++;
+                                skipped.Add(new SkippedPath(file.Path, "Silinemedi"));
+                                break;
+                        }
+                    }
+
+                    results.Add(new OptionExecutionResult(rule.Id, option.Id, true, null, files, bytes, skipped, dryRun));
                 }
             }
         }
+        catch (ShownListViolationException e)
+        {
+            error = e.Message;
+        }
 
-        return new OptionExecutionResult(ruleId, option.Id, true, null, deletedFiles, deletedBytes, skipped, dryRun);
+        foreach (var path in shown)
+        {
+            if (handled.Contains(path))
+                continue;
+            if (error is not null)
+                failed++;
+            else if (!path.StartsWith(RegistryPrefix, StringComparison.Ordinal) && !Allow(path).Allowed)
+                protectedCount++;
+            else
+                vanished++;
+        }
+
+        var tally = new PathTally
+        {
+            Shown = shown.Count,
+            Processed = processed,
+            ProcessedBytes = processedBytes,
+            Vanished = vanished,
+            Protected = protectedCount,
+            Locked = locked,
+            Failed = failed,
+            NotShown = notShown,
+            Stopped = error is not null,
+        };
+        return new CleanRun(results, tally, error);
     }
 
-    static void DeleteOneFile(string path, ICleanupDeleter deleter, bool dryRun, ref long deletedFiles, ref long deletedBytes, List<SkippedPath> skipped)
+    static (DeleteOutcome Outcome, long Bytes) DeleteRegistry(PlannedFile file, ICleanupDeleter deleter, bool dryRun)
+    {
+        if (dryRun)
+            return (DeleteOutcome.Deleted, 0);
+        return (deleter.DeleteRegistryValue(file.Key!, file.Value) ? DeleteOutcome.Deleted : DeleteOutcome.Failed, 0);
+    }
+
+    static (DeleteOutcome Outcome, long Bytes) DeleteOneFile(string path, ICleanupDeleter deleter, bool dryRun)
     {
         long size;
         try
         {
-            size = new FileInfo(path).Length;
+            var info = new FileInfo(path);
+            if (!info.Exists)
+                return (DeleteOutcome.Vanished, 0);
+            size = info.Length;
         }
-        catch (IOException)
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
         {
-            return;
+            return (DeleteOutcome.Vanished, 0);
         }
 
         if (dryRun)
-        {
-            deletedFiles++;
-            deletedBytes += size;
-            return;
-        }
+            return (DeleteOutcome.Deleted, size);
 
-        if (deleter.DeleteFile(path))
-        {
-            deletedFiles++;
-            deletedBytes += size;
-        }
-        else
-        {
-            skipped.Add(new SkippedPath(path, "Silinemedi"));
-        }
+        return (deleter.TryDeleteFile(path), size);
     }
 }

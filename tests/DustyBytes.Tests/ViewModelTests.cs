@@ -462,6 +462,88 @@ public class ViewModelTests
         Assert.False(vm.Cleanup.SystemTasks.First(t => !t.Available).IsChecked);
     }
 
+    [AvaloniaFact]
+    public async Task Cleanup_Shows_File_Preview_And_Refreshes_On_Selection()
+    {
+        var backend = FakeBackend.Rich();
+        var vm = Shell(backend);
+        vm.GoTo(vm.Cleanup);
+        await Settle();
+        await vm.Cleanup.PreviewTask;
+        await Settle();
+        Assert.True(vm.Cleanup.HasPreviewPanel);
+        var keys = vm.Cleanup.Rules.SelectMany(r => r.Options).Where(o => o.IsChecked).Select(o => o.Key).ToList();
+        Assert.Equal($"{keys.Count * 3} dosya, {Format.Bytes(keys.Count * 3 * 333_333L)}", vm.Cleanup.PreviewText);
+        var calls = backend.PreviewCalls.Count;
+
+        vm.Cleanup.Rules.First(r => r.Info.Rule.Id == "chrome").Options.First(o => o.Id == "cookies").IsChecked = true;
+        await Settle();
+        await vm.Cleanup.PreviewTask;
+        await Settle();
+        Assert.True(backend.PreviewCalls.Count > calls);
+        Assert.Contains("chrome/cookies", backend.PreviewCalls[^1]);
+        Assert.Equal($"{(keys.Count + 1) * 3} dosya", vm.Cleanup.PreviewText.Split(',')[0]);
+    }
+
+    [AvaloniaFact]
+    public async Task Cleanup_Preview_List_Shows_First_200_And_The_Rest_As_Count()
+    {
+        var backend = FakeBackend.Rich();
+        backend.CleanFiles = keys => FakeBackend.FakeCleanFiles(keys, 250);
+        var vm = Shell(backend);
+        vm.GoTo(vm.Cleanup);
+        await Settle();
+        await vm.Cleanup.PreviewTask;
+        await Settle();
+        var total = vm.Cleanup.Preview!.Count;
+        Assert.False(vm.Cleanup.ShowFiles);
+        Assert.Equal("Dosya listesini göster", vm.Cleanup.FilesToggleText);
+        vm.Cleanup.ToggleFilesCommand.Execute(null);
+        Assert.True(vm.Cleanup.ShowFiles);
+        Assert.Equal(CleanupViewModel.PreviewLimit, vm.Cleanup.PreviewLines.Count);
+        Assert.True(vm.Cleanup.ShowMore);
+        Assert.Equal($"ve {Format.Count(total - 200)} tane daha", vm.Cleanup.PreviewMore);
+    }
+
+    [AvaloniaFact]
+    public async Task Cleanup_Sends_Exactly_The_Previewed_List_And_Shows_Tally()
+    {
+        var backend = FakeBackend.Rich();
+        backend.Respond = r => r.Op == Ops.Clean
+            ? new WorkerResponse { Id = r.Id, Ok = true, FreedBytes = 999, Tally = new PathTally { Shown = r.Paths.Count, Processed = r.Paths.Count - 1, ProcessedBytes = 999, Locked = 1 } }
+            : new WorkerResponse { Id = r.Id, Ok = true };
+        var vm = Shell(backend);
+        vm.GoTo(vm.Cleanup);
+        await Settle();
+        await vm.Cleanup.PreviewTask;
+        await Settle();
+        var preview = vm.Cleanup.Preview!;
+
+        await vm.Cleanup.CleanCommand.ExecuteAsync(null);
+        await Settle();
+
+        var clean = Assert.Single(backend.Requests, r => r.Op == Ops.Clean);
+        Assert.Equal(preview.Paths(), clean.Paths);
+        Assert.Equal(preview.Digest, clean.Digest);
+        Assert.Equal(PreviewDigest.Of(clean.Paths), clean.Digest);
+        Assert.True(vm.Cleanup.HasResult);
+        Assert.Equal($"Gösterilen {preview.Count} dosya, silinen {preview.Count - 1}, atlanan 1 (kullanımda)", vm.Cleanup.ResultText);
+    }
+
+    [Fact]
+    public void Unit_Delete_Gap_Is_Reported_With_Reason()
+    {
+        var unit = new Unit { Id = "x", Kind = UnitKind.Cache, Name = "Klasör", Paths = [@"C:\a", @"C:\b", @"C:\c"], SizeBytes = 3 };
+        Assert.Null(OffersViewModel.PathGap(unit, new WorkerResponse { Id = "x", Ok = true }));
+        Assert.Null(OffersViewModel.PathGap(unit, new WorkerResponse { Id = "x", Ok = true, Tally = new PathTally { Shown = 3, Processed = 3 } }));
+        Assert.Equal("Gösterilen 3 yol, işlenen 2, atlanan 1 (korumalı)",
+            OffersViewModel.PathGap(unit, new WorkerResponse { Id = "x", Ok = true, Tally = new PathTally { Shown = 3, Processed = 2, Protected = 1 } }));
+        Assert.Equal("gönderilen 3 yolun 2 tanesi worker'a ulaştı; işlenen 2",
+            OffersViewModel.PathGap(unit, new WorkerResponse { Id = "x", Ok = true, Tally = new PathTally { Shown = 2, Processed = 2 } }));
+        Assert.EndsWith("1 yolun nedeni bilinmiyor",
+            OffersViewModel.PathGap(unit, new WorkerResponse { Id = "x", Ok = true, Tally = new PathTally { Shown = 3, Processed = 2 } }));
+    }
+
     static async Task<UninstallViewModel> OpenUninstall(MainViewModel vm)
     {
         vm.GoTo(vm.Programs);

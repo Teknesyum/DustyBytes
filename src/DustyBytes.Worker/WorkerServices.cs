@@ -71,7 +71,18 @@ public sealed class WorkerServices
         return first is null ? response : response with { Message = response.Message + ": " + first };
     }
 
-    static WorkerResponse Collect(WorkerRequest request, List<OpResult> results)
+    public static PathTally Tally(int shown, IReadOnlyList<OpResult> results) => new()
+    {
+        Shown = shown,
+        Processed = results.Count(r => r.Ok),
+        ProcessedBytes = results.Where(r => r.Ok).Sum(r => r.Bytes),
+        Vanished = results.Count(r => r.Status == OpStatus.NotFound),
+        Protected = results.Count(r => r.Status == OpStatus.Denied),
+        Locked = results.Count(r => r.Status == OpStatus.Locked),
+        Failed = results.Count(r => r.Status is OpStatus.Failed or OpStatus.Conflict) + Math.Max(0, shown - results.Count),
+    };
+
+    static WorkerResponse Collect(WorkerRequest request, List<OpResult> results, int? shown = null)
     {
         var pending = results.Where(r => r.Status == OpStatus.Done && r.Method is OpMethod.Quarantine or OpMethod.RecycleBin).Sum(r => r.Bytes);
         var freed = results.Where(r => r.Status is OpStatus.Done or OpStatus.Scheduled or OpStatus.Locked or OpStatus.Failed && r.Method is OpMethod.Delete or OpMethod.Purge).Sum(r => r.Bytes);
@@ -86,6 +97,7 @@ public sealed class WorkerServices
             PendingBytes = pending,
             FreedBytes = freed,
             Payload = JsonSerializer.Serialize(results, WorkerJson.Default.ListOpResult),
+            Tally = Tally(shown ?? results.Count, results),
         };
     }
 
@@ -108,7 +120,7 @@ public sealed class WorkerServices
             results.Add(result);
             progress.Report(new WorkerProgress(request.Id, step, 100.0 * (i + 1) / keys.Count, $"{result.Status}: {result.Path}"));
         }
-        return Collect(request, results);
+        return Collect(request, results, keys.Count);
     }
 
     static WorkerResponse PerPath(WorkerRequest request, IProgress<WorkerProgress> progress, CancellationToken ct, Func<string, OpResult> action) =>

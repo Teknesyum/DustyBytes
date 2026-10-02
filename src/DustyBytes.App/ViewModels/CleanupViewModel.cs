@@ -84,6 +84,16 @@ public sealed class CleanOutcome
     public long Freed { get; set; }
     public bool DryRun { get; set; }
     public List<string> Failures { get; } = [];
+    public PathTally? Tally { get; set; }
+    public string? Summary => Tally?.Describe(verb: DryRun ? "silinecek" : "silinen");
+}
+
+public sealed record PreviewLine(string Path, string Size, string When)
+{
+    public static PreviewLine Of(PreviewFile file) => new(
+        file.Path.StartsWith(CleanerCatalog.RegistryPrefix, StringComparison.Ordinal) ? "Kayıt defteri: " + file.Path[CleanerCatalog.RegistryPrefix.Length..] : file.Path,
+        Format.Bytes(file.Bytes),
+        file.LastWriteUtc == default ? "" : file.LastWriteUtc.ToLocalTime().ToString("dd.MM.yyyy HH:mm", System.Globalization.CultureInfo.GetCultureInfo("tr-TR")));
 }
 
 public sealed partial class CleanupViewModel : ViewModelBase
@@ -109,6 +119,109 @@ public sealed partial class CleanupViewModel : ViewModelBase
 
     [ObservableProperty]
     private string? _error;
+
+    public const int PreviewLimit = 200;
+
+    CancellationTokenSource? _previewCts;
+    string? _previewKey;
+    string? _previewFor;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasPreview), nameof(PreviewLines), nameof(PreviewMore), nameof(ShowMore))]
+    private CleanPreview? _preview;
+
+    [ObservableProperty]
+    private string _previewText = "";
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ShowMore), nameof(FilesToggleText))]
+    private bool _showFiles;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasResult))]
+    private string? _resultText;
+
+    public Task PreviewTask { get; private set; } = Task.CompletedTask;
+    public bool HasPreviewPanel => _loaded && CheckedOptions.Any();
+    public bool HasPreview => Preview is { Count: > 0 };
+    public IReadOnlyList<PreviewLine> PreviewLines => Preview is null ? [] : [.. Preview.Files.Take(PreviewLimit).Select(PreviewLine.Of)];
+    public string PreviewMore => Preview is { Count: > PreviewLimit } p ? $"ve {Format.Count(p.Count - PreviewLimit)} tane daha" : "";
+    public bool ShowMore => ShowFiles && Preview is { Count: > PreviewLimit };
+    public string FilesToggleText => ShowFiles ? "Dosya listesini gizle" : "Dosya listesini göster";
+    public bool HasResult => !string.IsNullOrEmpty(ResultText);
+
+    [RelayCommand]
+    private void ToggleFiles() => ShowFiles = !ShowFiles;
+
+    List<string> CheckedKeys() => [.. CheckedOptions.Select(o => o.Key).Order(StringComparer.Ordinal)];
+
+    void QueuePreview()
+    {
+        if (!_loaded)
+            return;
+        var keys = CheckedKeys();
+        var key = string.Join("\n", keys);
+        if (key == _previewKey)
+            return;
+        _previewKey = key;
+        PreviewTask = RefreshPreviewAsync(keys, key);
+    }
+
+    async Task RefreshPreviewAsync(List<string> keys, string key)
+    {
+        _previewCts?.Cancel();
+        var cts = _previewCts = new CancellationTokenSource();
+        if (keys.Count == 0)
+        {
+            ApplyPreview(null, key);
+            return;
+        }
+        PreviewText = "Önizleme hazırlanıyor";
+        try
+        {
+            var preview = await _main.Backend.PreviewCleanFilesAsync(keys, cts.Token);
+            if (!cts.IsCancellationRequested)
+                ApplyPreview(preview, key);
+        }
+        catch (OperationCanceledException)
+        {
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException or InvalidOperationException or TimeoutException or Worker.WorkerStartException)
+        {
+            if (!cts.IsCancellationRequested)
+            {
+                ApplyPreview(null, null);
+                _previewKey = null;
+                PreviewText = "Önizleme alınamadı: " + e.Message;
+            }
+        }
+    }
+
+    void ApplyPreview(CleanPreview? preview, string? key)
+    {
+        Preview = preview;
+        _previewFor = key;
+        PreviewText = preview is null ? "" : $"{Format.Count(preview.Count)} dosya, {Format.Bytes(preview.Bytes)}";
+        OnPropertyChanged(nameof(HasPreviewPanel));
+    }
+
+    async Task<CleanPreview> CurrentPreviewAsync(List<string> keys)
+    {
+        var key = string.Join("\n", keys);
+        try
+        {
+            await PreviewTask;
+        }
+        catch (OperationCanceledException)
+        {
+        }
+        if (Preview is { } ready && _previewFor == key)
+            return ready;
+        _previewKey = key;
+        var preview = await _main.Backend.PreviewCleanFilesAsync(keys, CancellationToken.None);
+        ApplyPreview(preview, key);
+        return preview;
+    }
 
     public bool Winapp2 => _main.Backend.Winapp2Present;
     public string Winapp2Text => "Ek kurallar: Winapp2 (CC-BY-SA-4.0)";
@@ -241,6 +354,7 @@ public sealed partial class CleanupViewModel : ViewModelBase
         TotalSize = count == 0 ? "" : Format.Bytes(bytes);
         CleanCommand.NotifyCanExecuteChanged();
         Raise();
+        QueuePreview();
     }
 
     void Raise()
@@ -250,6 +364,7 @@ public sealed partial class CleanupViewModel : ViewModelBase
         OnPropertyChanged(nameof(HasSystemTasks));
         OnPropertyChanged(nameof(IsEmpty));
         OnPropertyChanged(nameof(HasError));
+        OnPropertyChanged(nameof(HasPreviewPanel));
     }
 
     bool CanClean() => !Progress.IsRunning && (CheckedOptions.Any() || CheckedTasks.Any());
@@ -261,9 +376,23 @@ public sealed partial class CleanupViewModel : ViewModelBase
         var tasks = CheckedTasks.ToList();
         if (options.Count == 0 && tasks.Count == 0)
             return;
+        ResultText = null;
+        CleanPreview? preview = null;
+        if (options.Count > 0)
+        {
+            try
+            {
+                preview = await CurrentPreviewAsync(CheckedKeys());
+            }
+            catch (Exception e) when (e is IOException or UnauthorizedAccessException or InvalidOperationException or TimeoutException or Worker.WorkerStartException)
+            {
+                _main.Fail("Önizleme alınamadı; temizlik yapılmadı: " + e.Message);
+                return;
+            }
+        }
         if (!await _main.ConfirmAsync(
                 "Seçilenler temizlensin mi?",
-                ConfirmText(tasks),
+                ConfirmText(tasks, preview),
                 "Temizle"))
             return;
         var outcome = new CleanOutcome();
@@ -271,7 +400,7 @@ public sealed partial class CleanupViewModel : ViewModelBase
         {
             await Progress.RunAsync("Temizlik yapılıyor", async (p, ct) =>
             {
-                await SendAsync(_main.Backend, [.. options.Select(o => o.Key)], [.. tasks.Select(t => t.Id)], outcome, p, ct);
+                await SendAsync(_main.Backend, [.. options.Select(o => o.Key)], [.. tasks.Select(t => t.Id)], outcome, p, ct, preview);
                 return true;
             });
         }
@@ -286,16 +415,19 @@ public sealed partial class CleanupViewModel : ViewModelBase
         }
         var freed = outcome.Freed;
         var failures = outcome.Failures;
+        ResultText = outcome.Summary;
         if (outcome.DryRun)
         {
-            _main.Notify("Prova: temizlik ölçüldü, hiçbir dosya silinmedi");
+            _main.Notify(outcome.Summary is { } dry ? $"Prova: {dry}; hiçbir dosya silinmedi" : "Prova: temizlik ölçüldü, hiçbir dosya silinmedi");
         }
         else
         {
             if (freed > 0)
                 _main.Session.AddFreed(freed);
-            _main.Notify($"Temizlik bitti, {Format.Bytes(freed)} açıldı");
+            _main.Notify(outcome.Summary is { } line ? $"{line}. {Format.Bytes(freed)} açıldı" : $"Temizlik bitti, {Format.Bytes(freed)} açıldı");
+            _previewKey = null;
             _ = MeasureAsync();
+            QueuePreview();
             if (tasks.Count > 0)
                 _ = ReloadTasksAsync();
         }
@@ -303,9 +435,11 @@ public sealed partial class CleanupViewModel : ViewModelBase
             _main.Fail(failure);
     }
 
-    static string ConfirmText(IReadOnlyList<SystemTaskRow> tasks)
+    static string ConfirmText(IReadOnlyList<SystemTaskRow> tasks, CleanPreview? preview)
     {
         var text = "Önbellek ve sistem artıkları karantinaya alınmadan silinir; bu işlem geri alınamaz. Açık programların dosyaları atlanır.";
+        if (preview is not null)
+            text += $" Yalnız listede gösterilen {Format.Count(preview.Count)} dosyaya ({Format.Bytes(preview.Bytes)}) dokunulur; sonradan çıkanlar atlanır.";
         if (tasks.Any(t => t.CanRestore || t.Id == global::DustyBytes.Clean.SystemCleanup.HibernationTask.OffId))
             text += " Hazırda bekletme ise geri alınabilir, satırındaki düğmeyle yeniden açılır.";
         return text;
@@ -319,11 +453,13 @@ public sealed partial class CleanupViewModel : ViewModelBase
             [.. tasks.Where(SystemTaskRow.SilentSafe).Select(t => t.Id)]);
     }
 
-    public static async Task SendAsync(IAppBackend backend, IReadOnlyList<string> options, IReadOnlyList<string> tasks, CleanOutcome outcome, IProgress<TaskStep> p, CancellationToken ct)
+    public static async Task SendAsync(IAppBackend backend, IReadOnlyList<string> options, IReadOnlyList<string> tasks, CleanOutcome outcome, IProgress<TaskStep> p, CancellationToken ct, CleanPreview? preview = null)
     {
         if (options.Count > 0)
         {
-            var response = await backend.SendAsync(new WorkerRequest { Op = Ops.Clean, UserApproved = true, Items = [.. options] }, p, ct);
+            preview ??= await backend.PreviewCleanFilesAsync(options, ct);
+            var response = await backend.SendAsync(new WorkerRequest { Op = Ops.Clean, UserApproved = true, Items = [.. options], Paths = preview.Paths(), Digest = preview.Digest }, p, ct);
+            outcome.Tally = response.Tally;
             outcome.Freed += response.FreedBytes;
             outcome.DryRun |= response.DryRun;
             outcome.Failures.AddRange(response.Items.Where(i => !i.Ok).Select(i => $"{i.Path}: {i.Message}"));

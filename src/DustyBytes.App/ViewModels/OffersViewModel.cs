@@ -601,6 +601,8 @@ public sealed partial class OffersViewModel : ViewModelBase
                         moved.Add(unit);
                     else
                         failures.Add($"{unit.Name}: {response.Message}");
+                    if (PathGap(unit, response) is { } gap)
+                        failures.Add($"{unit.Name}: {gap}");
                 }
                 return true;
             });
@@ -622,6 +624,19 @@ public sealed partial class OffersViewModel : ViewModelBase
             _ = _main.Session.RefreshQuarantineAsync(_main);
         }
         return new RemoveOutcome(moved, ids, freed, dryRun, failures, cancelled, null);
+    }
+
+    public static string? PathGap(Unit unit, WorkerResponse response)
+    {
+        if (response.Tally is not { } tally)
+            return null;
+        var sent = unit.Paths.Count;
+        if (tally.Shown != sent)
+            return $"gönderilen {Format.Count(sent)} yolun {Format.Count(tally.Shown)} tanesi worker'a ulaştı; işlenen {Format.Count(tally.Processed)}";
+        if (tally.Processed == sent)
+            return null;
+        var gap = tally.Describe("yol", "işlenen");
+        return tally.Skipped == sent - tally.Processed ? gap : $"{gap}; {Format.Count(sent - tally.Processed - tally.Skipped)} yolun nedeni bilinmiyor";
     }
 
     public static List<string> IdsOf(WorkerResponse response) =>
