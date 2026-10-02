@@ -490,3 +490,19 @@ dokunmaz; kullanıcı verisi hiçbir zaman sorulmadan gitmez.
 
 Durum: iki dalga da birleşti ve 0.7.0 ile yayımlandı (2026-10-02), 869 test geçti. Gerçek makinede
 bildirim düğmesi, sessiz kaldırma ve hedefli mod sahibin elle denemesini bekliyor.
+
+## A17 İçinde Ne Var — 2026-10-02
+
+Sahibin sözü: "70 GB güvenle silinebilir diyorsun ancak ne var bu 70'in içinde bilmiyorum"; video
+varsayılan oynatıcıyla açılabilmeli, resimler görülebilmeli.
+
+1. **Güvenli temizlik dökümü**: Genel bakışta düğmenin altında en büyük kalemler (kural seçeneği, sistem
+   görevi, sessiz birim; ad, dosya sayısı, GB) ve "Tümünü gör". Tam liste kalem kalem açılır, her kalemde
+   en büyük dosyalar ve "Klasörde göster". Kalem "Bunu atla" ile toplamdan çıkarılabilir (yalnız kapsam
+   daraltır). Sayılar worker önizlemesinin `OptionTotal` ve `Head` alanlarından gelir.
+2. **Birimin içi**: film, dizi, klasör, oyun ve program kartlarında "İçindekiler": en büyük dosyalar, resimler
+   için küçük önizleme, ses-video-resim için "Aç" (varsayılan uygulama), her dosya için "Klasörde göster".
+   Filmde ana video için doğrudan "Oynat".
+
+Güvenlik: "Aç" yalnız ses, video ve resim uzantılarında çalışır; program, betik, kısayol asla açılmaz.
+Listeleme ve açma salt okuma; silme ve taşıma yine yalnız worker'da SafetyGate'ten geçer.
