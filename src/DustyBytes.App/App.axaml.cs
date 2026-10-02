@@ -32,8 +32,11 @@ public partial class App : Application
                 Instance.Activated += (_, args) => Dispatcher.UIThread.Post(() =>
                 {
                     window.BringForward();
-                    if (LaunchArgs.Parse(args) is { Mode: LaunchMode.Inspect, Path: { } path })
+                    var launch = LaunchArgs.Parse(args);
+                    if (launch is { Mode: LaunchMode.Inspect, Path: { } path })
                         vm.Inspect(path);
+                    else if (launch.Mode == LaunchMode.SafeClean)
+                        _ = vm.HandleLaunchAsync(launch);
                 });
 
             vm.Update.Exit = () => desktop.Shutdown();
@@ -45,6 +48,7 @@ public partial class App : Application
                 if (Program.Launch is { Mode: LaunchMode.Inspect, Path: { } path })
                     vm.Inspect(path);
                 await vm.StartAsync();
+                await vm.HandleLaunchAsync(Program.Launch);
             };
             desktop.Exit += (_, _) =>
             {

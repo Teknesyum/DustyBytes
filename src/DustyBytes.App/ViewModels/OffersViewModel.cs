@@ -3,6 +3,7 @@ using System.Collections.Specialized;
 using System.ComponentModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using DustyBytes.App.Services;
 using DustyBytes.Core;
 using DustyBytes.Core.Ipc;
 using DustyBytes.Core.Model;
@@ -540,6 +541,7 @@ public sealed partial class OffersViewModel : ViewModelBase
     {
         if (chosen.Count == 0)
             return;
+        Olcum.Decided("offers");
         var outcome = await RemoveCoreAsync(chosen, purge, Progress, TitleFor(chosen, purge));
         if (outcome.Error is { } error)
         {

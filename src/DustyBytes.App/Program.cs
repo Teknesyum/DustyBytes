@@ -16,8 +16,14 @@ public static class Program
             case LaunchMode.Worker:
                 return Worker.WorkerHost.Run(args[1..]);
             case LaunchMode.Check:
+                if (!Core.AppSettings.Load().WeeklyCheck)
+                    return 0;
                 var integration = SystemIntegration.ForCurrentUser();
-                return DiskCheck.Run(DiskCheck.FixedDrives(), new WindowsToast(integration.Shell), root => GrowthText.WeeklyFor(root, DateTimeOffset.Now));
+                return DiskCheck.Run(DiskCheck.FixedDrives(), new WindowsToast(integration.Shell), root => GrowthText.WeeklyFor(root, DateTimeOffset.Now), NoticeState.ForCurrentUser());
+            case LaunchMode.Snooze:
+                return NoticeState.ForCurrentUser().Snooze(Launch.Token) ? 0 : 1;
+            case LaunchMode.Mute:
+                return NoticeActions.Mute(NoticeState.ForCurrentUser(), Launch.Token, NoticeActions.DisableWeekly) ? 0 : 1;
             case LaunchMode.Unregister:
                 return SystemIntegration.ForCurrentUser().Unregister().Error is null ? 0 : 1;
         }
@@ -31,6 +37,8 @@ public static class Program
         }
         instance.StartListening();
         App.Instance = instance;
+        NoticeState.Current = NoticeState.ForCurrentUser();
+        Olcum.Current = Olcum.Begin();
 
         return BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
     }

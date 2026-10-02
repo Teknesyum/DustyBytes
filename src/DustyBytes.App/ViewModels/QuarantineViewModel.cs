@@ -3,6 +3,7 @@ using System.ComponentModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using DustyBytes.Clean.Quarantine;
+using DustyBytes.App.Services;
 using DustyBytes.Core;
 using DustyBytes.Core.Ipc;
 using DustyBytes.Core.Model;
@@ -261,6 +262,7 @@ public sealed partial class QuarantineViewModel : ViewModelBase
 
     public async Task<WorkerResponse?> RestoreSessionAsync(string sessionId, TaskProgressViewModel runner)
     {
+        Olcum.Undone("session");
         try
         {
             var response = await runner.RunAsync("Oturum geri alınıyor", (p, ct) => _main.Backend.SendAsync(new WorkerRequest
@@ -287,6 +289,8 @@ public sealed partial class QuarantineViewModel : ViewModelBase
     {
         if (rows.Count == 0)
             return null;
+        if (op == Ops.Restore)
+            Olcum.Undone("quarantine");
         try
         {
             var response = await Progress.RunAsync(title, (p, ct) => _main.Backend.SendAsync(new WorkerRequest

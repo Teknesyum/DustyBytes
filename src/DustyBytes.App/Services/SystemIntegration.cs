@@ -87,9 +87,11 @@ public sealed class SystemIntegration(ShellIntegration shell, WeeklyCheckTask ta
     }
 }
 
-public sealed class WindowsToast(ShellIntegration shell) : INotifier
+public sealed class WindowsToast(ShellIntegration shell) : IActionNotifier
 {
-    public bool Show(string title, string body, string launch)
+    public bool Show(string title, string body, string launch) => Show(title, body, launch, []);
+
+    public bool Show(string title, string body, string launch, IReadOnlyList<ToastAction> actions)
     {
         try
         {
@@ -99,7 +101,7 @@ public sealed class WindowsToast(ShellIntegration shell) : INotifier
                 $"<toast activationType=\"protocol\" launch=\"{SecurityElement.Escape(launch)}\">" +
                 "<visual><binding template=\"ToastGeneric\">" +
                 $"<text>{SecurityElement.Escape(title)}</text><text>{SecurityElement.Escape(body)}</text>" +
-                "</binding></visual></toast>");
+                "</binding></visual>" + ActionsXml(actions) + "</toast>");
             ToastNotificationManager.CreateToastNotifier(ShellIntegration.AppId).Show(new ToastNotification(xml));
             return true;
         }
@@ -108,4 +110,10 @@ public sealed class WindowsToast(ShellIntegration shell) : INotifier
             return false;
         }
     }
+
+    public static string ActionsXml(IReadOnlyList<ToastAction> actions) =>
+        actions.Count == 0
+            ? ""
+            : "<actions>" + string.Concat(actions.Select(a =>
+                $"<action content=\"{SecurityElement.Escape(a.Content)}\" arguments=\"{SecurityElement.Escape(a.Uri)}\" activationType=\"protocol\"/>")) + "</actions>";
 }

@@ -409,6 +409,14 @@ public sealed partial class OverviewViewModel : ViewModelBase
         _rulesBytes = bytes;
         _rulesStale = false;
         RaiseSafe();
+        NoticeState.Current?.RecordEstimate(SafeBytes, Session.Snapshot?.Units.Sum(u => Math.Max(0, u.SizeBytes)) ?? 0);
+    }
+
+    [RelayCommand]
+    private void OpenMeasure()
+    {
+        if (!Olcum.Reveal())
+            _main.Fail("Ölçüm kaydı açılamadı");
     }
 
     void Rebuild()
@@ -596,11 +604,23 @@ public sealed partial class OverviewViewModel : ViewModelBase
     bool CanMoreSpace() => CanTour() && _moreCount > 0;
 
     [RelayCommand(CanExecute = nameof(CanSafeClean))]
-    private Task SafeClean() => _main.StartTourAsync(TourMode.Safe);
+    private Task SafeClean()
+    {
+        Olcum.Click("safe-clean", true);
+        return _main.StartTourAsync(TourMode.Safe);
+    }
 
     [RelayCommand(CanExecute = nameof(CanMoreSpace))]
-    private Task MoreSpace() => _main.StartTourAsync(TourMode.Ask);
+    private Task MoreSpace()
+    {
+        Olcum.Click("more-space");
+        return _main.StartTourAsync(TourMode.Ask);
+    }
 
     [RelayCommand(CanExecute = nameof(CanTour))]
-    private Task AutoClean() => _main.StartTourAsync();
+    private Task AutoClean()
+    {
+        Olcum.Click("auto-clean", true);
+        return _main.StartTourAsync();
+    }
 }
