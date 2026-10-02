@@ -23,12 +23,12 @@
           <Button Name="RescanButton" Classes="ghost" Content="Baştan tara"
                   Command="{Binding RescanCommand}" IsVisible="{Binding HasSnapshot}"
                   ToolTip.Tip="{Binding RescanTip}" ToolTip.ShowOnDisabled="True"/>
-          <Button Name="ScanButton" Classes.primary="{Binding !HasSnapshot}" Classes.ghost="{Binding HasSnapshot}" Content="{Binding PrimaryText}"
+          <Button Name="ScanButton" Classes.primary="{Binding ScanIsPrimary}" Classes.ghost="{Binding !ScanIsPrimary}" Content="{Binding PrimaryText}"
                   Command="{Binding StartScanCommand}"
                   ToolTip.Tip="{Binding ScanTip}" ToolTip.ShowOnDisabled="True"/>
-          <Button Name="AutoButton" Classes="primary" Content="Otomatik temizle"
+          <Button Name="AutoButton" Classes="ghost" Content="Otomatik temizle"
                   Command="{Binding AutoCleanCommand}" IsVisible="{Binding HasSnapshot}"
-                  ToolTip.Tip="Güvenli artıkları sormadan siler, büyük ve eski öğeleri tek tek sorar"/>
+                  ToolTip.Tip="{Binding AutoTip}" ToolTip.ShowOnDisabled="True"/>
         </StackPanel>
       </WrapPanel>
 
@@ -51,15 +51,29 @@
         </StackPanel>
       </Border>
 
-      <Border Name="FreeNowPanel" Theme="{StaticResource Panel}" IsVisible="{Binding HasFreeNow}">
+      <Border Name="SafePanel" Theme="{StaticResource Panel}" IsVisible="{Binding ShowSafe}">
+        <StackPanel Spacing="{StaticResource FieldGap}">
+          <Button Name="SafeCleanButton" Classes="primary" HorizontalAlignment="Left"
+                  Content="{Binding SafeText}" Command="{Binding SafeCleanCommand}" IsVisible="{Binding ShowSafeButton}"
+                  ToolTip.Tip="{Binding SafeTip}" ToolTip.ShowOnDisabled="True"/>
+          <TextBlock Name="SafeEmptyText" Theme="{StaticResource Body}" Text="Güvenle silinecek bir şey kalmadı" IsVisible="{Binding IsSafeEmpty}"/>
+          <TextBlock Name="SafeReason" Theme="{StaticResource Hint}" Text="{Binding SafeReason}" IsVisible="{Binding HasSafeReason}"/>
+          <Button Name="MoreSpaceButton" Classes="link" HorizontalAlignment="Left"
+                  Content="{Binding MoreText}" Command="{Binding MoreSpaceCommand}" IsVisible="{Binding HasMore}"
+                  ToolTip.Tip="{Binding MoreTip}" ToolTip.ShowOnDisabled="True"/>
+        </StackPanel>
+      </Border>
+
+      <Border Name="CounterPanel" Theme="{StaticResource Panel}">
         <StackPanel Spacing="{StaticResource FieldGap}">
           <Grid ColumnDefinitions="*,Auto">
-            <TextBlock Theme="{StaticResource H3}" Text="{Binding FreeNowTitle}" VerticalAlignment="Center"/>
+            <TextBlock Name="CounterText" Theme="{StaticResource Body}" Classes="data" Text="{Binding CounterText}"
+                       TextWrapping="Wrap" VerticalAlignment="Center"/>
             <Button Name="FreeNowButton" Grid.Column="1" Classes="purge" Classes.ghost="{Binding !IsFreeNowArmed}" Classes.danger="{Binding IsFreeNowArmed}"
-                    Content="{Binding FreeNowButtonText}" Command="{Binding FreeNowCommand}"
-                    ToolTip.Tip="Karantinadakileri beklemeden siler; geri alınamaz" ToolTip.ShowOnDisabled="True"/>
+                    Content="{Binding FreeNowButtonText}" Command="{Binding FreeNowCommand}" IsVisible="{Binding HasFreeNow}"
+                    ToolTip.Tip="{Binding FreeNowTip}" ToolTip.ShowOnDisabled="True"/>
           </Grid>
-          <TextBlock Theme="{StaticResource Hint}" Text="{Binding FreeNowHint}" TextWrapping="Wrap"/>
+          <TextBlock Theme="{StaticResource Hint}" Text="{Binding LowDriveText}" IsVisible="{Binding HasLowDrive}" TextWrapping="Wrap"/>
           <Panel IsVisible="{Binding FreeProgress.IsRunning}">
             <v:TaskProgressView DataContext="{Binding FreeProgress}"/>
           </Panel>

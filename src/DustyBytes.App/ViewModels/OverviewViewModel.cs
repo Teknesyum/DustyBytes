@@ -60,6 +60,14 @@ public sealed record DriveChip(string? Root, string Label, string Detail, double
 public sealed partial class OverviewViewModel : ViewModelBase
 {
     readonly MainViewModel _main;
+    readonly DateTimeOffset _since = DateTimeOffset.Now;
+    long? _rulesBytes;
+    bool _rulesStale;
+    int _estimateRun;
+    long _silentBytes;
+    long _moreBytes;
+    int _moreCount;
+    object _purgeToken = new();
 
     public OverviewViewModel(MainViewModel main)
     {
@@ -78,9 +86,16 @@ public sealed partial class OverviewViewModel : ViewModelBase
         Session.PropertyChanged += OnSession;
         Session.Scan.PropertyChanged += (_, e) =>
         {
-            if (e.PropertyName == nameof(TaskProgressViewModel.IsRunning))
-                Raise();
+            if (e.PropertyName != nameof(TaskProgressViewModel.IsRunning))
+                return;
+            Raise();
+            if (!IsWaitingScan)
+                _ = EstimateAsync();
         };
+        Plan();
+        Counters();
+        if (Session.HasSnapshot && !IsWaitingScan)
+            _ = EstimateAsync();
     }
 
     public SessionState Session => _main.Session;
@@ -196,17 +211,59 @@ public sealed partial class OverviewViewModel : ViewModelBase
     public bool HasCompare => HasLastCleanup && Compare.Count > 0;
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(HasFreeNow), nameof(FreeNowTitle), nameof(FreeNowHint), nameof(FreeNowButtonText))]
-    [NotifyCanExecuteChangedFor(nameof(FreeNowCommand))]
+    [NotifyPropertyChangedFor(nameof(HasLowDrive), nameof(LowDriveText))]
     private FreeNowOffer? _freeNowOffer;
 
-    public bool HasFreeNow => FreeNowOffer is not null;
-    public bool IsFreeNowArmed => Purge.IsArmed;
-    public string FreeNowTitle => FreeNowOffer is { } o ? $"{o.Drive.Letter} sürücüsünde yer azaldı" : "";
-    public string FreeNowHint => FreeNowOffer is { } o
-        ? $"Disk %{o.Drive.UsedPercent} dolu. Karantinada bu sürücüden {Format.Bytes(o.Bytes)} bekliyor; süresini beklemeden kalıcı silerseniz yer hemen açılır. Geri alınamaz."
+    public bool HasLowDrive => FreeNowOffer is not null;
+    public string LowDriveText => FreeNowOffer is { } o
+        ? $"{o.Drive.Letter} sürücüsünde yer azaldı: disk %{o.Drive.UsedPercent} dolu, karantinada bu sürücüden {Format.Bytes(o.Bytes)} bekliyor."
         : "";
-    public string FreeNowButtonText => IsFreeNowArmed ? TwoStep.ArmedText : FreeNowOffer is { } o ? $"Bekleyen {Format.Bytes(o.Bytes)}'ı şimdi kalıcı sil" : "";
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasFreeNow), nameof(CounterText))]
+    [NotifyCanExecuteChangedFor(nameof(FreeNowCommand))]
+    private HeldSpace? _held;
+
+    public bool HasFreeNow => Held is not null;
+    public bool IsFreeNowArmed => Purge.IsArmed;
+    public string FreeNowButtonText => IsFreeNowArmed ? TwoStep.ArmedText : "Şimdi yer aç";
+    public string FreeNowTip => "Karantinadakileri beklemeden kalıcı siler; geri alınamaz";
+
+    public long NowFreedBytes => Session.Ledger.Entries.Where(e => e.At >= _since).Sum(e => Math.Max(0, e.Bytes));
+
+    public string CounterText => $"Şimdi boşalan {Format.Bytes(NowFreedBytes)} · {HeldText()}";
+
+    string HeldText()
+    {
+        if (Session.Quarantine is null)
+            return "Karantina okunuyor";
+        if (Held is not { } held)
+            return "Karantina boş";
+        var autoPurge = _main.Quarantine is { } q ? q.AutoPurge : true;
+        var due = !autoPurge ? "siz silene dek durur"
+            : held.DaysLeft == 0 ? "birazdan boşalır"
+            : $"{(held.SameDay ? "" : "ilki ")}{held.DaysLeft} gün sonra boşalır";
+        return $"Karantinada {Format.Bytes(held.Bytes)} ({due})";
+    }
+
+    public const string WaitText = "Tarama bitince açılır";
+    public const string SafeEmptyText = "Güvenle silinecek bir şey kalmadı";
+
+    public bool IsWaitingScan => IsScanning || Session.IsRestoring;
+    public bool IsSafeKnown => _rulesBytes is not null;
+    public long SafeBytes => _silentBytes + (_rulesBytes ?? 0);
+    public bool ShowSafe => HasSnapshot || IsScanning;
+    public bool ScanIsPrimary => !ShowSafe;
+    public bool IsSafeEmpty => HasSnapshot && !IsWaitingScan && IsSafeKnown && SafeBytes <= 0;
+    public bool ShowSafeButton => ShowSafe && !IsSafeEmpty;
+    public string SafeText => IsSafeKnown && !IsWaitingScan ? $"Güvenle silinebilir: {Format.Bytes(SafeBytes)} — Temizle" : "Güvenle temizle";
+    public string SafeReason => IsWaitingScan ? WaitText : !IsSafeKnown ? "Ölçülüyor" : "";
+    public bool HasSafeReason => SafeReason.Length > 0;
+    public string SafeTip => IsWaitingScan ? WaitText : "Önbellek, geçici dosyalar ve kendiliğinden yeniden oluşan dosyalar sorulmadan silinir; kişisel dosyalara dokunulmaz";
+    public string MoreText => $"Daha fazla yer: {Format.Bytes(_moreBytes)}, {Format.Count(_moreCount)} karar →";
+    public bool HasMore => HasSnapshot && _moreCount > 0;
+    public string MoreTip => IsWaitingScan ? WaitText : "Büyük ve uzun süredir açılmamış öğeleri tek tek sorar";
+    public string AutoTip => IsWaitingScan ? WaitText : "Güvenli artıkları sormadan siler, büyük ve eski öğeleri tek tek sorar";
 
     [ObservableProperty]
     private bool _weeklyCheck;
@@ -250,14 +307,26 @@ public sealed partial class OverviewViewModel : ViewModelBase
             case nameof(SessionState.Snapshot):
                 Chips();
                 Rebuild();
+                Plan();
+                if (!IsWaitingScan)
+                    _ = EstimateAsync();
+                break;
+            case nameof(SessionState.IsRestoring):
+                if (!IsWaitingScan && (_rulesStale || _rulesBytes is null))
+                    _ = EstimateAsync();
                 break;
             case nameof(SessionState.SelectedDrive):
                 SyncSelection();
                 Rebuild();
                 break;
             case nameof(SessionState.Quarantine):
+                Counters();
+                break;
             case nameof(SessionState.Ledger):
                 Counters();
+                _rulesStale = true;
+                if (IsActive)
+                    _ = EstimateAsync();
                 break;
         }
         Raise();
@@ -281,6 +350,63 @@ public sealed partial class OverviewViewModel : ViewModelBase
         StartScanCommand.NotifyCanExecuteChanged();
         RescanCommand.NotifyCanExecuteChanged();
         FastScanCommand.NotifyCanExecuteChanged();
+        RaiseSafe();
+    }
+
+    void RaiseSafe()
+    {
+        OnPropertyChanged(nameof(IsWaitingScan));
+        OnPropertyChanged(nameof(IsSafeKnown));
+        OnPropertyChanged(nameof(SafeBytes));
+        OnPropertyChanged(nameof(ShowSafe));
+        OnPropertyChanged(nameof(ScanIsPrimary));
+        OnPropertyChanged(nameof(IsSafeEmpty));
+        OnPropertyChanged(nameof(ShowSafeButton));
+        OnPropertyChanged(nameof(SafeText));
+        OnPropertyChanged(nameof(SafeReason));
+        OnPropertyChanged(nameof(HasSafeReason));
+        OnPropertyChanged(nameof(SafeTip));
+        OnPropertyChanged(nameof(MoreText));
+        OnPropertyChanged(nameof(HasMore));
+        OnPropertyChanged(nameof(MoreTip));
+        OnPropertyChanged(nameof(AutoTip));
+        SafeCleanCommand.NotifyCanExecuteChanged();
+        MoreSpaceCommand.NotifyCanExecuteChanged();
+        AutoCleanCommand.NotifyCanExecuteChanged();
+    }
+
+    void Plan()
+    {
+        var units = Session.Snapshot?.Units ?? [];
+        _silentBytes = units.Where(TourViewModel.Silent).Sum(u => Math.Max(0, u.SizeBytes));
+        var picked = TourViewModel.Pick(units, DateTimeOffset.Now);
+        _moreBytes = picked.Sum(u => Math.Max(0, u.SizeBytes));
+        _moreCount = picked.Count;
+        RaiseSafe();
+    }
+
+    public async Task EstimateAsync()
+    {
+        if (!Session.HasSnapshot || IsWaitingScan)
+        {
+            _rulesStale = true;
+            return;
+        }
+        var run = ++_estimateRun;
+        long bytes;
+        try
+        {
+            bytes = await CleanupViewModel.SafeBytesAsync(_main.Backend, CancellationToken.None);
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException or InvalidOperationException or OperationCanceledException or TimeoutException)
+        {
+            bytes = 0;
+        }
+        if (run != _estimateRun)
+            return;
+        _rulesBytes = bytes;
+        _rulesStale = false;
+        RaiseSafe();
     }
 
     void Rebuild()
@@ -329,6 +455,8 @@ public sealed partial class OverviewViewModel : ViewModelBase
         FreedText = Format.Bytes(Session.Ledger.FreedBytes);
         History();
         CheckSpace();
+        OnPropertyChanged(nameof(NowFreedBytes));
+        OnPropertyChanged(nameof(CounterText));
     }
 
     void History()
@@ -359,49 +487,68 @@ public sealed partial class OverviewViewModel : ViewModelBase
     void CheckSpace()
     {
         var entries = Session.Quarantine?.Entries ?? [];
-        var offer = entries.Count == 0 ? null : DiskCheck.FreeNow(_main.Backend.Drives(), entries);
-        if (offer is null || FreeNowOffer is null || offer.Drive.Root != FreeNowOffer.Drive.Root || offer.Bytes != FreeNowOffer.Bytes)
+        FreeNowOffer = entries.Count == 0 ? null : DiskCheck.FreeNow(_main.Backend.Drives(), entries);
+        var held = DiskCheck.Held(entries, DateTime.UtcNow);
+        if (held is null ? Held is not null : !held.SameAs(Held))
+        {
+            _purgeToken = new object();
             Purge.Reset();
-        FreeNowOffer = offer;
+        }
+        Held = held;
     }
 
-    bool CanFreeNow() => FreeNowOffer is not null && !FreeProgress.IsRunning;
+    bool CanFreeNow() => Held is not null && !FreeProgress.IsRunning;
 
     [RelayCommand(CanExecute = nameof(CanFreeNow))]
     private async Task FreeNow()
     {
-        if (FreeNowOffer is not { } offer || !Purge.Press(offer))
+        if (Held is not { } held || !Purge.Press(_purgeToken))
             return;
-        WorkerResponse response;
+        var results = new List<(HeldRoot Root, WorkerResponse Response)>();
         try
         {
-            response = await FreeProgress.RunAsync($"{offer.Drive.Letter} karantinası kalıcı siliniyor", (p, ct) => _main.Backend.SendAsync(new WorkerRequest
+            await FreeProgress.RunAsync("Karantina kalıcı siliniyor", async (p, ct) =>
             {
-                Op = Ops.Purge,
-                UserApproved = true,
-                Items = [.. offer.Ids],
-            }, p, ct), cancellable: false);
+                foreach (var root in held.Roots)
+                    results.Add((root, await _main.Backend.SendAsync(new WorkerRequest
+                    {
+                        Op = Ops.Purge,
+                        UserApproved = true,
+                        Items = [.. root.Ids],
+                    }, p, ct)));
+                return true;
+            }, cancellable: false);
         }
         catch (Exception e) when (e is IOException or InvalidOperationException or TimeoutException or Worker.WorkerStartException)
         {
             _main.Fail("İşlem yapılamadı: " + e.Message);
-            return;
         }
         finally
         {
             FreeNowCommand.NotifyCanExecuteChanged();
         }
-        if (response.DryRun)
-            _main.Notify("Prova: hiçbir öğe silinmedi");
-        else
+        long freed = 0;
+        var dryRun = false;
+        var errors = new List<string>();
+        foreach (var (root, response) in results)
         {
+            if (response.DryRun)
+            {
+                dryRun = true;
+                continue;
+            }
             if (response.FreedBytes > 0)
-                Session.AddFreed(response.FreedBytes, offer.Drive.Root);
-            if (response.Ok)
-                _main.Notify($"{offer.Drive.Letter} sürücüsünde {Format.Bytes(response.FreedBytes)} açıldı");
-            else
-                _main.Fail("Silme tamamlanamadı: " + response.Message);
+                Session.AddFreed(response.FreedBytes, root.Root);
+            freed += Math.Max(0, response.FreedBytes);
+            if (!response.Ok)
+                errors.Add(response.Message);
         }
+        if (dryRun)
+            _main.Notify("Prova: hiçbir öğe silinmedi");
+        else if (errors.Count > 0)
+            _main.Fail("Silme tamamlanamadı: " + string.Join("; ", errors));
+        else if (results.Count > 0)
+            _main.Notify($"Karantina boşaltıldı, {Format.Bytes(freed)} açıldı");
         await Session.RefreshQuarantineAsync(_main);
     }
 
@@ -411,6 +558,8 @@ public sealed partial class OverviewViewModel : ViewModelBase
     {
         Counters();
         Raise();
+        if (_rulesStale || _rulesBytes is null)
+            _ = EstimateAsync();
         _ = Session.RefreshQuarantineAsync(_main);
     }
 
@@ -438,6 +587,18 @@ public sealed partial class OverviewViewModel : ViewModelBase
     [RelayCommand]
     private void OpenOffers() => _main.GoTo(_main.Offers);
 
-    [RelayCommand]
+    bool CanTour() => HasSnapshot && !IsWaitingScan;
+
+    bool CanSafeClean() => CanTour() && IsSafeKnown && SafeBytes > 0;
+
+    bool CanMoreSpace() => CanTour() && _moreCount > 0;
+
+    [RelayCommand(CanExecute = nameof(CanSafeClean))]
+    private Task SafeClean() => _main.StartTourAsync(TourMode.Safe);
+
+    [RelayCommand(CanExecute = nameof(CanMoreSpace))]
+    private Task MoreSpace() => _main.StartTourAsync(TourMode.Ask);
+
+    [RelayCommand(CanExecute = nameof(CanTour))]
     private Task AutoClean() => _main.StartTourAsync();
 }

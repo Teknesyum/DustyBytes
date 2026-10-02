@@ -4,6 +4,7 @@ using DustyBytes.App.Services;
 using DustyBytes.App.ViewModels;
 using DustyBytes.Clean.Quarantine;
 using DustyBytes.Core.Ipc;
+using DustyBytes.Core.Model;
 
 namespace DustyBytes.Tests;
 
@@ -385,9 +386,9 @@ public class HatirlatmaTests
 
         var overview = vm.Overview;
         Assert.True(overview.HasFreeNow);
-        Assert.Equal("C: sürücüsünde yer azaldı", overview.FreeNowTitle);
-        Assert.StartsWith("Bekleyen ", overview.FreeNowButtonText);
-        Assert.EndsWith("'ı şimdi kalıcı sil", overview.FreeNowButtonText);
+        Assert.True(overview.HasLowDrive);
+        Assert.StartsWith("C: sürücüsünde yer azaldı", overview.LowDriveText);
+        Assert.Equal("Şimdi yer aç", overview.FreeNowButtonText);
 
         await overview.FreeNowCommand.ExecuteAsync(null);
         Assert.True(overview.IsFreeNowArmed);
@@ -399,20 +400,32 @@ public class HatirlatmaTests
         Assert.True(purge.UserApproved);
         Assert.Equal(["q1", "q2"], purge.Items);
         Assert.Equal([@"C:\"], backend.FreedRoots);
+        Assert.Equal(6_000_000_000, overview.NowFreedBytes);
+        Assert.StartsWith("Şimdi boşalan " + Format.Bytes(6_000_000_000) + " · ", overview.CounterText);
         Assert.StartsWith("Bu ay ", overview.MonthText);
         Assert.True(overview.HasLastCleanup);
         Assert.Equal(2, overview.Compare.Count);
     }
 
     [AvaloniaFact]
-    public async Task Overview_FreeNow_Hidden_When_Space_Is_Fine()
+    public async Task Overview_FreeNow_Hidden_Only_When_Quarantine_Is_Empty()
     {
         var backend = FakeBackend.Rich();
         var vm = new MainViewModel(backend);
         await vm.Session.RefreshQuarantineAsync(vm);
         await Settle();
-        Assert.False(vm.Overview.HasFreeNow);
-        Assert.False(vm.Overview.FreeNowCommand.CanExecute(null));
+        Assert.True(vm.Overview.HasFreeNow);
+        Assert.False(vm.Overview.HasLowDrive);
+        Assert.True(vm.Overview.FreeNowCommand.CanExecute(null));
+
+        var empty = FakeBackend.Rich();
+        empty.Quarantine = new QuarantineSnapshot([], [], true, null);
+        var bare = new MainViewModel(empty);
+        await bare.Session.RefreshQuarantineAsync(bare);
+        await Settle();
+        Assert.False(bare.Overview.HasFreeNow);
+        Assert.False(bare.Overview.FreeNowCommand.CanExecute(null));
+        Assert.EndsWith("Karantina boş", bare.Overview.CounterText);
         Assert.Equal("Bu ay henüz yer açılmadı", vm.Overview.MonthText);
         Assert.False(vm.Overview.HasLastCleanup);
     }

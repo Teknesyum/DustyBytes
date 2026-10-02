@@ -319,6 +319,20 @@ public sealed partial class CleanupViewModel : ViewModelBase
             [.. tasks.Where(SystemTaskRow.SilentSafe).Select(t => t.Id)]);
     }
 
+    public static async Task<long> SafeBytesAsync(IAppBackend backend, CancellationToken ct)
+    {
+        var rules = await backend.CleanRulesAsync(ct);
+        var tasks = await backend.SystemTasksAsync(ct);
+        var selection = rules
+            .Select(r => new RuleSelection(r.Rule.Id, [.. r.Rule.Options.Where(o => CleanRuleRow.Safe(r, o)).Select(o => o.Id)]))
+            .Where(s => s.OptionIds.Count > 0)
+            .ToList();
+        IReadOnlyList<OptionPreview> previews = selection.Count == 0 ? [] : await backend.PreviewCleanAsync(selection, ct);
+        var chosen = selection.SelectMany(s => s.OptionIds.Select(o => CleanOptionRow.KeyOf(s.RuleId, o))).ToHashSet(StringComparer.Ordinal);
+        return previews.Where(p => chosen.Contains(CleanOptionRow.KeyOf(p.RuleId, p.OptionId))).Sum(p => Math.Max(0, p.Bytes))
+            + tasks.Where(SystemTaskRow.SilentSafe).Sum(t => Math.Max(0, t.Bytes));
+    }
+
     public static async Task SendAsync(IAppBackend backend, IReadOnlyList<string> options, IReadOnlyList<string> tasks, CleanOutcome outcome, IProgress<TaskStep> p, CancellationToken ct)
     {
         if (options.Count > 0)

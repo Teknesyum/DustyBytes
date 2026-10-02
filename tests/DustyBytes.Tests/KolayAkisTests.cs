@@ -116,6 +116,8 @@ public class KolayAkisTests
     {
         var backend = FakeBackend.Rich();
         backend.DryRun = dryRun;
+        if (!dryRun)
+            backend.Respond = FakeBackend.Measured;
         var vm = new MainViewModel(backend);
         vm.Session.SetSnapshot(FakeBackend.Snapshot());
         vm.GoTo(vm.Overview);
@@ -162,7 +164,8 @@ public class KolayAkisTests
         Assert.True(tour.HasQuarantined);
         Assert.Contains(tour.Summary!.Lines, l => l.StartsWith("Karantinaya alınan: 1 öğe", StringComparison.Ordinal));
         Assert.Contains(tour.Summary.Lines, l => l == "Yerinde kalan: 1 öğe");
-        Assert.Equal(3_000_000_000 + 8_000_000_000, tour.FreedBytes);
+        Assert.Equal(FakeBackend.CleanFreed * 2 + FakeBackend.DeleteFreed, tour.FreedBytes);
+        Assert.Equal(FakeBackend.QuarantinePending, tour.HeldBytes);
 
         tour.UndoCommand.Execute(null);
         Assert.Same(vm.Quarantine, vm.Navigation.Current);
@@ -186,7 +189,7 @@ public class KolayAkisTests
         Assert.Equal(Ops.Delete, request.Op);
         Assert.Equal("u3", tour.Current!.Unit.Id);
         Assert.False(tour.IsPurgeArmed);
-        Assert.Equal(3_000_000_000 + 40_000_000_000, tour.FreedBytes);
+        Assert.Equal(FakeBackend.CleanFreed * 2 + FakeBackend.DeleteFreed * 2, tour.FreedBytes);
     }
 
     [AvaloniaFact]

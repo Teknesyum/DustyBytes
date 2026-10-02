@@ -192,7 +192,7 @@ public sealed partial class UnitCard : ObservableObject
     }
 }
 
-public sealed record RemoveOutcome(IReadOnlyList<Unit> Moved, IReadOnlyList<string> Ids, long Freed, bool DryRun, IReadOnlyList<string> Failures, bool Cancelled, string? Error);
+public sealed record RemoveOutcome(IReadOnlyList<Unit> Moved, IReadOnlyList<string> Ids, long Freed, bool DryRun, IReadOnlyList<string> Failures, bool Cancelled, string? Error, long Pending = 0);
 
 public sealed partial class OffersViewModel : ViewModelBase
 {
@@ -576,6 +576,7 @@ public sealed partial class OffersViewModel : ViewModelBase
         var dryRun = false;
         var cancelled = false;
         long freed = 0;
+        long pending = 0;
         try
         {
             await runner.RunAsync(title, async (progress, ct) =>
@@ -595,6 +596,7 @@ public sealed partial class OffersViewModel : ViewModelBase
                     }, progress, ct);
                     dryRun |= response.DryRun;
                     freed += response.FreedBytes;
+                    pending += response.PendingBytes;
                     var unitIds = IdsOf(response);
                     ids.AddRange(unitIds);
                     if (response.Ok)
@@ -621,7 +623,7 @@ public sealed partial class OffersViewModel : ViewModelBase
                 _main.Session.RemoveUnits(moved.Select(u => u.Id));
             _ = _main.Session.RefreshQuarantineAsync(_main);
         }
-        return new RemoveOutcome(moved, ids, freed, dryRun, failures, cancelled, null);
+        return new RemoveOutcome(moved, ids, freed, dryRun, failures, cancelled, null, pending);
     }
 
     public static List<string> IdsOf(WorkerResponse response) =>
