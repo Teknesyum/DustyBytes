@@ -231,6 +231,17 @@
                   </StackPanel>
                 </Grid>
               </Border>
+              <StackPanel Name="ContentsPanel" Margin="{StaticResource InputPadding}" Spacing="{StaticResource Space1}" IsVisible="{Binding HasContents}">
+                <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space2}">
+                  <Button Name="ContentsToggle" Classes="link" Content="{Binding Contents.ToggleText}"
+                          Command="{Binding Contents.ToggleCommand}" ToolTip.Tip="{Binding Contents.ToggleHint}"
+                          AutomationProperties.Name="İçindekiler"/>
+                  <Button Name="PlayButton" Classes="ghost" Content="Oynat" IsVisible="{Binding CanPlay}"
+                          Command="{Binding Contents.PlayCommand}" ToolTip.Tip="{Binding Contents.PlayHint}"
+                          AutomationProperties.Name="Oynat"/>
+                </StackPanel>
+                <v:UnitContentsView DataContext="{Binding Contents}"/>
+              </StackPanel>
               <StackPanel Name="CopyList" Spacing="{StaticResource Space1}" Margin="{StaticResource InputPadding}" IsVisible="{Binding IsDuplicate}">
                 <TextBlock Theme="{StaticResource Hint}" Text="{Binding KeepRule}" TextWrapping="Wrap"/>
                 <ItemsControl ItemsSource="{Binding Copies}" Grid.IsSharedSizeScope="True">

@@ -63,7 +63,12 @@ public sealed partial class UnitCard : ObservableObject
         UsageText = KindText.Usage(unit.Usage, now);
         PathText = Describe(unit);
         Copies = CopiesOf(unit);
+        Contents = UnitContentsViewModel.Supports(unit) ? new UnitContentsViewModel(unit) : null;
     }
+
+    public UnitContentsViewModel? Contents { get; }
+    public bool HasContents => Contents is not null;
+    public bool CanPlay => Contents?.CanPlay == true;
 
     static string Describe(Unit unit) => unit.Kind == UnitKind.Duplicate && unit.Keep is { } keep
         ? "Kalacak: " + keep

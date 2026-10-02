@@ -110,6 +110,7 @@ static class KontrastTuru
         vm.Tour.EndCommand.Execute(null);
         vm.Tour.CloseCommand.Execute(null);
 
+        var icerik = IcerikKlasoru();
         var snapshot = FakeBackend.Snapshot();
         var belirsiz = new MainViewModel(FakeBackend.Rich());
         belirsiz.Session.SetSnapshot(snapshot with
@@ -122,7 +123,7 @@ static class KontrastTuru
                     Id = "k1",
                     Kind = UnitKind.Folder,
                     Name = "Eski Klasör",
-                    Paths = [@"C:\Eski Klasör"],
+                    Paths = [icerik],
                     SizeBytes = 30_000_000_000,
                     Usage = new UsageSignal(DateTimeOffset.Now.AddDays(-200), "prefetch", 0.9),
                     Confidence = 0.4,
@@ -140,6 +141,24 @@ static class KontrastTuru
         Otur();
         yield return "Tur Emin Değiliz Kalıcı Sil";
         belirsiz.Tour.Purge.Reset();
+        var turKarti = belirsiz.Tour.Current!;
+        turKarti.Contents!.ToggleCommand.Execute(null);
+        Bekle(turKarti.Contents.Ready);
+        Otur();
+        yield return "Tur İçindekiler";
+        turKarti.Contents.ToggleCommand.Execute(null);
+        belirsiz.Tour.EndCommand.Execute(null);
+        belirsiz.Tour.CloseCommand.Execute(null);
+
+        belirsiz.GoTo(belirsiz.Offers);
+        Bekle(belirsiz.Offers.Ready);
+        belirsiz.Offers.ShowFilter("Klasör");
+        var oneriKarti = belirsiz.Offers.Cards.First(c => c.Unit.Id == "k1");
+        oneriKarti.Contents!.ToggleCommand.Execute(null);
+        Bekle(oneriKarti.Contents.Ready);
+        Otur();
+        yield return "Öneriler İçindekiler";
+        oneriKarti.Contents.ToggleCommand.Execute(null);
 
         var bos = new MainViewModel(new FakeBackend { DryRun = true });
         pencere.DataContext = bos;
@@ -169,6 +188,44 @@ static class KontrastTuru
         yukleniyor.Session.Scan.SetCounters(FakeBackend.Snapshot().Units);
         Otur();
         yield return "Yükleniyor";
+        try
+        {
+            Directory.Delete(icerik, true);
+        }
+        catch (IOException)
+        {
+        }
+    }
+
+    static string IcerikKlasoru()
+    {
+        var kok = Path.Combine(Path.GetTempPath(), "dustybytes-kontrast-icerik");
+        if (Directory.Exists(kok))
+            Directory.Delete(kok, true);
+        Directory.CreateDirectory(Path.Combine(kok, "Ekstra"));
+        File.WriteAllBytes(Path.Combine(kok, "Tatil 2019.mkv"), new byte[64 * 1024]);
+        File.WriteAllBytes(Path.Combine(kok, "Ekstra", "Kamera.mp3"), new byte[16 * 1024]);
+        File.WriteAllBytes(Path.Combine(kok, "notlar.txt"), new byte[2 * 1024]);
+        File.WriteAllBytes(Path.Combine(kok, "kapak.bmp"), Bmp());
+        return kok;
+    }
+
+    static byte[] Bmp()
+    {
+        var veri = new byte[70];
+        veri[0] = (byte)'B';
+        veri[1] = (byte)'M';
+        BitConverter.GetBytes(70).CopyTo(veri, 2);
+        BitConverter.GetBytes(54).CopyTo(veri, 10);
+        BitConverter.GetBytes(40).CopyTo(veri, 14);
+        BitConverter.GetBytes(2).CopyTo(veri, 18);
+        BitConverter.GetBytes(2).CopyTo(veri, 22);
+        BitConverter.GetBytes((short)1).CopyTo(veri, 26);
+        BitConverter.GetBytes((short)24).CopyTo(veri, 28);
+        BitConverter.GetBytes(16).CopyTo(veri, 34);
+        for (var i = 54; i < 70; i++)
+            veri[i] = 0x80;
+        return veri;
     }
 
     static void Bekle(Task gorev)
