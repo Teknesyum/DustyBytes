@@ -374,6 +374,18 @@ public sealed class AppBackend : IAppBackend, IAsyncDisposable
         }
     }
 
+    public Task<FolderGrowth?> GrowthAsync(ScanResult result, CancellationToken ct) => Task.Run(() =>
+    {
+        try
+        {
+            return FolderHistory.Compare(FolderHistory.Extract(result), new ScanIndex().Baseline(result.Root.Name, result.FinishedAt));
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException or Microsoft.Data.Sqlite.SqliteException)
+        {
+            return null;
+        }
+    }, ct);
+
     public Task<IReadOnlyList<Unit>> FindDuplicatesAsync(ScanSnapshot snapshot, IProgress<TaskStep> progress, Action<Unit> found, CancellationToken ct) => Task.Run<IReadOnlyList<Unit>>(() =>
     {
         progress.Report(new TaskStep("Kopya adayları seçiliyor", 0, null));

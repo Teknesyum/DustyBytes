@@ -48,6 +48,14 @@ public sealed class ScanIndex
                 tag TEXT,
                 PRIMARY KEY (scan_id, id)
             ) WITHOUT ROWID;
+            CREATE TABLE IF NOT EXISTS folder_history (
+                root TEXT NOT NULL COLLATE NOCASE,
+                day INTEGER NOT NULL,
+                taken_at INTEGER NOT NULL,
+                path TEXT NOT NULL,
+                size INTEGER NOT NULL,
+                PRIMARY KEY (root, day, path)
+            ) WITHOUT ROWID;
             """);
     }
 
@@ -70,7 +78,7 @@ public sealed class ScanIndex
         cmd.ExecuteNonQuery();
     }
 
-    public long Save(ScanResult result)
+    public long Save(ScanResult result, DateTimeOffset? at = null)
     {
         using var db = Open();
         Exec(db, "PRAGMA synchronous=NORMAL;");
@@ -151,8 +159,136 @@ public sealed class ScanIndex
                 for (var i = kids.Count - 1; i >= 0; i--)
                     stack.Push((kids[i], id));
         }
+        if (!result.Cancelled)
+            WriteHistory(db, tx, root, FolderHistory.Extract(result), at ?? result.FinishedAt);
         tx.Commit();
         return scanId;
+    }
+
+    static long DayOf(DateTimeOffset at) => at.ToLocalTime().Date.Ticks / TimeSpan.TicksPerDay;
+
+    public void RecordHistory(ScanResult result, DateTimeOffset at)
+    {
+        using var db = Open();
+        using var tx = db.BeginTransaction();
+        WriteHistory(db, tx, result.Root.Name, FolderHistory.Extract(result), at);
+        tx.Commit();
+    }
+
+    static void WriteHistory(SqliteConnection db, SqliteTransaction tx, string root, IReadOnlyList<FolderSize> folders, DateTimeOffset at)
+    {
+        var key = Paths.Normalize(root);
+        var day = DayOf(at);
+        using (var del = db.CreateCommand())
+        {
+            del.Transaction = tx;
+            del.CommandText = "DELETE FROM folder_history WHERE (root = $r AND day = $d) OR taken_at < $old;";
+            del.Parameters.AddWithValue("$r", key);
+            del.Parameters.AddWithValue("$d", day);
+            del.Parameters.AddWithValue("$old", at.AddDays(-FolderHistory.KeepDays).UtcTicks);
+            del.ExecuteNonQuery();
+        }
+        using (var ins = db.CreateCommand())
+        {
+            ins.Transaction = tx;
+            ins.CommandText = "INSERT OR REPLACE INTO folder_history (root, day, taken_at, path, size) VALUES ($r, $d, $t, $p, $s);";
+            ins.Parameters.AddWithValue("$r", key);
+            ins.Parameters.AddWithValue("$d", day);
+            ins.Parameters.AddWithValue("$t", at.UtcTicks);
+            var p = ins.Parameters.Add("$p", SqliteType.Text);
+            var s = ins.Parameters.Add("$s", SqliteType.Integer);
+            foreach (var folder in folders)
+            {
+                p.Value = folder.Path;
+                s.Value = folder.Size;
+                ins.ExecuteNonQuery();
+            }
+        }
+        while (HistoryBytes(db, tx) > FolderHistory.MaxStoreBytes)
+        {
+            using var trim = db.CreateCommand();
+            trim.Transaction = tx;
+            trim.CommandText = "DELETE FROM folder_history WHERE taken_at = (SELECT MIN(taken_at) FROM folder_history) AND NOT (root = $r AND day = $d);";
+            trim.Parameters.AddWithValue("$r", key);
+            trim.Parameters.AddWithValue("$d", day);
+            if (trim.ExecuteNonQuery() == 0)
+                break;
+        }
+    }
+
+    static long HistoryBytes(SqliteConnection db, SqliteTransaction tx)
+    {
+        using var q = db.CreateCommand();
+        q.Transaction = tx;
+        q.CommandText = "SELECT COALESCE(SUM(LENGTH(path) + LENGTH(root) + 32), 0) FROM folder_history;";
+        return (long)q.ExecuteScalar()!;
+    }
+
+    public long HistoryBytes()
+    {
+        using var db = Open();
+        using var q = db.CreateCommand();
+        q.CommandText = "SELECT COALESCE(SUM(LENGTH(path) + LENGTH(root) + 32), 0) FROM folder_history;";
+        return (long)q.ExecuteScalar()!;
+    }
+
+    public int HistoryDays(string root)
+    {
+        using var db = Open();
+        using var q = db.CreateCommand();
+        q.CommandText = "SELECT COUNT(DISTINCT day) FROM folder_history WHERE root = $r;";
+        q.Parameters.AddWithValue("$r", Paths.Normalize(root));
+        return (int)(long)q.ExecuteScalar()!;
+    }
+
+    static FolderBaseline? ReadSnapshot(SqliteConnection db, string key, long day, long takenAt)
+    {
+        using var q = db.CreateCommand();
+        q.CommandText = "SELECT path, size FROM folder_history WHERE root = $r AND day = $d;";
+        q.Parameters.AddWithValue("$r", key);
+        q.Parameters.AddWithValue("$d", day);
+        using var r = q.ExecuteReader();
+        var list = new List<FolderSize>();
+        while (r.Read())
+            list.Add(new FolderSize(r.GetString(0), r.GetInt64(1)));
+        return list.Count == 0 ? null : new FolderBaseline(new DateTimeOffset(takenAt, TimeSpan.Zero), list);
+    }
+
+    static List<(long Day, long TakenAt)> HistoryDaysFor(SqliteConnection db, string key)
+    {
+        using var q = db.CreateCommand();
+        q.CommandText = "SELECT day, MAX(taken_at) FROM folder_history WHERE root = $r GROUP BY day ORDER BY day DESC;";
+        q.Parameters.AddWithValue("$r", key);
+        using var r = q.ExecuteReader();
+        var days = new List<(long, long)>();
+        while (r.Read())
+            days.Add((r.GetInt64(0), r.GetInt64(1)));
+        return days;
+    }
+
+    public FolderBaseline? Baseline(string root, DateTimeOffset now, int minAgeDays = 1)
+    {
+        var key = Paths.Normalize(root);
+        using var db = Open();
+        var limit = DayOf(now) - minAgeDays;
+        foreach (var (day, takenAt) in HistoryDaysFor(db, key))
+            if (day <= limit)
+                return ReadSnapshot(db, key, day, takenAt);
+        return null;
+    }
+
+    public FolderGrowth? WeeklyGrowth(string root, int spanDays = 7)
+    {
+        var key = Paths.Normalize(root);
+        using var db = Open();
+        var days = HistoryDaysFor(db, key);
+        if (days.Count < 2)
+            return null;
+        var (day, takenAt) = days[0];
+        var older = days.Skip(1).MinBy(d => (Math.Abs(day - spanDays - d.Day), -d.Day));
+        if (ReadSnapshot(db, key, day, takenAt) is not { } current || ReadSnapshot(db, key, older.Day, older.TakenAt) is not { } before)
+            return null;
+        return FolderHistory.Compare(current.Folders, before);
     }
 
     public ScanResult? Load(string root, Action<long, long>? rows = null)

@@ -115,6 +115,10 @@
           </Grid>
         </Border>
 
+        <Panel IsVisible="{Binding Growth.HasGrowth}">
+          <v:GrowthCardView DataContext="{Binding Growth}"/>
+        </Panel>
+
         <Border Theme="{StaticResource Panel}">
           <StackPanel Spacing="{StaticResource RowGap}">
             <Grid ColumnDefinitions="*,Auto">
