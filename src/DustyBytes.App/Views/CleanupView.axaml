@@ -4,10 +4,97 @@
              xmlns:v="using:DustyBytes.App.Views"
              x:Class="DustyBytes.App.Views.CleanupView"
              x:DataType="vm:CleanupViewModel">
+  <UserControl.DataTemplates>
+    <DataTemplate x:DataType="vm:CleanAdvice">
+      <Panel VerticalAlignment="Center">
+        <Border IsVisible="{Binding IsRecommended}" BorderBrush="{StaticResource Success}" BorderThickness="{StaticResource BorderWidth}"
+                CornerRadius="{StaticResource Radius}" Padding="8,2">
+          <TextBlock Theme="{StaticResource Label}" Text="{Binding Text}"/>
+        </Border>
+        <Border IsVisible="{Binding IsOptional}" BorderBrush="{StaticResource BorderStrong}" BorderThickness="{StaticResource BorderWidth}"
+                CornerRadius="{StaticResource Radius}" Padding="8,2">
+          <TextBlock Theme="{StaticResource Label}" Text="{Binding Text}"/>
+        </Border>
+        <Border IsVisible="{Binding IsCaution}" BorderBrush="{StaticResource Warning}" BorderThickness="{StaticResource BorderWidth}"
+                CornerRadius="{StaticResource Radius}" Padding="8,2">
+          <TextBlock Theme="{StaticResource Label}" Text="{Binding Text}"/>
+        </Border>
+      </Panel>
+    </DataTemplate>
+
+    <DataTemplate x:DataType="vm:CleanOptionRow">
+      <Grid ColumnDefinitions="Auto,*,Auto" Margin="0,4">
+        <CheckBox IsChecked="{Binding IsChecked}" VerticalAlignment="Top" Margin="0,2,12,0"
+                  AutomationProperties.Name="{Binding Label}"/>
+        <StackPanel Grid.Column="1" Spacing="{StaticResource Space1}">
+          <WrapPanel ItemSpacing="{StaticResource Space2}" LineSpacing="{StaticResource Space1}">
+            <TextBlock Theme="{StaticResource Body}" Text="{Binding Label}" VerticalAlignment="Center"/>
+            <ContentControl Content="{Binding Advice}"/>
+          </WrapPanel>
+          <TextBlock Theme="{StaticResource Hint}" Text="{Binding Advice.Reason}" IsVisible="{Binding ShowReason}" TextWrapping="Wrap"/>
+          <TextBlock Theme="{StaticResource WarningBody}" Text="{Binding Advice.Reason}" IsVisible="{Binding ShowWarning}" TextWrapping="Wrap"/>
+          <Button Classes="link" Content="{Binding ExplainButton}" HorizontalAlignment="Left"
+                  ToolTip.Tip="{Binding ExplainTip}" Command="{Binding ToggleExplainCommand}"/>
+          <StackPanel Name="Explain" Spacing="{StaticResource Space1}" IsVisible="{Binding IsExplained}">
+            <TextBlock Theme="{StaticResource Hint}" TextWrapping="Wrap"><Run Text="{Binding WhatTitle}" FontWeight="{StaticResource WeightSemi}"/><Run Text=" "/><Run Text="{Binding What}"/></TextBlock>
+            <TextBlock Theme="{StaticResource Hint}" TextWrapping="Wrap"><Run Text="{Binding IfDeletedTitle}" FontWeight="{StaticResource WeightSemi}"/><Run Text=" "/><Run Text="{Binding IfDeleted}"/></TextBlock>
+            <TextBlock Theme="{StaticResource Hint}" TextWrapping="Wrap"><Run Text="{Binding ReturnsTitle}" FontWeight="{StaticResource WeightSemi}"/><Run Text=" "/><Run Text="{Binding Returns}"/></TextBlock>
+          </StackPanel>
+        </StackPanel>
+        <TextBlock Grid.Column="2" Theme="{StaticResource MonoValue}" Classes="data" Text="{Binding SizeText}" VerticalAlignment="Center"/>
+      </Grid>
+    </DataTemplate>
+
+    <DataTemplate x:DataType="vm:CleanRuleGroup">
+      <Border Theme="{StaticResource Panel}" Padding="16">
+        <StackPanel Spacing="{StaticResource FieldGap}">
+          <StackPanel Spacing="{StaticResource Space1}">
+            <TextBlock Theme="{StaticResource H3}" Text="{Binding Rule.Name}" TextWrapping="Wrap"/>
+            <TextBlock Theme="{StaticResource Hint}" Text="{Binding Rule.Source}" IsVisible="{Binding Rule.HasSource}" TextWrapping="Wrap"
+                       ToolTip.Tip="{Binding Rule.SourceTip}" Background="Transparent"/>
+          </StackPanel>
+          <TextBlock Theme="{StaticResource WarningBody}" Text="{Binding Rule.RunningText}" IsVisible="{Binding Rule.Running}" TextWrapping="Wrap"/>
+          <TextBlock Theme="{StaticResource Hint}" Text="{Binding Rule.SessionNote}" IsVisible="{Binding Rule.ShowSessionNote}" TextWrapping="Wrap"/>
+          <ItemsControl ItemsSource="{Binding Options}"/>
+        </StackPanel>
+      </Border>
+    </DataTemplate>
+
+    <DataTemplate x:DataType="vm:SystemTaskRow">
+      <Grid ColumnDefinitions="Auto,*,Auto" Margin="0,4">
+        <CheckBox IsChecked="{Binding IsChecked}" IsEnabled="{Binding Available}" VerticalAlignment="Top" Margin="0,2,12,0"
+                  AutomationProperties.Name="{Binding Name}"
+                  ToolTip.Tip="{Binding Tip}" ToolTip.ShowOnDisabled="True"/>
+        <StackPanel Grid.Column="1" Spacing="{StaticResource Space1}">
+          <WrapPanel ItemSpacing="{StaticResource Space2}" LineSpacing="{StaticResource Space1}">
+            <TextBlock Theme="{StaticResource Body}" Text="{Binding Name}" VerticalAlignment="Center"/>
+            <ContentControl Content="{Binding Advice}"/>
+          </WrapPanel>
+          <TextBlock Theme="{StaticResource Hint}" Text="{Binding Advice.Reason}" IsVisible="{Binding !HasWarning}" TextWrapping="Wrap"/>
+          <TextBlock Theme="{StaticResource Hint}" Text="{Binding Detail}" TextWrapping="Wrap"/>
+          <TextBlock Theme="{StaticResource Hint}" Text="{Binding Note}" IsVisible="{Binding HasNote}" TextWrapping="Wrap"/>
+          <TextBlock Theme="{StaticResource WarningBody}" Text="{Binding Warning}" IsVisible="{Binding HasWarning}" TextWrapping="Wrap"/>
+          <Button Classes="ghost" Content="{Binding RestoreText}" HorizontalAlignment="Left" IsVisible="{Binding CanRestore}"
+                  AutomationProperties.Name="{Binding RestoreText}"
+                  ToolTip.Tip="Kapatılan ayarı yeniden açar"
+                  Command="{Binding $parent[v:CleanupView].((vm:CleanupViewModel)DataContext).RestoreCommand}"
+                  CommandParameter="{Binding}"/>
+          <Button Name="ReduceButton" Classes="ghost" Content="{Binding ReduceText}" HorizontalAlignment="Left" IsVisible="{Binding CanReduce}"
+                  AutomationProperties.Name="{Binding ReduceText}"
+                  ToolTip.Tip="Dosyayı küçültür; hızlı başlangıç açık kalır"
+                  Command="{Binding $parent[v:CleanupView].((vm:CleanupViewModel)DataContext).ReduceCommand}"
+                  CommandParameter="{Binding}"/>
+        </StackPanel>
+        <TextBlock Grid.Column="2" Theme="{StaticResource MonoValue}" Classes="data" Text="{Binding SizeText}" VerticalAlignment="Center"/>
+      </Grid>
+    </DataTemplate>
+  </UserControl.DataTemplates>
+
   <DockPanel>
     <StackPanel DockPanel.Dock="Top" Margin="24,24,24,12" Spacing="{StaticResource FieldGap}">
       <TextBlock Theme="{StaticResource H2}" Text="Temizlik"/>
-      <TextBlock Theme="{StaticResource Hint}" Text="Uyarılı seçenekler işaretsiz gelir; açık programların önbelleği atlanır." TextWrapping="Wrap"/>
+      <TextBlock Name="CleanGuide" Theme="{StaticResource Body}" Text="{x:Static vm:CleanupViewModel.GuideText}" TextWrapping="Wrap"/>
+      <TextBlock Theme="{StaticResource Hint}" Text="Açık programların önbelleği atlanır." TextWrapping="Wrap"/>
     </StackPanel>
 
     <Border DockPanel.Dock="Bottom" Background="{StaticResource Surface}" BorderBrush="{StaticResource BorderDecorative}"
@@ -74,85 +161,40 @@
           </StackPanel>
         </Border>
 
-        <ItemsControl ItemsSource="{Binding Rules}">
+        <ItemsControl Name="RecommendedRules" ItemsSource="{Binding RecommendedRules}">
           <ItemsControl.ItemsPanel>
             <ItemsPanelTemplate>
               <StackPanel Spacing="{StaticResource RowGap}"/>
             </ItemsPanelTemplate>
           </ItemsControl.ItemsPanel>
-          <ItemsControl.ItemTemplate>
-            <DataTemplate x:DataType="vm:CleanRuleRow">
-              <Border Theme="{StaticResource Panel}" Padding="16">
-                <StackPanel Spacing="{StaticResource FieldGap}">
-                  <StackPanel Spacing="{StaticResource Space1}">
-                    <TextBlock Theme="{StaticResource H3}" Text="{Binding Name}" TextWrapping="Wrap"/>
-                    <TextBlock Theme="{StaticResource Hint}" Text="{Binding Source}" IsVisible="{Binding HasSource}" TextWrapping="Wrap"
-                               ToolTip.Tip="{Binding SourceTip}" Background="Transparent"/>
-                  </StackPanel>
-                  <TextBlock Theme="{StaticResource WarningBody}" Text="{Binding RunningText}" IsVisible="{Binding Running}" TextWrapping="Wrap"/>
-                  <TextBlock Theme="{StaticResource Hint}" Text="{Binding SessionNote}" IsVisible="{Binding ShowSessionNote}" TextWrapping="Wrap"/>
-                  <ItemsControl ItemsSource="{Binding Options}">
-                    <ItemsControl.ItemTemplate>
-                      <DataTemplate x:DataType="vm:CleanOptionRow">
-                        <Grid ColumnDefinitions="Auto,*,Auto" Margin="0,4">
-                          <CheckBox IsChecked="{Binding IsChecked}" VerticalAlignment="Top" Margin="0,2,12,0"
-                                    AutomationProperties.Name="{Binding Label}"/>
-                          <StackPanel Grid.Column="1">
-                            <TextBlock Theme="{StaticResource Body}" Text="{Binding Label}"/>
-                            <TextBlock Theme="{StaticResource WarningBody}" Text="{Binding Warning}" IsVisible="{Binding ShowWarning}" TextWrapping="Wrap"/>
-                            <Button Classes="link" Content="{Binding ExplainButton}" HorizontalAlignment="Left"
-                                    ToolTip.Tip="{Binding ExplainTip}" Command="{Binding ToggleExplainCommand}"/>
-                            <StackPanel Name="Explain" Spacing="{StaticResource Space1}" IsVisible="{Binding IsExplained}">
-                              <TextBlock Theme="{StaticResource Hint}" TextWrapping="Wrap"><Run Text="{Binding WhatTitle}" FontWeight="{StaticResource WeightSemi}"/><Run Text=" "/><Run Text="{Binding What}"/></TextBlock>
-                              <TextBlock Theme="{StaticResource Hint}" TextWrapping="Wrap"><Run Text="{Binding IfDeletedTitle}" FontWeight="{StaticResource WeightSemi}"/><Run Text=" "/><Run Text="{Binding IfDeleted}"/></TextBlock>
-                              <TextBlock Theme="{StaticResource Hint}" TextWrapping="Wrap"><Run Text="{Binding ReturnsTitle}" FontWeight="{StaticResource WeightSemi}"/><Run Text=" "/><Run Text="{Binding Returns}"/></TextBlock>
-                            </StackPanel>
-                          </StackPanel>
-                          <TextBlock Grid.Column="2" Theme="{StaticResource MonoValue}" Classes="data" Text="{Binding SizeText}" VerticalAlignment="Center"/>
-                        </Grid>
-                      </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                  </ItemsControl>
-                </StackPanel>
-              </Border>
-            </DataTemplate>
-          </ItemsControl.ItemTemplate>
         </ItemsControl>
 
-        <Border Theme="{StaticResource Panel}" Padding="16" IsVisible="{Binding HasSystemTasks}">
+        <Border Theme="{StaticResource Panel}" Padding="16" IsVisible="{Binding HasRecommendedTasks}">
           <StackPanel Spacing="{StaticResource FieldGap}">
             <TextBlock Theme="{StaticResource H3}" Text="Sistem temizliği"/>
             <TextBlock Theme="{StaticResource Hint}" Text="Yönetici izni ister; bileşen deposu bu sürümde kapalı." TextWrapping="Wrap"/>
-            <ItemsControl ItemsSource="{Binding SystemTasks}">
-              <ItemsControl.ItemTemplate>
-                <DataTemplate x:DataType="vm:SystemTaskRow">
-                  <Grid ColumnDefinitions="Auto,*,Auto" Margin="0,4">
-                    <CheckBox IsChecked="{Binding IsChecked}" IsEnabled="{Binding Available}" VerticalAlignment="Top" Margin="0,2,12,0"
-                              AutomationProperties.Name="{Binding Name}"
-                              ToolTip.Tip="{Binding Tip}" ToolTip.ShowOnDisabled="True"/>
-                    <StackPanel Grid.Column="1">
-                      <TextBlock Theme="{StaticResource Body}" Text="{Binding Name}"/>
-                      <TextBlock Theme="{StaticResource Hint}" Text="{Binding Detail}" TextWrapping="Wrap"/>
-                      <TextBlock Theme="{StaticResource Hint}" Text="{Binding Note}" IsVisible="{Binding HasNote}" TextWrapping="Wrap"/>
-                      <TextBlock Theme="{StaticResource WarningBody}" Text="{Binding Warning}" IsVisible="{Binding HasWarning}" TextWrapping="Wrap"/>
-                      <Button Classes="ghost" Content="{Binding RestoreText}" HorizontalAlignment="Left" IsVisible="{Binding CanRestore}"
-                              AutomationProperties.Name="{Binding RestoreText}"
-                              ToolTip.Tip="Kapatılan ayarı yeniden açar"
-                              Command="{Binding $parent[ItemsControl].((vm:CleanupViewModel)DataContext).RestoreCommand}"
-                              CommandParameter="{Binding}"/>
-                      <Button Name="ReduceButton" Classes="ghost" Content="{Binding ReduceText}" HorizontalAlignment="Left" IsVisible="{Binding CanReduce}"
-                              AutomationProperties.Name="{Binding ReduceText}"
-                              ToolTip.Tip="Dosyayı küçültür; hızlı başlangıç açık kalır"
-                              Command="{Binding $parent[ItemsControl].((vm:CleanupViewModel)DataContext).ReduceCommand}"
-                              CommandParameter="{Binding}"/>
-                    </StackPanel>
-                    <TextBlock Grid.Column="2" Theme="{StaticResource MonoValue}" Classes="data" Text="{Binding SizeText}" VerticalAlignment="Center"/>
-                  </Grid>
-                </DataTemplate>
-              </ItemsControl.ItemTemplate>
-            </ItemsControl>
+            <ItemsControl ItemsSource="{Binding RecommendedTasks}"/>
           </StackPanel>
         </Border>
+
+        <StackPanel Name="OtherOptions" Spacing="{StaticResource RowGap}" IsVisible="{Binding HasOthers}">
+          <Button Name="OthersToggle" Classes="ghost" HorizontalAlignment="Left" Content="{Binding OthersText}"
+                  ToolTip.Tip="{Binding OthersTip}" Command="{Binding ToggleOthersCommand}"/>
+          <ItemsControl Name="OtherRules" ItemsSource="{Binding OtherRules}" IsVisible="{Binding ShowOthers}">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate>
+                <StackPanel Spacing="{StaticResource RowGap}"/>
+              </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+          </ItemsControl>
+          <Border Theme="{StaticResource Panel}" Padding="16" IsVisible="{Binding ShowOtherTasks}">
+            <StackPanel Spacing="{StaticResource FieldGap}">
+              <TextBlock Theme="{StaticResource H3}" Text="Sistem temizliği"/>
+              <TextBlock Theme="{StaticResource Hint}" Text="Yönetici izni ister; bileşen deposu bu sürümde kapalı." TextWrapping="Wrap"/>
+              <ItemsControl ItemsSource="{Binding OtherTasks}"/>
+            </StackPanel>
+          </Border>
+        </StackPanel>
       </StackPanel>
     </ScrollViewer>
   </DockPanel>

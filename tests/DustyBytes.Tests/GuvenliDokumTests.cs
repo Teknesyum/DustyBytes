@@ -269,7 +269,7 @@ public class GuvenliDokumTests
         Assert.True(unit.IsSkipped);
         Assert.Equal("Geri ekle", unit.SkipText);
         Assert.Equal(before - 3_000_000_000 - 120_000_000, overview.SafeBytes);
-        Assert.Equal($"Güvenle silinebilir: {Format.Bytes(999_999)} — Temizle", overview.SafeText);
+        Assert.Equal(Format.Bytes(999_999), overview.SafeSizeText);
 
         await overview.SafeCleanCommand.ExecuteAsync(null);
         await Settle();

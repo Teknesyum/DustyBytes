@@ -33,6 +33,15 @@ static class KontrastTuru
             yield return "Kaldırma";
         }
 
+        vm.SelectedNav = vm.NavItems.First(n => n.Screen == vm.Cleanup);
+        Otur();
+        if (!vm.Cleanup.HasOthers)
+            throw new InvalidOperationException("Temizlik ekranında diğer seçenek yok");
+        vm.Cleanup.ToggleOthersCommand.Execute(null);
+        Otur();
+        yield return "Temizlik Diğer Seçenekler";
+        vm.Cleanup.ToggleOthersCommand.Execute(null);
+
         vm.SelectedNav = vm.NavItems[0];
         vm.Notify("Tarama bitti: 42 birim, 18,4 GB açılabilir", "Önerilere git", () => Task.CompletedTask).IsPaused = true;
         vm.Fail("Karantinaya taşınamadı: dosya kullanımda");
