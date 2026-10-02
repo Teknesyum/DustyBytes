@@ -8,6 +8,55 @@ using DustyBytes.Core.Model;
 
 namespace DustyBytes.App.ViewModels;
 
+public enum AdviceLevel
+{
+    Recommended,
+    Optional,
+    Caution,
+}
+
+public sealed record CleanAdvice(AdviceLevel Level, string Reason)
+{
+    public const string RecommendedText = "Önerilir";
+    public const string OptionalText = "İsteğe bağlı";
+    public const string CautionText = "Dikkat";
+    public const string RebuildsReason = "Kendiliğinden yeniden oluşur; hiçbir şey kaybolmaz";
+    public const string SessionReason = "Oturum ve kayıtlı site bilgileri silinir; geri gelmez";
+    public const string TaskReason = "Bu bilgisayar için önerilir; günlük kullanım etkilenmez";
+    public const string TaskOptionalReason = "Şu an önerilmez; istersen işaretle";
+    public const string TaskUnavailableReason = "Şu an kullanılamıyor";
+
+    public string Text => Level switch
+    {
+        AdviceLevel.Recommended => RecommendedText,
+        AdviceLevel.Optional => OptionalText,
+        _ => CautionText,
+    };
+
+    public bool IsRecommended => Level == AdviceLevel.Recommended;
+    public bool IsOptional => Level == AdviceLevel.Optional;
+    public bool IsCaution => Level == AdviceLevel.Caution;
+
+    public static CleanAdvice Of(CleanerOption option)
+    {
+        var warning = string.IsNullOrWhiteSpace(option.Warning) ? null : option.Warning.Trim();
+        if (option.TouchesSession)
+            return new(AdviceLevel.Caution, warning ?? SessionReason);
+        return warning is null ? new(AdviceLevel.Recommended, RebuildsReason) : new(AdviceLevel.Optional, warning);
+    }
+
+    public static CleanAdvice Of(SystemTaskInfo task)
+    {
+        if (!string.IsNullOrWhiteSpace(task.Warning))
+            return new(AdviceLevel.Caution, task.Warning.Trim());
+        if (SystemTaskRow.Safe(task))
+            return new(AdviceLevel.Recommended, TaskReason);
+        return new(AdviceLevel.Optional, task.Available ? TaskOptionalReason : TaskUnavailableReason);
+    }
+}
+
+public sealed record CleanRuleGroup(CleanRuleRow Rule, IReadOnlyList<CleanOptionRow> Options);
+
 public sealed partial class CleanOptionRow(string ruleId, CleanerOption option, bool check, Action changed) : ObservableObject
 {
     public string RuleId { get; } = ruleId;
@@ -26,6 +75,9 @@ public sealed partial class CleanOptionRow(string ruleId, CleanerOption option, 
     public string ReturnsTitle => Explanation.ReturnsTitle;
     public bool IsSession => Option.TouchesSession;
     public bool ShowWarning => HasWarning && (!IsSession || IsChecked);
+    public bool ShowReason => !ShowWarning;
+    public CleanAdvice Advice { get; } = CleanAdvice.Of(option);
+    public bool IsRecommended => Advice.IsRecommended;
     public string ExplainButton => IsExplained ? "Gizle" : "Ne olur?";
     public string ExplainTip => "Bu nedir, silersem ne olur, geri gelir mi";
 
@@ -39,7 +91,7 @@ public sealed partial class CleanOptionRow(string ruleId, CleanerOption option, 
     public static string KeyOf(string ruleId, string optionId) => $"{ruleId}/{optionId}";
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(ShowWarning))]
+    [NotifyPropertyChangedFor(nameof(ShowWarning), nameof(ShowReason))]
     private bool _isChecked = check;
 
     [ObservableProperty]
@@ -80,6 +132,8 @@ public sealed class CleanRuleRow : ObservableObject
         ? "Bu kural Winapp2 topluluk listesinden okundu (CC-BY-SA-4.0); uygulamanın yerleşik kuralı değildir, korumalı listeden yine geçer"
         : $"Kural kaynağı: {Source}";
     public IReadOnlyList<CleanOptionRow> Options { get; }
+    public IReadOnlyList<CleanOptionRow> Recommended => [.. Options.Where(o => o.IsRecommended)];
+    public IReadOnlyList<CleanOptionRow> Others => [.. Options.Where(o => !o.IsRecommended)];
 }
 
 public sealed partial class SystemTaskRow(SystemTaskInfo info, Action changed) : ObservableObject
@@ -99,6 +153,8 @@ public sealed partial class SystemTaskRow(SystemTaskInfo info, Action changed) :
     public string RestoreText => string.IsNullOrWhiteSpace(Info.RestoreLabel) ? "Geri aç" : Info.RestoreLabel;
     public bool CanReduce => !string.IsNullOrWhiteSpace(Info.AltId);
     public string ReduceText => Info.AltLabel ?? "";
+    public CleanAdvice Advice { get; } = CleanAdvice.Of(info);
+    public bool IsRecommended => Advice.IsRecommended;
 
     [ObservableProperty]
     private bool _isChecked = Safe(info);
@@ -149,6 +205,26 @@ public sealed partial class CleanupViewModel : ViewModelBase
     public TaskProgressViewModel Progress { get; }
     public ObservableCollection<CleanRuleRow> Rules { get; } = [];
     public ObservableCollection<SystemTaskRow> SystemTasks { get; } = [];
+    public ObservableCollection<CleanRuleGroup> RecommendedRules { get; } = [];
+    public ObservableCollection<CleanRuleGroup> OtherRules { get; } = [];
+    public ObservableCollection<SystemTaskRow> RecommendedTasks { get; } = [];
+    public ObservableCollection<SystemTaskRow> OtherTasks { get; } = [];
+
+    public const string GuideText = "Hangilerini seçmeliyim? Önerilenler işaretli geldi, dokunmadan temizleyebilirsin.";
+    public int OtherCount => OtherRules.Sum(g => g.Options.Count) + OtherTasks.Count;
+    public bool HasOthers => OtherCount > 0;
+    public bool HasRecommendedTasks => RecommendedTasks.Count > 0;
+    public bool HasOtherTasks => OtherTasks.Count > 0;
+    public bool ShowOtherTasks => ShowOthers && HasOtherTasks;
+    public string OthersText => ShowOthers ? "Diğer seçenekleri gizle" : $"Diğer seçenekler ({Format.Count(OtherCount)})";
+    public string OthersTip => "İsteğe bağlı ve dikkat isteyen seçenekler; işaretsiz gelir";
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(OthersText), nameof(ShowOtherTasks))]
+    private bool _showOthers;
+
+    [RelayCommand]
+    private void ToggleOthers() => ShowOthers = !ShowOthers;
 
     [ObservableProperty]
     private string _totalText = "";
@@ -297,8 +373,17 @@ public sealed partial class CleanupViewModel : ViewModelBase
                 return (rules, tasks);
             });
             Rules.Clear();
+            RecommendedRules.Clear();
+            OtherRules.Clear();
             foreach (var rule in rules)
-                Rules.Add(new CleanRuleRow(rule, Changed));
+            {
+                var row = new CleanRuleRow(rule, Changed);
+                Rules.Add(row);
+                if (row.Recommended is { Count: > 0 } recommended)
+                    RecommendedRules.Add(new CleanRuleGroup(row, recommended));
+                if (row.Others is { Count: > 0 } others)
+                    OtherRules.Add(new CleanRuleGroup(row, others));
+            }
             FillTasks(tasks);
             _loaded = true;
             Changed();
@@ -318,8 +403,14 @@ public sealed partial class CleanupViewModel : ViewModelBase
     void FillTasks(IReadOnlyList<SystemTaskInfo> tasks)
     {
         SystemTasks.Clear();
+        RecommendedTasks.Clear();
+        OtherTasks.Clear();
         foreach (var task in tasks)
-            SystemTasks.Add(new SystemTaskRow(task, Changed));
+        {
+            var row = new SystemTaskRow(task, Changed);
+            SystemTasks.Add(row);
+            (row.IsRecommended ? RecommendedTasks : OtherTasks).Add(row);
+        }
     }
 
     async Task ReloadTasksAsync()
@@ -409,6 +500,12 @@ public sealed partial class CleanupViewModel : ViewModelBase
         OnPropertyChanged(nameof(IsLoading));
         OnPropertyChanged(nameof(HasRules));
         OnPropertyChanged(nameof(HasSystemTasks));
+        OnPropertyChanged(nameof(HasRecommendedTasks));
+        OnPropertyChanged(nameof(HasOtherTasks));
+        OnPropertyChanged(nameof(ShowOtherTasks));
+        OnPropertyChanged(nameof(OtherCount));
+        OnPropertyChanged(nameof(HasOthers));
+        OnPropertyChanged(nameof(OthersText));
         OnPropertyChanged(nameof(IsEmpty));
         OnPropertyChanged(nameof(HasError));
         OnPropertyChanged(nameof(HasPreviewPanel));

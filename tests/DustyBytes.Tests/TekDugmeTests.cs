@@ -75,9 +75,9 @@ public class TekDugmeTests
         var overview = vm.Overview;
         Assert.True(overview.IsSafeKnown);
         Assert.Equal(SafeTotal, overview.SafeBytes);
-        Assert.Equal($"Güvenle silinebilir: {Format.Bytes(SafeTotal)} — Temizle", overview.SafeText);
+        Assert.Equal(Format.Bytes(SafeTotal), overview.SafeSizeText);
         Assert.True(overview.HasMore);
-        Assert.Equal($"Daha fazla yer: {Format.Bytes(48_000_000_000)}, 2 karar →", overview.MoreText);
+        Assert.Equal(Format.Bytes(48_000_000_000), overview.UnusedSizeText);
     }
 
     [AvaloniaFact]

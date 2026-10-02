@@ -3,6 +3,7 @@ using System.ComponentModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using DustyBytes.App.Services;
+using DustyBytes.Core;
 using DustyBytes.Core.Ipc;
 using DustyBytes.Core.Model;
 using DustyBytes.Scan;
@@ -68,6 +69,8 @@ public sealed partial class OverviewViewModel : ViewModelBase
     List<SafeItemRow> _safeRows = [];
     long _moreBytes;
     int _moreCount;
+    long _usedBytes;
+    int _usedCount;
     object _purgeToken = new();
 
     public OverviewViewModel(MainViewModel main)
@@ -180,9 +183,6 @@ public sealed partial class OverviewViewModel : ViewModelBase
     }
 
     [ObservableProperty]
-    private string _heroText = "";
-
-    [ObservableProperty]
     private string _unitCountText = "";
 
     [ObservableProperty]
@@ -264,7 +264,9 @@ public sealed partial class OverviewViewModel : ViewModelBase
     public bool IsAllSkipped => SafeSettled && SafeBytes <= 0 && _safeRows.Count > 0 && _safeRows.All(r => r.IsSkipped);
     public bool IsSafeEmpty => SafeSettled && SafeBytes <= 0 && !IsAllSkipped;
     public bool ShowSafeButton => ShowSafe && !IsSafeEmpty;
-    public string SafeText => IsSafeKnown && !IsWaitingScan ? $"Güvenle silinebilir: {Format.Bytes(SafeBytes)} — Temizle" : "Güvenle temizle";
+    public string SafeText => "Sormadan temizle";
+    public string SafeSizeText => IsWaitingScan || !IsSafeKnown ? "Ölçülüyor" : Format.Bytes(SafeBytes);
+    public const string SafeHow = "Önbellek, geçici dosyalar, çöp kutusu ve derleme klasörleri. Sormadan silinir; kişisel dosyalarına dokunulmaz.";
     public string SafeReason => IsWaitingScan ? WaitText : !IsSafeKnown ? "Ölçülüyor" : IsAllSkipped ? "Bütün kalemleri atladınız; temizlik için birini geri ekleyin" : "";
     public ObservableCollection<SafeItemRow> SafeItems { get; } = [];
     public bool HasBreakdown => SafeSettled && _safeRows.Count > 0;
@@ -277,8 +279,22 @@ public sealed partial class OverviewViewModel : ViewModelBase
     private bool _showAllSafe;
     public bool HasSafeReason => SafeReason.Length > 0;
     public string SafeTip => IsWaitingScan ? WaitText : "Önbellek, geçici dosyalar ve kendiliğinden yeniden oluşan dosyalar sorulmadan silinir; kişisel dosyalara dokunulmaz";
-    public string MoreText => $"Daha fazla yer: {Format.Bytes(_moreBytes)}, {Format.Count(_moreCount)} karar →";
+    public string MoreText => "Göz at ve seç";
+    public string UnusedSizeText => Format.Bytes(_moreBytes);
+    public string UnusedHow => $"{(int)TourViewModel.LongUnused.TotalDays} gündür açılmamış oyun, film, program ve klasörler. Göz at, istediğini seç, karantinaya al; {AppSettings.QuarantineDays.Days} gün içinde geri alırsın.";
+    public const string UnusedEmptyText = "Uzun süredir açılmamış büyük bir şey yok.";
     public bool HasMore => HasSnapshot && _moreCount > 0;
+    public bool IsUnusedEmpty => HasSnapshot && _moreCount == 0;
+    public string UsedSizeText => Format.Bytes(_usedBytes);
+    public const string UsedHow = "Yer kaplıyorlar ama kullanıyorsun ya da kendi kaldırıcısıyla gidiyorlar. Sormadan dokunmayız; istersen programlar ekranından kaldır.";
+    public const string UsedEmptyText = "Bu basamakta bir şey yok.";
+    public string UsedText => "Programlar'a git";
+    public string UsedTip => "Programlar ekranında kaldırmak istediğini seçersin; kendi kaldırıcısı çalışır";
+    public bool HasUsed => HasSnapshot && _usedCount > 0;
+    public bool IsUsedEmpty => HasSnapshot && _usedCount == 0;
+    public long MaxBytes => SafeBytes + _moreBytes + _usedBytes;
+    public bool HasPlanTotal => SafeSettled;
+    public string PlanTotalText => $"Bunların hepsi silinirse en çok {Format.Bytes(MaxBytes)} açılır";
     public string MoreTip => IsWaitingScan ? WaitText : "Büyük ve uzun süredir açılmamış öğeleri türüne ve süresine göre küme küme sorar";
     public string AutoTip => IsWaitingScan ? WaitText : "Güvenli artıkları sormadan siler, büyük ve eski öğeleri küme küme sorar";
 
@@ -384,11 +400,20 @@ public sealed partial class OverviewViewModel : ViewModelBase
         OnPropertyChanged(nameof(HasAllSafeToggle));
         OnPropertyChanged(nameof(AllSafeText));
         OnPropertyChanged(nameof(SafeText));
+        OnPropertyChanged(nameof(SafeSizeText));
         OnPropertyChanged(nameof(SafeReason));
         OnPropertyChanged(nameof(HasSafeReason));
         OnPropertyChanged(nameof(SafeTip));
         OnPropertyChanged(nameof(MoreText));
         OnPropertyChanged(nameof(HasMore));
+        OnPropertyChanged(nameof(UnusedSizeText));
+        OnPropertyChanged(nameof(IsUnusedEmpty));
+        OnPropertyChanged(nameof(UsedSizeText));
+        OnPropertyChanged(nameof(HasUsed));
+        OnPropertyChanged(nameof(IsUsedEmpty));
+        OnPropertyChanged(nameof(MaxBytes));
+        OnPropertyChanged(nameof(HasPlanTotal));
+        OnPropertyChanged(nameof(PlanTotalText));
         OnPropertyChanged(nameof(MoreTip));
         OnPropertyChanged(nameof(AutoTip));
         SafeCleanCommand.NotifyCanExecuteChanged();
@@ -404,6 +429,10 @@ public sealed partial class OverviewViewModel : ViewModelBase
         var picked = TourViewModel.Pick(units, DateTimeOffset.Now);
         _moreBytes = picked.Sum(u => Math.Max(0, u.SizeBytes));
         _moreCount = UnitClusters.Decisions(picked, DateTimeOffset.Now);
+        var pickedIds = picked.Select(u => u.Id).ToHashSet(StringComparer.Ordinal);
+        var used = units.Where(u => !TourViewModel.Silent(u) && !pickedIds.Contains(u.Id)).ToList();
+        _usedBytes = used.Sum(u => Math.Max(0, u.SizeBytes));
+        _usedCount = used.Count;
         Breakdown();
         RaiseSafe();
     }
@@ -542,7 +571,6 @@ public sealed partial class OverviewViewModel : ViewModelBase
         var snapshot = Session.Snapshot;
         if (snapshot is null)
         {
-            HeroText = "";
             UnitCountText = "";
             LastScanText = "";
             ScannedText = "";
@@ -553,8 +581,6 @@ public sealed partial class OverviewViewModel : ViewModelBase
             ? snapshot.Units
             : [.. snapshot.Units.Where(u => u.Drive.Equals(drive.Root, StringComparison.OrdinalIgnoreCase))];
         var multi = snapshot.Results.Count > 1;
-        var total = units.Sum(u => u.SizeBytes);
-        HeroText = Format.Bytes(total);
         UnitCountText = $"{Format.Count(units.Count)} birim";
         var now = DateTimeOffset.Now;
         LastScanText = $"Son tarama {Format.Ago(snapshot.FinishedAt, now)}, {snapshot.FinishedAt.ToLocalTime():HH:mm}";
@@ -716,6 +742,13 @@ public sealed partial class OverviewViewModel : ViewModelBase
 
     [RelayCommand]
     private void OpenOffers() => _main.GoTo(_main.Offers);
+
+    [RelayCommand]
+    private void OpenPrograms()
+    {
+        Olcum.Click("used-programs");
+        _main.GoTo(_main.Programs);
+    }
 
     bool CanTour() => HasSnapshot && !IsWaitingScan;
 
