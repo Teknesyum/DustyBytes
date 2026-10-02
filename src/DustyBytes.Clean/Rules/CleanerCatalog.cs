@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Diagnostics;
 using DustyBytes.Core;
 using DustyBytes.Core.Ipc;
@@ -104,14 +105,17 @@ public sealed class CleanerCatalog
 
     public CleanPlan Plan(IEnumerable<RuleSelection> selection, CancellationToken ct = default)
     {
-        var files = new List<PlannedFile>();
+        var builder = new PreviewBuilder();
         var excluded = new List<SkippedPath>();
-        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var (rule, option) in Selected(selection))
+        {
+            var key = $"{rule.Id}/{option.Id}";
             foreach (var file in PlanOption(rule.Id, option, excluded, ct))
-                if (seen.Add(file.Path))
-                    files.Add(file);
-        return new CleanPlan(files, excluded);
+                builder.Add(file.Path, file.Bytes, file.LastWriteUtc, key);
+        }
+        builder.Protected = excluded.Count;
+        var built = builder.Build();
+        return new CleanPlan(built.Preview, built.Shown, excluded);
     }
 
     IEnumerable<PlannedFile> PlanOption(string ruleId, CleanerOption option, List<SkippedPath> excluded, CancellationToken ct)
@@ -314,13 +318,23 @@ public sealed class CleanerCatalog
     public CleanRun Execute(IEnumerable<RuleSelection> selection, IEnumerable<string> shownPaths, ICleanupDeleter deleter, CancellationToken ct = default)
     {
         var dryRun = DryRun.Enabled;
-        var shown = new HashSet<string>(shownPaths, StringComparer.OrdinalIgnoreCase);
+        var shown = shownPaths as ShownList ?? ShownList.Of(shownPaths);
         var guard = new ShownOnlyDeleter(deleter, shown);
-        var handled = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var handled = new BitArray(shown.Count);
         var results = new List<OptionExecutionResult>();
         int processed = 0, vanished = 0, locked = 0, failed = 0, notShown = 0, protectedCount = 0;
         long processedBytes = 0;
         string? error = null;
+
+        bool Claim(string path, out bool isShown)
+        {
+            var index = shown.IndexOf(path);
+            isShown = index >= 0;
+            if (!isShown || handled[index])
+                return false;
+            handled[index] = true;
+            return true;
+        }
 
         try
         {
@@ -329,28 +343,28 @@ public sealed class CleanerCatalog
                 var (running, reason) = IsRunning(group.Key);
                 foreach (var (rule, option) in group)
                 {
-                    var excluded = new List<SkippedPath>();
-                    var current = PlanOption(rule.Id, option, excluded, ct).ToList();
+                    var skipped = new List<SkippedPath>();
 
                     if (running)
                     {
-                        locked += current.Count(f => shown.Contains(f.Path) && handled.Add(f.Path));
+                        foreach (var file in PlanOption(rule.Id, option, skipped, ct))
+                            if (Claim(file.Path, out _))
+                                locked++;
                         results.Add(new OptionExecutionResult(rule.Id, option.Id, false, reason, 0, 0, [], dryRun));
                         continue;
                     }
 
                     long files = 0, bytes = 0;
-                    var skipped = new List<SkippedPath>(excluded);
-                    foreach (var file in current)
+                    var failures = new List<SkippedPath>();
+                    foreach (var file in PlanOption(rule.Id, option, skipped, ct))
                     {
                         ct.ThrowIfCancellationRequested();
-                        if (!shown.Contains(file.Path))
+                        if (!Claim(file.Path, out var isShown))
                         {
-                            notShown++;
+                            if (!isShown)
+                                notShown++;
                             continue;
                         }
-                        if (!handled.Add(file.Path))
-                            continue;
 
                         var (outcome, size) = file.IsRegistry ? DeleteRegistry(file, guard, dryRun) : DeleteOneFile(file.Path, guard, dryRun);
                         switch (outcome)
@@ -366,15 +380,16 @@ public sealed class CleanerCatalog
                                 break;
                             case DeleteOutcome.Locked:
                                 locked++;
-                                skipped.Add(new SkippedPath(file.Path, "Kullanımda"));
+                                failures.Add(new SkippedPath(file.Path, "Kullanımda"));
                                 break;
                             default:
                                 failed++;
-                                skipped.Add(new SkippedPath(file.Path, "Silinemedi"));
+                                failures.Add(new SkippedPath(file.Path, "Silinemedi"));
                                 break;
                         }
                     }
 
+                    skipped.AddRange(failures);
                     results.Add(new OptionExecutionResult(rule.Id, option.Id, true, null, files, bytes, skipped, dryRun));
                 }
             }
@@ -384,10 +399,11 @@ public sealed class CleanerCatalog
             error = e.Message;
         }
 
-        foreach (var path in shown)
+        for (var i = 0; i < shown.Count; i++)
         {
-            if (handled.Contains(path))
+            if (handled[i])
                 continue;
+            var path = shown[i];
             if (error is not null)
                 failed++;
             else if (!path.StartsWith(RegistryPrefix, StringComparison.Ordinal) && !Allow(path).Allowed)

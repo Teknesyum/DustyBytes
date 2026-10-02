@@ -65,12 +65,12 @@ public sealed class PreviewExecutionTests : IDisposable
     public void Touched_Set_Equals_Preview_Set()
     {
         var catalog = Catalog();
-        var preview = catalog.Plan(Selection).ToPreview();
+        var preview = catalog.Plan(Selection).Shown;
         var deleter = new FakeDeleter();
 
-        var run = catalog.Execute(Selection, preview.Paths(), deleter);
+        var run = catalog.Execute(Selection, preview, deleter);
 
-        var shown = Set(preview.Paths());
+        var shown = Set(preview);
         var touched = Set(deleter.Deleted);
         Assert.Equal(3, shown.Count);
         Assert.Empty(touched.Except(shown, StringComparer.OrdinalIgnoreCase));
@@ -84,18 +84,20 @@ public sealed class PreviewExecutionTests : IDisposable
     public void Worker_Handler_Touches_Only_Preview_Set()
     {
         var catalog = Catalog();
-        var previewResponse = WorkerCleanHandlers.HandleCleanPreview(new WorkerRequest { Op = Ops.CleanPreview, Items = ["idle-app/cache"] }, catalog);
+        var store = new PreviewStore();
+        var previewResponse = WorkerCleanHandlers.HandleCleanPreview(new WorkerRequest { Op = Ops.CleanPreview, Items = ["idle-app/cache"] }, catalog, store);
         var preview = JsonSerializer.Deserialize(previewResponse.Payload!, IpcJson.Default.CleanPreview)!;
         var late = Path.Combine(_cache, "sub", "sonradan.tmp");
         File.WriteAllText(late, "yeni");
         var deleter = new FakeDeleter();
 
         var response = WorkerCleanHandlers.HandleClean(
-            new WorkerRequest { Op = Ops.Clean, UserApproved = true, Items = ["idle-app/cache"], Paths = preview.Paths(), Digest = preview.Digest },
-            catalog, deleter);
+            new WorkerRequest { Op = Ops.Clean, UserApproved = true, Items = ["idle-app/cache"], PreviewId = preview.Id, Digest = preview.Digest },
+            catalog, store, deleter);
 
         Assert.True(response.Ok, response.Message);
-        Assert.True(Set(deleter.Deleted).SetEquals(preview.Paths()));
+        Assert.True(Set(deleter.Deleted).SetEquals(preview.Head.Select(f => f.Path)));
+        Assert.Equal(preview.Count, preview.Head.Count);
         Assert.True(File.Exists(late));
         Assert.Equal(preview.Count, response.Tally!.Shown);
         Assert.Equal(preview.Count, response.Tally.Processed);
@@ -107,12 +109,12 @@ public sealed class PreviewExecutionTests : IDisposable
     public void File_Added_After_Preview_Is_Not_Deleted()
     {
         var catalog = Catalog();
-        var preview = catalog.Plan(Selection).ToPreview();
+        var preview = catalog.Plan(Selection).Shown;
         var late = Path.Combine(_cache, "yeni.tmp");
         File.WriteAllText(late, "sonradan");
         var deleter = new FakeDeleter();
 
-        var run = catalog.Execute(Selection, preview.Paths(), deleter);
+        var run = catalog.Execute(Selection, preview, deleter);
 
         Assert.True(File.Exists(late));
         Assert.DoesNotContain(late, deleter.Deleted, StringComparer.OrdinalIgnoreCase);
@@ -125,12 +127,12 @@ public sealed class PreviewExecutionTests : IDisposable
     {
         var catalog = Catalog();
         var plan = catalog.Plan(Selection);
-        Assert.DoesNotContain(Keep, plan.ToPreview().Paths(), StringComparer.OrdinalIgnoreCase);
+        Assert.DoesNotContain(Keep, plan.Shown, StringComparer.OrdinalIgnoreCase);
         Assert.Contains(plan.Excluded, s => s.Path.Equals(Keep, StringComparison.OrdinalIgnoreCase));
         Assert.Equal(1, plan.ToPreview().Protected);
 
         var deleter = new FakeDeleter();
-        var forged = plan.ToPreview().Paths().Append(Keep).ToList();
+        var forged = plan.Shown.Append(Keep).ToList();
         var run = catalog.Execute(Selection, forged, deleter);
 
         Assert.True(File.Exists(Keep));
@@ -144,12 +146,12 @@ public sealed class PreviewExecutionTests : IDisposable
     public void Counts_Report_Shown_Processed_And_Skip_Reasons()
     {
         var catalog = Catalog();
-        var preview = catalog.Plan(Selection).ToPreview();
+        var preview = catalog.Plan(Selection).Shown;
         File.Delete(Path.Combine(_cache, "b.tmp"));
         File.WriteAllText(Path.Combine(_cache, "yeni.tmp"), "sonradan");
         using var held = new FileStream(Path.Combine(_cache, "sub", "c.tmp"), FileMode.Open, FileAccess.Read, FileShare.None);
 
-        var run = catalog.Execute(Selection, preview.Paths(), new RealFileDeleter());
+        var run = catalog.Execute(Selection, preview, new RealFileDeleter());
 
         var tally = run.Tally;
         Assert.Equal(3, tally.Shown);
@@ -177,7 +179,7 @@ public sealed class PreviewExecutionTests : IDisposable
         var catalog = Catalog();
         var deleter = new FakeDeleter();
 
-        var response = WorkerCleanHandlers.HandleClean(new WorkerRequest { Op = Ops.Clean, UserApproved = true, Items = ["idle-app/cache"] }, catalog, deleter);
+        var response = WorkerCleanHandlers.HandleClean(new WorkerRequest { Op = Ops.Clean, UserApproved = true, Items = ["idle-app/cache"] }, catalog, new PreviewStore(), deleter);
 
         Assert.False(response.Ok);
         Assert.Empty(deleter.Deleted);
@@ -188,12 +190,12 @@ public sealed class PreviewExecutionTests : IDisposable
     public void Clean_With_List_Not_Matching_Digest_Is_Refused()
     {
         var catalog = Catalog();
-        var preview = catalog.Plan(Selection).ToPreview();
+        var preview = catalog.Plan(Selection).Shown;
         var deleter = new FakeDeleter();
 
         var response = WorkerCleanHandlers.HandleClean(
-            new WorkerRequest { Op = Ops.Clean, UserApproved = true, Items = ["idle-app/cache"], Paths = [.. preview.Paths(), Path.Combine(_cache, "baska.tmp")], Digest = preview.Digest },
-            catalog, deleter);
+            new WorkerRequest { Op = Ops.Clean, UserApproved = true, Items = ["idle-app/cache"], Paths = [.. preview, Path.Combine(_cache, "baska.tmp")], Digest = preview.Digest },
+            catalog, new PreviewStore(), deleter);
 
         Assert.False(response.Ok);
         Assert.Empty(deleter.Deleted);
@@ -229,10 +231,132 @@ public sealed class PreviewExecutionTests : IDisposable
 
         var preview = Catalog().Plan(Selection).ToPreview();
 
-        var a = Assert.Single(preview.Files, f => f.Path.EndsWith("a.tmp", StringComparison.OrdinalIgnoreCase));
+        var a = Assert.Single(preview.Head, f => f.Path.EndsWith("a.tmp", StringComparison.OrdinalIgnoreCase));
         Assert.Equal(5, a.Bytes);
         Assert.Equal(stamp, a.LastWriteUtc);
         Assert.Equal("idle-app/cache", a.Option);
         Assert.Equal(18, preview.Bytes);
+    }
+
+    (CleanPreview Preview, PreviewStore Store) WorkerPreview(CleanerCatalog catalog, Func<DateTime>? clock = null)
+    {
+        var store = new PreviewStore(clock);
+        var response = WorkerCleanHandlers.HandleCleanPreview(new WorkerRequest { Op = Ops.CleanPreview, Items = ["idle-app/cache"] }, catalog, store);
+        return (JsonSerializer.Deserialize(response.Payload!, IpcJson.Default.CleanPreview)!, store);
+    }
+
+    static WorkerRequest CleanRequest(CleanPreview preview, string? id = null, string? digest = null, List<string>? items = null, List<string>? paths = null) => new()
+    {
+        Op = Ops.Clean,
+        UserApproved = true,
+        Items = items ?? ["idle-app/cache"],
+        PreviewId = id ?? preview.Id,
+        Digest = digest ?? preview.Digest,
+        Paths = paths ?? [],
+    };
+
+    void AssertUntouched(WorkerResponse response, FakeDeleter deleter, bool stale = true)
+    {
+        Assert.False(response.Ok);
+        Assert.Equal(stale, response.Stale);
+        if (stale)
+            Assert.Equal(WorkerCleanHandlers.StaleMessage, response.Message);
+        Assert.Empty(deleter.Deleted);
+        Assert.True(File.Exists(Path.Combine(_cache, "a.tmp")));
+    }
+
+    [Fact]
+    public void Clean_With_Unknown_Preview_Id_Is_Stale()
+    {
+        var catalog = Catalog();
+        var (preview, store) = WorkerPreview(catalog);
+        var deleter = new FakeDeleter();
+
+        AssertUntouched(WorkerCleanHandlers.HandleClean(CleanRequest(preview, id: "bilinmeyen"), catalog, store, deleter), deleter);
+    }
+
+    [Fact]
+    public void Clean_With_Expired_Preview_Is_Stale()
+    {
+        var catalog = Catalog();
+        var now = new DateTime(2026, 10, 2, 12, 0, 0, DateTimeKind.Utc);
+        var (preview, store) = WorkerPreview(catalog, () => now);
+        now += PreviewStore.Lifetime + TimeSpan.FromSeconds(1);
+        var deleter = new FakeDeleter();
+
+        AssertUntouched(WorkerCleanHandlers.HandleClean(CleanRequest(preview), catalog, store, deleter), deleter);
+    }
+
+    [Fact]
+    public void Clean_With_Wrong_Digest_Is_Stale_And_Burns_The_Preview()
+    {
+        var catalog = Catalog();
+        var (preview, store) = WorkerPreview(catalog);
+        var deleter = new FakeDeleter();
+
+        AssertUntouched(WorkerCleanHandlers.HandleClean(CleanRequest(preview, digest: new string('0', 64)), catalog, store, deleter), deleter);
+        AssertUntouched(WorkerCleanHandlers.HandleClean(CleanRequest(preview), catalog, store, deleter), deleter);
+    }
+
+    [Fact]
+    public void Clean_With_Other_Selection_Is_Stale()
+    {
+        var catalog = Catalog();
+        var (preview, store) = WorkerPreview(catalog);
+        var deleter = new FakeDeleter();
+
+        AssertUntouched(WorkerCleanHandlers.HandleClean(CleanRequest(preview, items: ["idle-app/cache", "idle-app/baska"]), catalog, store, deleter), deleter);
+    }
+
+    [Fact]
+    public void Clean_Refuses_A_Path_List_Even_With_A_Valid_Preview()
+    {
+        var catalog = Catalog();
+        var (preview, store) = WorkerPreview(catalog);
+        var deleter = new FakeDeleter();
+
+        AssertUntouched(WorkerCleanHandlers.HandleClean(CleanRequest(preview, paths: [Path.Combine(_cache, "a.tmp")]), catalog, store, deleter), deleter, stale: false);
+    }
+
+    [Fact]
+    public void Preview_Id_Is_Single_Use()
+    {
+        var catalog = Catalog();
+        var (preview, store) = WorkerPreview(catalog);
+        var first = new FakeDeleter();
+        Assert.True(WorkerCleanHandlers.HandleClean(CleanRequest(preview), catalog, store, first).Ok);
+        Assert.Equal(3, first.Deleted.Count);
+
+        var second = new FakeDeleter();
+        var again = WorkerCleanHandlers.HandleClean(CleanRequest(preview), catalog, store, second);
+
+        Assert.True(again.Stale);
+        Assert.Empty(second.Deleted);
+    }
+
+    [Fact]
+    public void Worker_Preview_Matches_Local_Preview_And_Reports_Option_Totals()
+    {
+        var catalog = Catalog();
+        var local = catalog.Plan(Selection).Summary;
+        var (remote, _) = WorkerPreview(catalog);
+
+        Assert.Null(local.Id);
+        Assert.True(remote.FromWorker);
+        Assert.True(remote.SameAs(local));
+        var option = Assert.Single(remote.Options);
+        Assert.Equal(new OptionTotal("idle-app/cache", 3, 18), option);
+        Assert.Equal(1, remote.Protected);
+    }
+
+    [Fact]
+    public void Shown_List_Digest_Matches_Preview_Digest_And_Folds_Case()
+    {
+        var shown = ShownList.Of([@"C:\x\b.tmp", @"C:\X\A.tmp", @"c:\x\a.tmp"]);
+
+        Assert.Equal(2, shown.Count);
+        Assert.True(shown.Contains(@"C:\x\B.TMP"));
+        Assert.False(shown.Contains(@"C:\x\c.tmp"));
+        Assert.Equal(PreviewDigest.Of([@"C:\x\b.tmp", @"C:\X\A.tmp"]), shown.Digest);
     }
 }

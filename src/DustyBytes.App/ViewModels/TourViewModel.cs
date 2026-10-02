@@ -37,6 +37,7 @@ public sealed partial class TourViewModel : ViewModelBase
     List<UnitCard> _items = [];
     int _index;
     long _cleaned;
+    string? _cleanLine;
     long _quarantined;
     long _purged;
     int _quarantinedCount;
@@ -125,6 +126,7 @@ public sealed partial class TourViewModel : ViewModelBase
         _cleaned = _quarantined = _purged = 0;
         _quarantinedCount = _purgedCount = _kept = 0;
         _dryRun = false;
+        _cleanLine = null;
         Summary = null;
         Current = null;
         Page = null;
@@ -159,6 +161,8 @@ public sealed partial class TourViewModel : ViewModelBase
             _main.Fail("Temizlik yapılamadı: " + e.Message);
         }
         _dryRun |= outcome.DryRun;
+        _cleanLine = outcome.Summary;
+        _main.Sessions.Cleaned(outcome.Tally);
         if (!outcome.DryRun)
         {
             _cleaned += outcome.Freed;
@@ -294,6 +298,8 @@ public sealed partial class TourViewModel : ViewModelBase
         var lines = new List<string>();
         if (_mode != TourMode.Ask && (_cleaned > 0 || _quarantinedCount + _purgedCount == 0))
             lines.Add($"Önbellek ve geçici dosyalar: {Format.Bytes(_cleaned)}");
+        if (_cleanLine is { } cleanLine)
+            lines.Add(cleanLine);
         if (_quarantinedCount > 0)
             lines.Add($"Karantinaya alınan: {_quarantinedCount} öğe, {Format.Bytes(_quarantined)}. Bu yer karantina boşalınca açılır; {AppSettings.QuarantineDays.Days} gün içinde geri alabilirsiniz.");
         if (_purgedCount > 0)

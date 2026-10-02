@@ -25,6 +25,8 @@ public sealed partial class SessionReportViewModel : ObservableObject
     public string PurgedText => Report.PurgedText;
     public bool HasQuarantined => Report.HasQuarantined && !Report.DryRun;
     public bool HasPurged => Report.HasPurged && !Report.DryRun;
+    public string CleanText => Report.CleanText;
+    public bool HasClean => Report.HasClean;
     public bool CanUndo => Report.CanUndo && !_undone;
 
     bool _undone;

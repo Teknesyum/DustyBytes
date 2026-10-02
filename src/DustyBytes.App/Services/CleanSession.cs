@@ -1,3 +1,4 @@
+using DustyBytes.Core.Ipc;
 using DustyBytes.Core.Model;
 
 namespace DustyBytes.App.Services;
@@ -16,14 +17,17 @@ public sealed record SessionReport
     public int PurgedCount { get; init; }
     public bool DryRun { get; init; }
     public IReadOnlyList<Unit> Units { get; init; } = [];
+    public PathTally? CleanTally { get; init; }
 
-    public bool IsEmpty => QuarantinedCount == 0 && PurgedCount == 0 && PurgedBytes == 0;
+    public bool IsEmpty => QuarantinedCount == 0 && PurgedCount == 0 && PurgedBytes == 0 && CleanTally is null;
     public bool CanUndo => QuarantinedCount > 0 && !DryRun;
     public bool HasQuarantined => QuarantinedCount > 0;
     public bool HasPurged => PurgedCount > 0 || PurgedBytes > 0;
     public string SpaceText => $"Önce {Format.Bytes(FreeBefore)} boş → şimdi {Format.Bytes(FreeAfter)} boş";
     public string QuarantineText => $"Karantinada {Format.Bytes(QuarantinedBytes)} · {Format.Count(QuarantinedCount)} öğe, geri alınabilir";
     public string PurgedText => $"Kalıcı silindi {Format.Bytes(PurgedBytes)} · geri alınamaz";
+    public bool HasClean => CleanTally is not null;
+    public string CleanText => CleanTally?.Describe(verb: DryRun ? "silinecek" : "silinen") ?? "";
 }
 
 public sealed class CleanSession(IAppBackend backend, Func<DateTimeOffset>? clock = null)
@@ -42,6 +46,7 @@ public sealed class CleanSession(IAppBackend backend, Func<DateTimeOffset>? cloc
         public int QuarantinedCount { get; set; }
         public int PurgedCount { get; set; }
         public bool DryRun { get; set; }
+        public PathTally? CleanTally { get; set; }
     }
 
     sealed class Closer(CleanSession owner, string? id) : IDisposable
@@ -128,6 +133,15 @@ public sealed class CleanSession(IAppBackend backend, Func<DateTimeOffset>? cloc
         }
     }
 
+    public void Cleaned(PathTally? tally)
+    {
+        if (tally is null)
+            return;
+        lock (_lock)
+            if (_open is { } open)
+                open.CleanTally = open.CleanTally is { } previous ? previous.Plus(tally) : tally;
+    }
+
     public void MarkDryRun()
     {
         lock (_lock)
@@ -163,6 +177,7 @@ public sealed class CleanSession(IAppBackend backend, Func<DateTimeOffset>? cloc
             PurgedCount = open.PurgedCount,
             DryRun = open.DryRun,
             Units = [.. open.Units],
+            CleanTally = open.CleanTally,
         };
         if (!report.IsEmpty || report.DryRun)
         {

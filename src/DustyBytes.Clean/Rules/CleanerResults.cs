@@ -24,12 +24,11 @@ public sealed record PlannedFile(string RuleId, string OptionId, string Path, lo
     public bool IsRegistry => Type == CleanActionType.RegistryDelete;
 }
 
-public sealed record CleanPlan(IReadOnlyList<PlannedFile> Files, IReadOnlyList<SkippedPath> Excluded)
+public sealed record CleanPlan(CleanPreview Summary, ShownList Shown, IReadOnlyList<SkippedPath> Excluded)
 {
-    public long Bytes => Files.Sum(f => f.Bytes);
+    public long Bytes => Summary.Bytes;
 
-    public CleanPreview ToPreview() =>
-        CleanPreview.Of(Files.Select(f => new PreviewFile(f.Path, f.Bytes, f.LastWriteUtc, f.Option)), Excluded.Count);
+    public CleanPreview ToPreview() => Summary;
 }
 
 public sealed record CleanRun(IReadOnlyList<OptionExecutionResult> Options, PathTally Tally, string? Error);

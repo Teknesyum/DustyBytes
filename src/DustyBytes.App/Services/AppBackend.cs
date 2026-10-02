@@ -526,11 +526,24 @@ public sealed class AppBackend : IAppBackend, IAsyncDisposable
             return CleanPreview.Of([]);
         if (WorkerRunning)
         {
-            var response = await SendAsync(new WorkerRequest { Op = Ops.CleanPreview, Items = [.. optionKeys] }, new Progress<TaskStep>(), ct).ConfigureAwait(false);
-            if (response.Ok && response.Payload is { Length: > 0 } json && System.Text.Json.JsonSerializer.Deserialize(json, IpcJson.Default.CleanPreview) is { } remote)
-                return remote;
+            try
+            {
+                return await PreviewCleanInWorkerAsync(optionKeys, new Progress<TaskStep>(), ct).ConfigureAwait(false);
+            }
+            catch (InvalidOperationException)
+            {
+            }
         }
-        return await Task.Run(() => Catalog().Plan(CleanerCatalog.Selection(optionKeys), ct).ToPreview(), ct).ConfigureAwait(false);
+        return await Task.Run(() => Catalog().Plan(CleanerCatalog.Selection(optionKeys), ct).Summary, ct).ConfigureAwait(false);
+    }
+
+    public async Task<CleanPreview> PreviewCleanInWorkerAsync(IReadOnlyList<string> optionKeys, IProgress<TaskStep> progress, CancellationToken ct)
+    {
+        progress.Report(new TaskStep("Önizleme yönetici izniyle yeniden alınıyor", -1, null));
+        var response = await SendAsync(new WorkerRequest { Op = Ops.CleanPreview, Items = [.. optionKeys] }, progress, ct).ConfigureAwait(false);
+        if (response.Ok && response.Payload is { Length: > 0 } json && System.Text.Json.JsonSerializer.Deserialize(json, IpcJson.Default.CleanPreview) is { FromWorker: true } remote)
+            return remote;
+        throw new InvalidOperationException("Önizleme alınamadı: " + response.Message);
     }
 
     public async Task<IReadOnlyList<SystemTaskInfo>> SystemTasksAsync(CancellationToken ct)

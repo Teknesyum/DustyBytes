@@ -116,7 +116,14 @@ public sealed class CleanOutcome
     public bool DryRun { get; set; }
     public List<string> Failures { get; } = [];
     public PathTally? Tally { get; set; }
-    public string? Summary => Tally?.Describe(verb: DryRun ? "silinecek" : "silinen");
+    public CleanPreview? Shown { get; set; }
+    public CleanPreview? Fresh { get; set; }
+    public bool Stopped => Fresh is not null;
+
+    public string? Summary => Tally?.Describe(verb: DryRun ? "silinecek" : "silinen")
+        ?? (Shown is { } shown && Fresh is not null
+            ? $"Gösterilen {Format.Count(shown.Count)} dosya, silinen 0; önizleme eskidi, temizlik durduruldu"
+            : null);
 }
 
 public sealed record PreviewLine(string Path, string Size, string When)
@@ -175,9 +182,10 @@ public sealed partial class CleanupViewModel : ViewModelBase
     public Task PreviewTask { get; private set; } = Task.CompletedTask;
     public bool HasPreviewPanel => _loaded && CheckedOptions.Any();
     public bool HasPreview => Preview is { Count: > 0 };
-    public IReadOnlyList<PreviewLine> PreviewLines => Preview is null ? [] : [.. Preview.Files.Take(PreviewLimit).Select(PreviewLine.Of)];
-    public string PreviewMore => Preview is { Count: > PreviewLimit } p ? $"ve {Format.Count(p.Count - PreviewLimit)} tane daha" : "";
-    public bool ShowMore => ShowFiles && Preview is { Count: > PreviewLimit };
+    public IReadOnlyList<PreviewLine> PreviewLines => Preview is null ? [] : [.. Preview.Head.Take(PreviewLimit).Select(PreviewLine.Of)];
+    int Listed => Preview is null ? 0 : Math.Min(Preview.Head.Count, PreviewLimit);
+    public string PreviewMore => Preview is { } p && p.Count > Listed ? $"ve {Format.Count(p.Count - Listed)} tane daha" : "";
+    public bool ShowMore => ShowFiles && Preview is { } p && p.Count > Listed;
     public string FilesToggleText => ShowFiles ? "Dosya listesini gizle" : "Dosya listesini göster";
     public bool HasResult => !string.IsNullOrEmpty(ResultText);
 
@@ -451,6 +459,16 @@ public sealed partial class CleanupViewModel : ViewModelBase
             _main.Fail("Temizlik yapılamadı: " + e.Message);
             return;
         }
+        if (outcome.Fresh is { } fresh)
+        {
+            var keys = CheckedKeys();
+            var key = string.Join("\n", keys);
+            _previewKey = key;
+            ApplyPreview(fresh, key);
+            ResultText = ChangedText(outcome.Shown ?? fresh, fresh);
+            _main.Fail(ResultText);
+            return;
+        }
         var freed = outcome.Freed;
         var failures = outcome.Failures;
         ResultText = outcome.Summary;
@@ -505,12 +523,32 @@ public sealed partial class CleanupViewModel : ViewModelBase
             + tasks.Where(SystemTaskRow.SilentSafe).Sum(t => Math.Max(0, t.Bytes));
     }
 
-    public static async Task SendAsync(IAppBackend backend, IReadOnlyList<string> options, IReadOnlyList<string> tasks, CleanOutcome outcome, IProgress<TaskStep> p, CancellationToken ct, CleanPreview? preview = null)
+    public static string ChangedText(CleanPreview shown, CleanPreview fresh) =>
+        shown.Count == fresh.Count
+            ? $"{WorkerStaleText}: liste değişti, yeni sayı {Format.Count(fresh.Count)} dosya ({Format.Bytes(fresh.Bytes)}). Temizlik yapılmadı; yeni listeye bakıp yeniden onaylayın."
+            : $"{WorkerStaleText}: gösterilen {Format.Count(shown.Count)} dosyaydı, şimdi {Format.Count(fresh.Count)} dosya ({Format.Bytes(fresh.Bytes)}). Temizlik yapılmadı; yeni listeye bakıp yeniden onaylayın.";
+
+    const string WorkerStaleText = global::DustyBytes.Clean.SystemCleanup.WorkerCleanHandlers.StaleMessage;
+
+    public static async Task SendAsync(IAppBackend backend, IReadOnlyList<string> options, IReadOnlyList<string> tasks, CleanOutcome outcome, IProgress<TaskStep> p, CancellationToken ct, CleanPreview? shown = null)
     {
         if (options.Count > 0)
         {
-            preview ??= await backend.PreviewCleanFilesAsync(options, ct);
-            var response = await backend.SendAsync(new WorkerRequest { Op = Ops.Clean, UserApproved = true, Items = [.. options], Paths = preview.Paths(), Digest = preview.Digest }, p, ct);
+            var preview = shown is { FromWorker: true } ? shown : await backend.PreviewCleanInWorkerAsync(options, p, ct);
+            outcome.Shown = shown ?? preview;
+            if (shown is not null && !preview.SameAs(shown))
+            {
+                outcome.Fresh = preview;
+                return;
+            }
+            p.Report(new TaskStep("Temizlik yapılıyor", -1, $"Gösterilen {Format.Count(preview.Count)} dosya, {Format.Bytes(preview.Bytes)}"));
+            var response = await backend.SendAsync(new WorkerRequest { Op = Ops.Clean, UserApproved = true, Items = [.. options], PreviewId = preview.Id, Digest = preview.Digest }, p, ct);
+            if (response.Stale)
+            {
+                outcome.Fresh = await backend.PreviewCleanInWorkerAsync(options, p, ct);
+                outcome.Failures.Add(ChangedText(outcome.Shown, outcome.Fresh));
+                return;
+            }
             outcome.Tally = response.Tally;
             outcome.Freed += response.FreedBytes;
             outcome.DryRun |= response.DryRun;

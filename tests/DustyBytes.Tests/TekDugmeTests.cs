@@ -81,6 +81,26 @@ public class TekDugmeTests
     }
 
     [AvaloniaFact]
+    public async Task Safe_Clean_Uses_Worker_Preview_Count_And_Reports_Shown_Deleted_Skipped()
+    {
+        var (vm, backend) = await Ready(b => b.Respond = r => r.Op == Ops.Clean
+            ? new WorkerResponse { Id = r.Id, Ok = true, FreedBytes = 666_666, Tally = new PathTally { Shown = 3, Processed = 2, ProcessedBytes = 666_666, Locked = 1 } }
+            : FakeBackend.Measured(r));
+        await vm.Overview.SafeCleanCommand.ExecuteAsync(null);
+        await Settle();
+
+        var clean = Assert.Single(backend.Requests, r => r.Op == Ops.Clean);
+        Assert.Equal(["chrome/cache"], Assert.Single(backend.WorkerPreviewCalls));
+        Assert.Equal("onizleme-1", clean.PreviewId);
+        Assert.Empty(clean.Paths);
+        const string line = "Gösterilen 3 dosya, silinen 2, atlanan 1 (kullanımda)";
+        Assert.Contains(line, vm.Tour.Summary!.Lines);
+        Assert.NotNull(vm.Report);
+        Assert.True(vm.Report.HasClean);
+        Assert.Equal(line, vm.Report.CleanText);
+    }
+
+    [AvaloniaFact]
     public async Task Safe_Clean_Runs_Only_The_Silent_Half_And_Counts_Real_Bytes()
     {
         var (vm, backend) = await Ready();

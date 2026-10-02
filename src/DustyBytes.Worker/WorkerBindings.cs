@@ -90,11 +90,12 @@ public static class WorkerBindings
         WorkerHandlers.Register(Ops.RemoveLeftovers, uninstall.HandleRemoveLeftovers);
         WorkerHandlers.Register(Ops.ForceUninstall, uninstall.HandleForceUninstall);
 
+        var previews = new PreviewStore();
         WorkerHandlers.Register(Ops.Clean, (req, progress, ct) =>
-            Task.Run(() => WorkerCleanHandlers.HandleClean(req, LoadCatalog(protection), new RealFileDeleter(), progress, ct), ct));
+            Task.Run(() => WorkerCleanHandlers.HandleClean(req, LoadCatalog(protection), previews, new RealFileDeleter(), progress, ct), ct));
 
         WorkerHandlers.Register(Ops.CleanPreview, (req, progress, ct) =>
-            Task.Run(() => WorkerCleanHandlers.HandleCleanPreview(req, LoadCatalog(protection), ct), ct));
+            Task.Run(() => WorkerCleanHandlers.HandleCleanPreview(req, LoadCatalog(protection), previews, ct), ct));
 
         WorkerHandlers.Register(Ops.SystemClean, (req, progress, ct) =>
             WorkerCleanHandlers.HandleSystemClean(req, SystemTasks(protection, user.Sid), progress, ct));

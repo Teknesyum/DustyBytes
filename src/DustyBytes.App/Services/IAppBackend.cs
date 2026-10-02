@@ -55,6 +55,7 @@ public interface IAppBackend
     Task<IReadOnlyList<CleanRuleInfo>> CleanRulesAsync(CancellationToken ct);
     Task<IReadOnlyList<OptionPreview>> PreviewCleanAsync(IReadOnlyList<RuleSelection> selection, CancellationToken ct);
     Task<CleanPreview> PreviewCleanFilesAsync(IReadOnlyList<string> optionKeys, CancellationToken ct);
+    Task<CleanPreview> PreviewCleanInWorkerAsync(IReadOnlyList<string> optionKeys, IProgress<TaskStep> progress, CancellationToken ct);
     Task<IReadOnlyList<SystemTaskInfo>> SystemTasksAsync(CancellationToken ct);
 
     Task<QuarantineSnapshot> ReadQuarantineAsync(CancellationToken ct);
