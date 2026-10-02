@@ -11,6 +11,9 @@
       "id": "user-reports",
       "label": "Kullanıcı Hata Raporları",
       "warning": null,
+      "what": "Programların çöküşünde Windows'un hazırladığı hata raporları.",
+      "ifDeleted": "Yalnız sorun araştırmak için kullanılır; programlar etkilenmez.",
+      "returns": "Hayır, silinenler geri gelmez; yeni bir hatada yenisi oluşur.",
       "actions": [
         { "type": "Delete", "mode": "Recurse", "path": "%LOCALAPPDATA%/Microsoft/Windows/WER/ReportArchive" },
         { "type": "Delete", "mode": "Recurse", "path": "%LOCALAPPDATA%/Microsoft/Windows/WER/ReportQueue" }
@@ -20,6 +23,9 @@
       "id": "system-reports",
       "label": "Sistem Hata Raporları",
       "warning": "Yönetici yetkisi gerektirir",
+      "what": "Windows'un sistem düzeyindeki hata raporları.",
+      "ifDeleted": "Yalnız sorun araştırmak için kullanılır; bilgisayar etkilenmez.",
+      "returns": "Hayır, silinenler geri gelmez; yeni bir hatada yenisi oluşur.",
       "actions": [
         { "type": "Delete", "mode": "Recurse", "path": "%PROGRAMDATA%/Microsoft/Windows/WER/ReportArchive" },
         { "type": "Delete", "mode": "Recurse", "path": "%PROGRAMDATA%/Microsoft/Windows/WER/ReportQueue" }

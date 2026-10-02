@@ -17,10 +17,29 @@ public sealed partial class CleanOptionRow(string ruleId, CleanerOption option, 
     public string? Warning => Option.Warning;
     public bool HasWarning => !string.IsNullOrWhiteSpace(Option.Warning);
     public string Key => KeyOf(RuleId, Option.Id);
+    public Explanation Explain => Option.Explanation;
+    public string What => Explain.What;
+    public string IfDeleted => Explain.IfDeleted;
+    public string Returns => Explain.Returns;
+    public string WhatTitle => Explanation.WhatTitle;
+    public string IfDeletedTitle => Explanation.IfDeletedTitle;
+    public string ReturnsTitle => Explanation.ReturnsTitle;
+    public bool IsSession => Option.TouchesSession;
+    public bool ShowWarning => HasWarning && (!IsSession || IsChecked);
+    public string ExplainButton => IsExplained ? "Gizle" : "Ne olur?";
+    public string ExplainTip => "Bu nedir, silersem ne olur, geri gelir mi";
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ExplainButton))]
+    private bool _isExplained;
+
+    [RelayCommand]
+    private void ToggleExplain() => IsExplained = !IsExplained;
 
     public static string KeyOf(string ruleId, string optionId) => $"{ruleId}/{optionId}";
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ShowWarning))]
     private bool _isChecked = check;
 
     [ObservableProperty]
@@ -32,20 +51,29 @@ public sealed partial class CleanOptionRow(string ruleId, CleanerOption option, 
     partial void OnIsCheckedChanged(bool value) => changed();
 }
 
-public sealed class CleanRuleRow
+public sealed class CleanRuleRow : ObservableObject
 {
     public CleanRuleRow(CleanRuleInfo info, Action changed)
     {
         Info = info;
         Options = [.. info.Rule.Options.Select(o => new CleanOptionRow(info.Rule.Id, o, Safe(info, o), changed))];
+        foreach (var option in Options.Where(o => o.IsSession))
+            option.PropertyChanged += (_, e) =>
+            {
+                if (e.PropertyName == nameof(CleanOptionRow.IsChecked))
+                    OnPropertyChanged(nameof(ShowSessionNote));
+            };
     }
 
-    public static bool Safe(CleanRuleInfo info, CleanerOption option) => !info.Running && string.IsNullOrWhiteSpace(option.Warning);
+    public static bool Safe(CleanRuleInfo info, CleanerOption option) =>
+        !info.Running && string.IsNullOrWhiteSpace(option.Warning) && !option.TouchesSession;
 
     public CleanRuleInfo Info { get; }
     public string Name => Info.Rule.Name;
     public bool Running => Info.Running;
     public string RunningText => Info.RunningReason is { Length: > 0 } r ? $"{r}; kapatınca temizlenir" : "Açık görünüyor; kapatınca temizlenir";
+    public bool ShowSessionNote => Options.Any(o => o.IsSession) && !Options.Any(o => o.IsSession && o.IsChecked);
+    public string SessionNote => "Giriş yaptığın siteler açık kalır";
     public string? Source => Info.Rule.Source;
     public bool HasSource => !string.IsNullOrWhiteSpace(Info.Rule.Source);
     public string SourceTip => string.Equals(Source, "Winapp2", StringComparison.OrdinalIgnoreCase)
@@ -68,6 +96,9 @@ public sealed partial class SystemTaskRow(SystemTaskInfo info, Action changed) :
     public string Warning => Info.Warning ?? "";
     public bool HasWarning => !string.IsNullOrWhiteSpace(Info.Warning);
     public bool CanRestore => !string.IsNullOrWhiteSpace(Info.RestoreId);
+    public string RestoreText => string.IsNullOrWhiteSpace(Info.RestoreLabel) ? "Geri aç" : Info.RestoreLabel;
+    public bool CanReduce => !string.IsNullOrWhiteSpace(Info.AltId);
+    public string ReduceText => Info.AltLabel ?? "";
 
     [ObservableProperty]
     private bool _isChecked = Safe(info);
@@ -184,15 +215,22 @@ public sealed partial class CleanupViewModel : ViewModelBase
 
     bool CanRestore(SystemTaskRow? row) => row is { CanRestore: true } && !Progress.IsRunning;
 
+    bool CanReduce(SystemTaskRow? row) => row is { CanReduce: true } && !Progress.IsRunning;
+
     [RelayCommand(CanExecute = nameof(CanRestore))]
-    private async Task Restore(SystemTaskRow? row)
+    private Task Restore(SystemTaskRow? row) => RunExtraAsync(row, row?.Info.RestoreId, "Geri açılıyor", "Geri açılamadı: ", "yeniden açıldı");
+
+    [RelayCommand(CanExecute = nameof(CanReduce))]
+    private Task Reduce(SystemTaskRow? row) => RunExtraAsync(row, row?.Info.AltId, "Küçültülüyor", "Küçültülemedi: ", "küçültüldü");
+
+    async Task RunExtraAsync(SystemTaskRow? row, string? restoreId, string running, string failText, string done)
     {
-        if (row?.Info.RestoreId is not { Length: > 0 } restoreId)
+        if (row is null || string.IsNullOrEmpty(restoreId))
             return;
         var outcome = new CleanOutcome();
         try
         {
-            await Progress.RunAsync("Geri açılıyor", async (p, ct) =>
+            await Progress.RunAsync(running, async (p, ct) =>
             {
                 await SendAsync(_main.Backend, [], [restoreId], outcome, p, ct);
                 return true;
@@ -205,7 +243,7 @@ public sealed partial class CleanupViewModel : ViewModelBase
         }
         catch (Exception e) when (e is IOException or InvalidOperationException or TimeoutException or Worker.WorkerStartException)
         {
-            _main.Fail("Geri açılamadı: " + e.Message);
+            _main.Fail(failText + e.Message);
             return;
         }
         if (outcome.Failures.Count > 0)
@@ -215,7 +253,7 @@ public sealed partial class CleanupViewModel : ViewModelBase
         }
         else
         {
-            _main.Notify(outcome.DryRun ? "Prova: ayar değiştirilmedi" : $"{row.Name} yeniden açıldı");
+            _main.Notify(outcome.DryRun ? "Prova: ayar değiştirilmedi" : $"{row.Name} {done}");
         }
         await ReloadTasksAsync();
     }

@@ -11,6 +11,9 @@
       "id": "temp",
       "label": "Geçici Dosyalar",
       "warning": "Bazı dosyalar açık programlar tarafından kilitli olabilir, atlanır",
+      "what": "Programların geçici olarak bıraktığı dosyalar.",
+      "ifDeleted": "Açık programların kullandığı dosyalar atlanır; kalanlar gider, sorun çıkmaz.",
+      "returns": "Hayır, silinenler geri gelmez; programlar ihtiyaç olunca yenisini oluşturur.",
       "actions": [
         { "type": "Delete", "mode": "Recurse", "path": "%TEMP%" }
       ]

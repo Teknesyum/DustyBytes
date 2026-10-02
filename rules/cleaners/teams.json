@@ -11,6 +11,9 @@
       "id": "cache",
       "label": "Önbellek",
       "warning": null,
+      "what": "Teams'in resim ve dosya önbelleği.",
+      "ifDeleted": "Teams ilk açılışta biraz yavaş açılır; hesabın açık kalır.",
+      "returns": "Evet, Teams kendiliğinden yeniden oluşturur.",
       "actions": [
         { "type": "Delete", "mode": "Recurse", "path": "%APPDATA%/Microsoft/Teams/Cache" },
         { "type": "Delete", "mode": "Recurse", "path": "%APPDATA%/Microsoft/Teams/GPUCache" },
@@ -21,6 +24,9 @@
       "id": "blob-storage",
       "label": "Blob Depolama Önbelleği",
       "warning": null,
+      "what": "Teams'in ek ve medya dosyalarını sakladığı geçici alan.",
+      "ifDeleted": "Teams bu dosyaları gerektiğinde yeniden indirir; hesabın açık kalır.",
+      "returns": "Evet, kendiliğinden yeniden oluşur.",
       "actions": [
         { "type": "Delete", "mode": "Recurse", "path": "%APPDATA%/Microsoft/Teams/blob_storage" }
       ]

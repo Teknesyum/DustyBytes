@@ -10,6 +10,7 @@ public interface IPowerInfo
     bool? HasBattery();
     bool? HibernateEnabled();
     long? HiberfilBytes();
+    bool? HibernateReduced() => null;
 }
 
 public sealed partial class WindowsPowerInfo : IPowerInfo
@@ -41,6 +42,19 @@ public sealed partial class WindowsPowerInfo : IPowerInfo
         {
             using var key = Registry.LocalMachine.OpenSubKey(@"SYSTEM\CurrentControlSet\Control\Power");
             return key?.GetValue("HibernateEnabled") is int value ? value != 0 : null;
+        }
+        catch (Exception e) when (e is System.Security.SecurityException or UnauthorizedAccessException or IOException)
+        {
+            return null;
+        }
+    }
+
+    public bool? HibernateReduced()
+    {
+        try
+        {
+            using var key = Registry.LocalMachine.OpenSubKey(@"SYSTEM\CurrentControlSet\Control\Power");
+            return key?.GetValue("HiberFileType") is int value ? value == 1 : null;
         }
         catch (Exception e) when (e is System.Security.SecurityException or UnauthorizedAccessException or IOException)
         {
@@ -86,6 +100,13 @@ public sealed class HibernationTask : ISystemCleanupTask
 {
     public const string OffId = "hibernation";
     public const string OnId = "hibernation-on";
+    public const string ReducedId = "hibernation-reduced";
+    public const string FullId = "hibernation-full";
+    public const string ReduceLabel = "Küçült (Hızlı Başlangıç korunur)";
+    public const string FullLabel = "Tam boyuta döndür";
+
+    public const string ReducedDetail =
+        "Hazırda bekletme küçültülmüş durumda: dosya daha küçük, Hızlı Başlangıç çalışıyor, ama pil biterken tam hazırda bekletme yapılmaz. Tam boyuta döndür ile eski haline gelir.";
 
     public const string Explanation =
         "Hazırda bekletme dosyası (hiberfil.sys) kapatınca silinir. Windows'un Hızlı Başlangıç özelliği de bu dosyayı kullandığı için onunla birlikte kapanır; bilgisayar açılırken birkaç saniye daha bekleyebilirsiniz. Geri aç ile ikisi de istediğiniz an geri gelir.";
@@ -107,7 +128,7 @@ public sealed class HibernationTask : ISystemCleanupTask
     public string Id => OffId;
     public string Name => "Hazırda bekletme dosyası";
     public bool ExplicitOnly => true;
-    public IReadOnlyList<string> ExtraIds => [OnId];
+    public IReadOnlyList<string> ExtraIds => [OnId, ReducedId, FullId];
 
     public static string PowerCfg => Path.Combine(Environment.SystemDirectory, "powercfg.exe");
 
@@ -127,17 +148,52 @@ public sealed class HibernationTask : ISystemCleanupTask
 
         var desktop = _power.HasBattery() == false;
         var size = bytes ?? 0;
+        var reduced = _power.HibernateReduced() == true;
         return Task.FromResult(new SystemCleanupEstimate(
             Id, size, desktop && size > 0,
-            Explanation,
+            reduced ? ReducedDetail : Explanation,
             Warning: desktop ? null : LaptopWarning,
-            Silent: false));
+            Silent: false,
+            RestoreId: reduced ? FullId : null,
+            AltId: reduced ? null : ReducedId,
+            AltLabel: reduced ? null : ReduceLabel,
+            RestoreLabel: reduced ? FullLabel : null));
     }
 
     public Task<SystemCleanupResult> RunAsync(IProgress<string> progress, CancellationToken ct) => Switch(false, progress, ct);
 
     public Task<SystemCleanupResult> RunAsync(string id, IProgress<string> progress, CancellationToken ct) =>
-        id == OnId ? Switch(true, progress, ct) : Switch(false, progress, ct);
+        id switch
+        {
+            OnId => Switch(true, progress, ct),
+            ReducedId => Resize(true, progress, ct),
+            FullId => Resize(false, progress, ct),
+            _ => Switch(false, progress, ct),
+        };
+
+    async Task<SystemCleanupResult> Resize(bool reduced, IProgress<string> progress, CancellationToken ct)
+    {
+        var id = reduced ? ReducedId : FullId;
+        if (!_gate.SystemOpAllowed(SafetyGate.HibernateOp))
+            return new SystemCleanupResult(id, false, "Korumalı liste hazırda bekletme ayarına izin vermiyor", 0);
+
+        var args = reduced ? "/h /type reduced" : "/h /type full";
+        if (DryRun.Enabled)
+        {
+            DryRunLog.Write(OpMethod.Delete, "hiberfil.sys", $"powercfg {args}");
+            progress.Report($"[prova] powercfg {args}");
+            return new SystemCleanupResult(id, true, "Prova kipi: powercfg çağrılmadı", 0);
+        }
+
+        var before = _power.HiberfilBytes() ?? 0;
+        var (exitCode, _) = await _run(PowerCfg, args, progress, ct);
+        if (exitCode != 0)
+            return new SystemCleanupResult(id, false, $"powercfg çıktı kodu {exitCode}", 0);
+        if (!reduced)
+            return new SystemCleanupResult(id, true, "Hazırda bekletme tam boyuta döndürüldü", 0);
+        var after = _power.HiberfilBytes() ?? 0;
+        return new SystemCleanupResult(id, true, "Hazırda bekletme küçültüldü; Hızlı Başlangıç korundu", Math.Max(0, before - after));
+    }
 
     async Task<SystemCleanupResult> Switch(bool on, IProgress<string> progress, CancellationToken ct)
     {

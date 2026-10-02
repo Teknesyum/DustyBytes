@@ -11,6 +11,9 @@
       "id": "storage",
       "label": "Çevrimdışı Şarkı Önbelleği",
       "warning": null,
+      "what": "Çevrimdışı dinlemek için indirilen şarkılar ve dinlerken saklanan parçalar.",
+      "ifDeleted": "Çevrimdışı indirdiğin şarkılar silinir; hesabın ve çalma listelerin korunur.",
+      "returns": "Evet, şarkıları yeniden indirirsin ya da dinledikçe yeniden saklanır.",
       "actions": [
         { "type": "Delete", "mode": "Recurse", "path": "%LOCALAPPDATA%/Spotify/Storage" }
       ]
@@ -19,6 +22,9 @@
       "id": "data",
       "label": "Uygulama Önbelleği",
       "warning": null,
+      "what": "Spotify'ın arayüz ve kapak resmi önbelleği.",
+      "ifDeleted": "Spotify ilk açılışta biraz yavaş açılır; hesabın ve çalma listelerin korunur.",
+      "returns": "Evet, kendiliğinden yeniden oluşur.",
       "actions": [
         { "type": "Delete", "mode": "Recurse", "path": "%LOCALAPPDATA%/Spotify/Data" }
       ]

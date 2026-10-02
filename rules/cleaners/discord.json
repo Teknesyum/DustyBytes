@@ -11,6 +11,9 @@
       "id": "cache",
       "label": "Önbellek",
       "warning": null,
+      "what": "Discord'un resim ve dosya önbelleği.",
+      "ifDeleted": "Sohbetlerdeki resimler ilk açılışta yeniden yüklenir; hesabın açık kalır.",
+      "returns": "Evet, Discord kendiliğinden yeniden oluşturur.",
       "actions": [
         { "type": "Delete", "mode": "Recurse", "path": "%APPDATA%/discord/Cache" },
         { "type": "Delete", "mode": "Recurse", "path": "%APPDATA%/discord/Code Cache" },

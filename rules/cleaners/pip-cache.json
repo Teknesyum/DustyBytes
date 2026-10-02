@@ -11,6 +11,9 @@
       "id": "cache",
       "label": "pip Önbelleği",
       "warning": null,
+      "what": "pip'in indirdiği Python paketlerinin yerel kopyası.",
+      "ifDeleted": "Sonraki kurulumlarda paketler yeniden indirilir; kurulu paketler etkilenmez.",
+      "returns": "Evet, ihtiyaç olunca yeniden indirilir.",
       "actions": [
         { "type": "Delete", "mode": "Recurse", "path": "%LOCALAPPDATA%/pip/Cache" }
       ]

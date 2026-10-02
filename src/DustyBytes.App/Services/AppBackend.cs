@@ -521,7 +521,7 @@ public sealed class AppBackend : IAppBackend, IAsyncDisposable
             try
             {
                 var estimate = await Task.Run(() => task.EstimateAsync(ct), ct).ConfigureAwait(false);
-                list.Add(new SystemTaskInfo(task.Id, task.Name, estimate.RecoverableBytes, estimate.Recommended, estimate.Detail, estimate.Available, estimate.Note, estimate.Warning, estimate.Silent, estimate.RestoreId));
+                list.Add(new SystemTaskInfo(task.Id, task.Name, estimate.RecoverableBytes, estimate.Recommended, estimate.Detail, estimate.Available, estimate.Note, estimate.Warning, estimate.Silent, estimate.RestoreId, estimate.AltId, estimate.AltLabel, estimate.RestoreLabel));
             }
             catch (Exception e) when (e is IOException or UnauthorizedAccessException or InvalidOperationException)
             {
