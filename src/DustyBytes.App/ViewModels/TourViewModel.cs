@@ -104,6 +104,7 @@ public sealed partial class TourViewModel : ViewModelBase
 
     public async Task StartAsync()
     {
+        _main.Sessions.Begin("Tur", this);
         var units = _main.Session.Snapshot?.Units ?? [];
         var now = DateTimeOffset.Now;
         _items = [.. Pick(units, now).Select(u => new UnitCard(u, now, () => { }))];
@@ -266,6 +267,7 @@ public sealed partial class TourViewModel : ViewModelBase
 
     void Finish()
     {
+        _main.Sessions.End();
         Purge.Reset();
         _kept += Math.Max(0, _items.Count - _index);
         _index = _items.Count;

@@ -21,6 +21,13 @@ public sealed partial class MainViewModel : ObservableObject
             (title, message, confirm) => ConfirmAsync(title, message, confirm, false), m => Notify(m), m => Fail(m));
         Session = new SessionState(backend);
         Session.Attach(this);
+        Sessions = new CleanSession(backend);
+        Sessions.Finished += r => Report = new SessionReportViewModel(this, r);
+        Navigation.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(NavigationStack.Current) && Sessions.Owner is { } owner && !ReferenceEquals(owner, Navigation.Current))
+                Sessions.End();
+        };
         Overview = new OverviewViewModel(this);
         Offers = new OffersViewModel(this);
         Map = new MapViewModel(this);
@@ -44,6 +51,7 @@ public sealed partial class MainViewModel : ObservableObject
 
     public IAppBackend Backend { get; }
     public SessionState Session { get; }
+    public CleanSession Sessions { get; }
     public NavigationStack Navigation { get; } = new();
     public IReadOnlyList<NavItem> NavItems { get; }
     public ObservableCollection<ToastViewModel> Toasts { get; } = [];
@@ -82,6 +90,9 @@ public sealed partial class MainViewModel : ObservableObject
 
     [ObservableProperty]
     private ConfirmViewModel? _confirm;
+
+    [ObservableProperty]
+    private SessionReportViewModel? _report;
 
     partial void OnSelectedNavChanged(NavItem? value)
     {

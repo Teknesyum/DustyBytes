@@ -34,6 +34,17 @@ public sealed partial class QuarantineRow(QuarantineEntry entry, DateTime nowUtc
 
 public sealed record VolumeWarning(string Text);
 
+public sealed class QuarantineGroup(string? sessionId, string title, IReadOnlyList<QuarantineRow> rows)
+{
+    public string? SessionId { get; } = sessionId;
+    public string Title { get; } = title;
+    public IReadOnlyList<QuarantineRow> Rows { get; } = rows;
+    public bool IsLegacy => SessionId is null;
+    public long Bytes => Rows.Sum(r => r.Entry.Size);
+    public string SummaryText => $"{Format.Count(Rows.Count)} öğe, {Format.Bytes(Bytes)}";
+    public string RestoreName => Title + " grubunu geri al";
+}
+
 public sealed partial class QuarantineViewModel : ViewModelBase
 {
     readonly MainViewModel _main;
@@ -43,6 +54,43 @@ public sealed partial class QuarantineViewModel : ViewModelBase
         _main = main;
         Progress = main.NewProgress();
         main.Session.PropertyChanged += OnSession;
+        Empty.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(TwoStep.Target))
+            {
+                OnPropertyChanged(nameof(IsEmptyArmed));
+                OnPropertyChanged(nameof(EmptyText));
+            }
+        };
+        main.Ticked += Empty.Elapse;
+    }
+
+    public TwoStep Empty { get; } = new();
+    public bool IsEmptyArmed => Empty.IsArmedFor(this);
+    public string EmptyText => IsEmptyArmed ? TwoStep.ArmedText : "Karantinayı boşalt";
+    public ObservableCollection<QuarantineGroup> Groups { get; } = [];
+
+    public static string GroupTitle(DateTime movedUtc, DateTime nowLocal)
+    {
+        var local = movedUtc.ToLocalTime();
+        var tr = System.Globalization.CultureInfo.GetCultureInfo("tr-TR");
+        var day = local.Date == nowLocal.Date ? "Bugün" : local.Date == nowLocal.Date.AddDays(-1) ? "Dün" : local.ToString("d MMMM", tr);
+        return day + " " + local.ToString("HH:mm", tr);
+    }
+
+    public static List<QuarantineGroup> GroupRows(IEnumerable<QuarantineRow> rows, DateTime nowLocal)
+    {
+        var list = rows.ToList();
+        var groups = list.Where(r => r.Entry.SessionId is not null)
+            .GroupBy(r => r.Entry.SessionId!, StringComparer.Ordinal)
+            .Select(g => (Moved: g.Min(r => r.Entry.MovedUtc), Rows: g.OrderByDescending(r => r.Entry.MovedUtc).ToList(), Id: g.Key))
+            .OrderByDescending(g => g.Moved)
+            .Select(g => new QuarantineGroup(g.Id, GroupTitle(g.Moved, nowLocal), g.Rows))
+            .ToList();
+        var legacy = list.Where(r => r.Entry.SessionId is null).ToList();
+        if (legacy.Count > 0)
+            groups.Add(new QuarantineGroup(null, "Eski kayıtlar", legacy));
+        return groups;
     }
 
     public TaskProgressViewModel Progress { get; }
@@ -100,6 +148,8 @@ public sealed partial class QuarantineViewModel : ViewModelBase
 
     protected override void OnNavigatedTo() => _ = _main.Session.RefreshQuarantineAsync(_main);
 
+    protected override void OnNavigatedFrom() => Empty.Reset();
+
     void Load()
     {
         var snapshot = _main.Session.Quarantine;
@@ -109,6 +159,9 @@ public sealed partial class QuarantineViewModel : ViewModelBase
         var now = DateTime.UtcNow;
         foreach (var entry in (snapshot?.Entries ?? []).OrderBy(e => e.ExpiresUtc))
             Items.Add(new QuarantineRow(entry, now, AutoPurge, Changed) { IsSelected = keep.Contains(entry.Id) });
+        Groups.Clear();
+        foreach (var group in GroupRows(Items, DateTime.Now))
+            Groups.Add(group);
         foreach (var usage in snapshot?.Usage ?? [])
             if (usage.Warning)
                 Warnings.Add(new VolumeWarning($"{usage.Root} sürücüsünde karantina {Format.Bytes(usage.PendingBytes)} yer tutuyor; diskin beşte birini geçti. Yer lazımsa Karantinayı boşalt ile hemen açabilirsiniz."));
@@ -172,7 +225,8 @@ public sealed partial class QuarantineViewModel : ViewModelBase
     [RelayCommand(CanExecute = nameof(CanEmpty))]
     private async Task EmptyAll()
     {
-        var count = Items.Count;
+        if (!Empty.Press(this))
+            return;
         var response = await SendAsync("Karantina boşaltılıyor", Ops.Purge, [.. Items], Targets.All);
         if (response is null)
             return;
@@ -187,6 +241,46 @@ public sealed partial class QuarantineViewModel : ViewModelBase
             _main.Notify($"Karantina boşaltıldı, {Format.Bytes(response.FreedBytes)} açıldı");
         else
             _main.Fail("Karantinanın bir kısmı silinemedi: " + response.Message);
+    }
+
+    [RelayCommand]
+    private async Task RestoreGroup(QuarantineGroup? group)
+    {
+        if (group is null || Progress.IsRunning)
+            return;
+        var response = group.SessionId is { } id
+            ? await RestoreSessionAsync(id, Progress)
+            : await SendAsync("Eski kayıtlar geri alınıyor", Ops.Restore, [.. group.Rows]);
+        if (response is null)
+            return;
+        if (response.Ok)
+            _main.Notify($"{group.Title}: {Format.Count(group.Rows.Count)} öğe yerine döndü");
+        else
+            _main.Fail("Geri alma tamamlanamadı: " + response.Message);
+    }
+
+    public async Task<WorkerResponse?> RestoreSessionAsync(string sessionId, TaskProgressViewModel runner)
+    {
+        try
+        {
+            var response = await runner.RunAsync("Oturum geri alınıyor", (p, ct) => _main.Backend.SendAsync(new WorkerRequest
+            {
+                Op = Ops.Restore,
+                UserApproved = true,
+                SessionId = sessionId,
+            }, p, ct), cancellable: false);
+            await _main.Session.RefreshQuarantineAsync(_main);
+            return response;
+        }
+        catch (Exception e) when (e is IOException or InvalidOperationException or TimeoutException or Worker.WorkerStartException)
+        {
+            _main.Fail("Geri alma yapılamadı: " + e.Message);
+            return null;
+        }
+        finally
+        {
+            Changed();
+        }
     }
 
     async Task<WorkerResponse?> SendAsync(string title, string op, List<QuarantineRow> rows, string? target = null)
