@@ -60,6 +60,7 @@
                                ToolTip.Tip="{Binding SourceTip}" Background="Transparent"/>
                   </StackPanel>
                   <TextBlock Theme="{StaticResource WarningBody}" Text="{Binding RunningText}" IsVisible="{Binding Running}" TextWrapping="Wrap"/>
+                  <TextBlock Theme="{StaticResource Hint}" Text="{Binding SessionNote}" IsVisible="{Binding ShowSessionNote}" TextWrapping="Wrap"/>
                   <ItemsControl ItemsSource="{Binding Options}">
                     <ItemsControl.ItemTemplate>
                       <DataTemplate x:DataType="vm:CleanOptionRow">
@@ -68,7 +69,14 @@
                                     AutomationProperties.Name="{Binding Label}"/>
                           <StackPanel Grid.Column="1">
                             <TextBlock Theme="{StaticResource Body}" Text="{Binding Label}"/>
-                            <TextBlock Theme="{StaticResource WarningBody}" Text="{Binding Warning}" IsVisible="{Binding HasWarning}" TextWrapping="Wrap"/>
+                            <TextBlock Theme="{StaticResource WarningBody}" Text="{Binding Warning}" IsVisible="{Binding ShowWarning}" TextWrapping="Wrap"/>
+                            <Button Classes="link" Content="{Binding ExplainButton}" HorizontalAlignment="Left"
+                                    ToolTip.Tip="{Binding ExplainTip}" Command="{Binding ToggleExplainCommand}"/>
+                            <StackPanel Name="Explain" Spacing="{StaticResource Space1}" IsVisible="{Binding IsExplained}">
+                              <TextBlock Theme="{StaticResource Hint}" TextWrapping="Wrap"><Run Text="{Binding WhatTitle}" FontWeight="{StaticResource WeightSemi}"/><Run Text=" "/><Run Text="{Binding What}"/></TextBlock>
+                              <TextBlock Theme="{StaticResource Hint}" TextWrapping="Wrap"><Run Text="{Binding IfDeletedTitle}" FontWeight="{StaticResource WeightSemi}"/><Run Text=" "/><Run Text="{Binding IfDeleted}"/></TextBlock>
+                              <TextBlock Theme="{StaticResource Hint}" TextWrapping="Wrap"><Run Text="{Binding ReturnsTitle}" FontWeight="{StaticResource WeightSemi}"/><Run Text=" "/><Run Text="{Binding Returns}"/></TextBlock>
+                            </StackPanel>
                           </StackPanel>
                           <TextBlock Grid.Column="2" Theme="{StaticResource MonoValue}" Classes="data" Text="{Binding SizeText}" VerticalAlignment="Center"/>
                         </Grid>
@@ -97,10 +105,15 @@
                       <TextBlock Theme="{StaticResource Hint}" Text="{Binding Detail}" TextWrapping="Wrap"/>
                       <TextBlock Theme="{StaticResource Hint}" Text="{Binding Note}" IsVisible="{Binding HasNote}" TextWrapping="Wrap"/>
                       <TextBlock Theme="{StaticResource WarningBody}" Text="{Binding Warning}" IsVisible="{Binding HasWarning}" TextWrapping="Wrap"/>
-                      <Button Classes="ghost" Content="Geri aç" HorizontalAlignment="Left" IsVisible="{Binding CanRestore}"
-                              AutomationProperties.Name="Geri aç"
+                      <Button Classes="ghost" Content="{Binding RestoreText}" HorizontalAlignment="Left" IsVisible="{Binding CanRestore}"
+                              AutomationProperties.Name="{Binding RestoreText}"
                               ToolTip.Tip="Kapatılan ayarı yeniden açar"
                               Command="{Binding $parent[ItemsControl].((vm:CleanupViewModel)DataContext).RestoreCommand}"
+                              CommandParameter="{Binding}"/>
+                      <Button Name="ReduceButton" Classes="ghost" Content="{Binding ReduceText}" HorizontalAlignment="Left" IsVisible="{Binding CanReduce}"
+                              AutomationProperties.Name="{Binding ReduceText}"
+                              ToolTip.Tip="Dosyayı küçültür; hızlı başlangıç açık kalır"
+                              Command="{Binding $parent[ItemsControl].((vm:CleanupViewModel)DataContext).ReduceCommand}"
                               CommandParameter="{Binding}"/>
                     </StackPanel>
                     <TextBlock Grid.Column="2" Theme="{StaticResource MonoValue}" Classes="data" Text="{Binding SizeText}" VerticalAlignment="Center"/>

@@ -9,7 +9,10 @@ public sealed record SystemCleanupEstimate(
     bool Silent = true,
     bool Available = true,
     string? Note = null,
-    string? RestoreId = null);
+    string? RestoreId = null,
+    string? AltId = null,
+    string? AltLabel = null,
+    string? RestoreLabel = null);
 
 public sealed record SystemCleanupResult(string TaskId, bool Ok, string Message, long FreedBytes);
 

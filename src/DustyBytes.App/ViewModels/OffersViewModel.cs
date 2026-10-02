@@ -116,6 +116,7 @@ public sealed partial class UnitCard : ObservableObject
     public string Name => Unit.Name;
     public string KindLabel { get; }
     public string Effect { get; }
+    public Explanation Explain => UnitKindInfo.Explain(Unit.Kind);
     public string ActionText => IsDirect ? "Temizle" : "Karantinaya al";
     public string ActionHint => IsDirect
         ? "Kendiliğinden yeniden oluşan dosyalar; hemen silinir"

@@ -236,9 +236,10 @@ public class RecycleInfoTests
 
 public class HibernationTaskTests
 {
-    sealed class FakePower(bool? battery, bool? enabled, long? bytes) : IPowerInfo
+    sealed class FakePower(bool? battery, bool? enabled, long? bytes, bool? reduced = null) : IPowerInfo
     {
         public long? Bytes { get; set; } = bytes;
+        public bool? HibernateReduced() => reduced;
         public bool? HasBattery() => battery;
         public bool? HibernateEnabled() => enabled;
         public long? HiberfilBytes() => Bytes;
@@ -308,6 +309,52 @@ public class HibernationTaskTests
         var on = await task.RunAsync(HibernationTask.OnId, new Progress<string>(), default);
         Assert.True(on.Ok);
         Assert.Equal(["/hibernate off", "/hibernate on"], runner.Calls);
+    }
+
+    [Fact]
+    public async Task Kucultme_Ve_Tam_Boyuta_Donme_Powercfg_Type_Ile()
+    {
+        var power = new FakePower(false, true, 8 * Gb);
+        var runner = new FakeRunner { After = () => power.Bytes = 4 * Gb };
+        ISystemCleanupTask task = new HibernationTask(SafetyGate.LoadDefault(), power, runner.Run);
+
+        var reduced = await task.RunAsync(HibernationTask.ReducedId, new Progress<string>(), default);
+        Assert.True(reduced.Ok);
+        Assert.Equal(4 * Gb, reduced.FreedBytes);
+
+        var full = await task.RunAsync(HibernationTask.FullId, new Progress<string>(), default);
+        Assert.True(full.Ok);
+        Assert.Equal(["/h /type reduced", "/h /type full"], runner.Calls);
+        Assert.Contains(HibernationTask.ReducedId, task.ExtraIds);
+        Assert.Contains(HibernationTask.FullId, task.ExtraIds);
+    }
+
+    [Fact]
+    public async Task Kucultme_Tam_Boyutta_Sunulur_Kucukken_Geri_Donus_Sunulur()
+    {
+        var full = await new HibernationTask(SafetyGate.LoadDefault(), new FakePower(false, true, 8 * Gb, false)).EstimateAsync(default);
+        Assert.Equal(HibernationTask.ReducedId, full.AltId);
+        Assert.Equal("Küçült (Hızlı Başlangıç korunur)", full.AltLabel);
+        Assert.Null(full.RestoreId);
+
+        var small = await new HibernationTask(SafetyGate.LoadDefault(), new FakePower(false, true, 4 * Gb, true)).EstimateAsync(default);
+        Assert.Null(small.AltId);
+        Assert.Equal(HibernationTask.FullId, small.RestoreId);
+        Assert.Equal("Tam boyuta döndür", small.RestoreLabel);
+    }
+
+    [Fact]
+    public async Task Kural_Listesi_Izin_Vermezse_Kucultme_Powercfg_Cagirmaz()
+    {
+        var runner = new FakeRunner();
+        var gate = new SafetyGate(new ProtectedList(new ProtectedRules
+        {
+            Files = [new NameRule { Name = "hiberfil.sys", Reason = "Sistem" }],
+        }));
+        ISystemCleanupTask task = new HibernationTask(gate, new FakePower(false, true, Gb), runner.Run);
+        var result = await task.RunAsync(HibernationTask.ReducedId, new Progress<string>(), default);
+        Assert.False(result.Ok);
+        Assert.Empty(runner.Calls);
     }
 
     [Fact]

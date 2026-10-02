@@ -56,6 +56,7 @@
                       <TextBlock Theme="{StaticResource Body}" Text="{Binding Name}" TextTrimming="CharacterEllipsis"/>
                       <TextBlock Theme="{StaticResource Hint}" Text="{Binding Detail}" TextWrapping="Wrap"
                                  IsVisible="{Binding Detail, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                      <TextBlock Theme="{StaticResource Hint}" Text="{Binding SharedNote}" IsVisible="{Binding IsShared}" TextWrapping="Wrap"/>
                     </StackPanel>
                     <TextBlock Grid.Column="1" Theme="{StaticResource MonoValue}" Classes="data" Text="{Binding SizeText}" VerticalAlignment="Center" Margin="12,0"/>
                     <TextBlock Grid.Column="2" Theme="{StaticResource Label}" Text="{Binding StateText}" VerticalAlignment="Center"/>

@@ -11,6 +11,9 @@
       "id": "system-temp",
       "label": "Sistem Geçici Klasörü",
       "warning": "Bazı dosyalar açık programlar tarafından kilitli olabilir, atlanır",
+      "what": "Windows ve kurulum araçlarının geçici olarak bıraktığı dosyalar.",
+      "ifDeleted": "Açık programların kullandığı dosyalar atlanır; kalanlar gider, sorun çıkmaz.",
+      "returns": "Hayır, silinenler geri gelmez; Windows ihtiyaç olunca yenisini oluşturur.",
       "actions": [
         { "type": "Delete", "mode": "Recurse", "path": "%WINDIR%/Temp" }
       ]

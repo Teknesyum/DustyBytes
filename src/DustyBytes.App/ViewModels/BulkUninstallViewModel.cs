@@ -14,6 +14,8 @@ public sealed partial class BulkItem(ProgramRow row) : ObservableObject
     public ProgramRow Row { get; } = row;
     public string Name => Row.Name;
     public string SizeText => Row.SizeText;
+    public bool IsShared => Row.IsShared;
+    public string SharedNote => Row.SharedNote;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(StateText))]

@@ -11,6 +11,9 @@
       "id": "cache",
       "label": "Önbellek",
       "warning": null,
+      "what": "Visual Studio Code'un çalışırken sakladığı geçici dosyalar.",
+      "ifDeleted": "VS Code ilk açılışta biraz yavaş açılır; ayarların ve eklentilerin korunur.",
+      "returns": "Evet, kendiliğinden yeniden oluşur.",
       "actions": [
         { "type": "Delete", "mode": "Recurse", "path": "%APPDATA%/Code/Cache" }
       ]
@@ -19,6 +22,9 @@
       "id": "cached-data",
       "label": "V8 Kod Önbelleği (CachedData)",
       "warning": null,
+      "what": "VS Code'un derlenmiş kod önbelleği.",
+      "ifDeleted": "VS Code ilk açılışta biraz yavaş açılır; ayarların ve eklentilerin korunur.",
+      "returns": "Evet, kendiliğinden yeniden oluşur.",
       "actions": [
         { "type": "Delete", "mode": "Recurse", "path": "%APPDATA%/Code/CachedData" }
       ]
@@ -27,6 +33,9 @@
       "id": "logs",
       "label": "Günlük Dosyaları",
       "warning": null,
+      "what": "VS Code'un çalışırken yazdığı günlük dosyaları.",
+      "ifDeleted": "Yalnız sorun araştırmak için kullanılır; ayarların ve eklentilerin korunur.",
+      "returns": "Hayır, eski günlükler geri gelmez; VS Code yenilerini yazar.",
       "actions": [
         { "type": "Delete", "mode": "Recurse", "path": "%APPDATA%/Code/logs" }
       ]

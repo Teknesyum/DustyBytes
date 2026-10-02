@@ -11,6 +11,9 @@
       "id": "cache",
       "label": "Yarn Önbelleği",
       "warning": null,
+      "what": "Yarn'ın indirdiği paketlerin yerel kopyası.",
+      "ifDeleted": "Sonraki kurulumlarda paketler yeniden indirilir; projelerin etkilenmez.",
+      "returns": "Evet, ihtiyaç olunca yeniden indirilir.",
       "actions": [
         { "type": "Delete", "mode": "Recurse", "path": "%LOCALAPPDATA%/Yarn/Cache" }
       ]

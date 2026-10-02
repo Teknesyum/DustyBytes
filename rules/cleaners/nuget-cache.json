@@ -11,6 +11,9 @@
       "id": "v3-cache",
       "label": "v3 HTTP Önbelleği",
       "warning": null,
+      "what": "NuGet'in paket listesi ve indirme önbelleği.",
+      "ifDeleted": "Sonraki derlemede paket bilgileri yeniden indirilir; projelerin etkilenmez.",
+      "returns": "Evet, ihtiyaç olunca yeniden indirilir.",
       "actions": [
         { "type": "Delete", "mode": "Recurse", "path": "%LOCALAPPDATA%/NuGet/v3-cache" }
       ]
@@ -19,6 +22,9 @@
       "id": "plugins-cache",
       "label": "Eklenti Önbelleği",
       "warning": null,
+      "what": "NuGet eklentilerinin önbelleği.",
+      "ifDeleted": "Eklentiler bir sonraki kullanımda yeniden hazırlanır; projelerin etkilenmez.",
+      "returns": "Evet, kendiliğinden yeniden oluşur.",
       "actions": [
         { "type": "Delete", "mode": "Recurse", "path": "%LOCALAPPDATA%/NuGet/plugins-cache" }
       ]

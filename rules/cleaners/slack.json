@@ -11,6 +11,9 @@
       "id": "cache",
       "label": "Önbellek",
       "warning": null,
+      "what": "Slack'in resim ve dosya önbelleği.",
+      "ifDeleted": "Kanallardaki resimler ilk açılışta yeniden yüklenir; hesabın açık kalır.",
+      "returns": "Evet, Slack kendiliğinden yeniden oluşturur.",
       "actions": [
         { "type": "Delete", "mode": "Recurse", "path": "%APPDATA%/Slack/Cache" },
         { "type": "Delete", "mode": "Recurse", "path": "%APPDATA%/Slack/Code Cache" },
@@ -21,6 +24,9 @@
       "id": "service-worker-cache",
       "label": "Service Worker Önbelleği",
       "warning": null,
+      "what": "Slack'in çevrimdışı çalışmak için sakladığı dosyalar.",
+      "ifDeleted": "Slack ilk açılışta bu dosyaları yeniden indirir; hesabın açık kalır.",
+      "returns": "Evet, kendiliğinden yeniden oluşur.",
       "actions": [
         { "type": "Delete", "mode": "Recurse", "path": "%APPDATA%/Slack/Service Worker/CacheStorage" }
       ]

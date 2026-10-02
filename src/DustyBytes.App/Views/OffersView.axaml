@@ -165,7 +165,9 @@
                   <StackPanel Spacing="{StaticResource Space1}">
                     <TextBlock Theme="{StaticResource Body}" Text="{Binding Effect}" TextWrapping="Wrap"/>
                     <TextBlock Theme="{StaticResource Hint}" Text="{Binding Reason}" IsVisible="{Binding HasReason}"/>
-                    <TextBlock Theme="{StaticResource Hint}" FontFamily="{StaticResource FontMono}" Text="{Binding PathText}"/>
+                    <TextBlock Theme="{StaticResource Hint}" TextWrapping="Wrap"><Run FontWeight="SemiBold" Text="Bu nedir? "/><Run Text="{Binding Explain.What}"/></TextBlock>
+                    <TextBlock Theme="{StaticResource Hint}" TextWrapping="Wrap"><Run FontWeight="SemiBold" Text="Silersem ne olur? "/><Run Text="{Binding Explain.IfDeleted}"/></TextBlock>
+                    <TextBlock Theme="{StaticResource Hint}" TextWrapping="Wrap"><Run FontWeight="SemiBold" Text="Geri gelir mi? "/><Run Text="{Binding Explain.Returns}"/></TextBlock>                    <TextBlock Theme="{StaticResource Hint}" FontFamily="{StaticResource FontMono}" Text="{Binding PathText}"/>
                   </StackPanel>
                 </ToolTip.Tip>
                 <Grid>
