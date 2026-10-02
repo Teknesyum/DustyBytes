@@ -115,18 +115,62 @@ public class GuvenliDokumTests
     }
 
     [Fact]
-    public void Silent_Units_Become_Items_With_Their_Folders()
+    public void Silent_Units_Become_One_Group_Per_Kind()
     {
         var items = SafeBreakdown.Units(FakeBackend.Snapshot().Units);
 
-        var unit = Assert.Single(items);
+        var group = Assert.Single(items);
+        Assert.Equal("group:DevArtifact", group.Key);
+        Assert.Equal(SafeItemKind.Group, group.Kind);
+        Assert.Equal("Geliştirici derleme klasörleri · 1 proje", group.Name);
+        Assert.Equal(UnitKindInfo.Explain(UnitKind.DevArtifact).What, group.What);
+        Assert.Equal(3_000_000_000, group.Bytes);
+        var unit = Assert.Single(group.Units);
         Assert.Equal("unit:u4", unit.Key);
-        Assert.Equal(SafeItemKind.Unit, unit.Kind);
-        Assert.Equal("node_modules (Geliştirici)", unit.Name);
-        Assert.Equal(UnitKindInfo.Explain(UnitKind.DevArtifact).What, unit.What);
-        var folder = Assert.Single(unit.Files);
-        Assert.Equal(@"C:\Kod\node_modules", folder.Path);
-        Assert.Equal(3_000_000_000, folder.Bytes);
+        Assert.Equal("Kod › node_modules", unit.Name);
+        Assert.Equal(@"C:\Kod\node_modules", unit.Target);
+    }
+
+    static Unit Dev(string id, string name, string path, long bytes, UnitKind kind = UnitKind.DevArtifact) =>
+        new() { Id = id, Kind = kind, Name = name, Paths = [path], SizeBytes = bytes, Removal = RemovalMethod.DirectDelete };
+
+    [Fact]
+    public void Groups_Collect_Many_Units_Largest_First_With_Plain_Distinct_Names()
+    {
+        List<Unit> units =
+        [
+            Dev("a", "src-tauri (Cargo)", @"C:\Kod\ProcWitness\src-tauri\target", 5_000),
+            Dev("b", "src-tauri (Cargo)", @"C:\Kod\Teknesyum\src-tauri\target", 6_000),
+            Dev("c", "ProcWitness.App (.NET)", @"C:\Kod\ProcWitness\ProcWitness.App\bin", 2_000),
+            Dev("d", "Discord önbelleği (Ahmet)", @"C:\Users\Ahmet\AppData\Roaming\discord\Cache", 900, UnitKind.Cache),
+            Dev("e", "Edge önbelleği", @"C:\Users\Ahmet\AppData\Local\Microsoft\Edge\User Data\Default\Cache", 800, UnitKind.BrowserCache),
+            new Unit { Id = "f", Kind = UnitKind.DevArtifact, Name = "Kişisel", Paths = [@"C:\x"], SizeBytes = 1, Removal = RemovalMethod.Quarantine },
+        ];
+
+        var items = SafeBreakdown.Order(SafeBreakdown.Units(units));
+
+        Assert.Equal(["group:DevArtifact", "group:Cache", "group:BrowserCache"], items.Select(i => i.Key));
+        var dev = items[0];
+        Assert.Equal("Geliştirici derleme klasörleri · 3 proje", dev.Name);
+        Assert.Equal(13_000, dev.Bytes);
+        Assert.Equal(["Teknesyum › src-tauri · Cargo", "ProcWitness › src-tauri · Cargo", "ProcWitness › ProcWitness.App · .NET"], dev.Units.Select(u => u.Name));
+        Assert.Equal(@"C:\Kod\ProcWitness\src-tauri\target", dev.Units[1].Place);
+        Assert.Equal(@"D:\…\ProcWitness\src-tauri\target", SafeBreakdown.Shorten(@"D:\İş\Kod\ProcWitness\src-tauri\target"));
+        Assert.Equal("Uygulama önbellekleri · 1 klasör", items[1].Name);
+        Assert.Equal("Discord önbelleği · Ahmet", Assert.Single(items[1].Units).Name);
+        Assert.Equal("Edge önbelleği", Assert.Single(items[2].Units).Name);
+        Assert.Equal("Ad", SafeBreakdown.Plain("Ad"));
+    }
+
+    [Fact]
+    public void Skipped_Units_Leave_Only_Their_Share_Of_The_Group()
+    {
+        var group = Assert.Single(SafeBreakdown.Units([Dev("a", "x (Cargo)", @"C:\K\A\x\target", 100), Dev("b", "x (Cargo)", @"C:\K\B\x\target", 40)]));
+        var skipped = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "unit:b" };
+
+        Assert.Equal(100, SafeBreakdown.Total([group], skipped));
+        Assert.Equal(140, SafeBreakdown.Total([group], new HashSet<string>()));
+        Assert.Equal(0, SafeBreakdown.Total([group], new HashSet<string> { "unit:a", "unit:b" }));
     }
 
     [Fact]
@@ -182,7 +226,7 @@ public class GuvenliDokumTests
         var overview = vm.Overview;
 
         Assert.True(overview.HasBreakdown);
-        Assert.Equal(["unit:u4", "task:temp", "chrome/cache"], overview.SafeItems.Select(r => r.Key));
+        Assert.Equal(["group:DevArtifact", "task:temp", "chrome/cache"], overview.SafeItems.Select(r => r.Key));
         Assert.Equal(overview.SafeBytes, overview.SafeItems.Sum(r => r.Item.Bytes));
         var cache = overview.SafeItems[2];
         Assert.Equal($"3 dosya · {Format.Bytes(999_999)}", cache.SizeText);
@@ -216,7 +260,7 @@ public class GuvenliDokumTests
         var (vm, backend) = await Ready();
         var overview = vm.Overview;
         var before = overview.SafeBytes;
-        var unit = overview.SafeItems.Single(r => r.Key == "unit:u4");
+        var unit = overview.SafeItems.Single(r => r.Key == "group:DevArtifact");
         var task = overview.SafeItems.Single(r => r.Key == "task:temp");
 
         overview.SkipSafeCommand.Execute(unit);
@@ -302,5 +346,103 @@ public class GuvenliDokumTests
 
         await overview.ExpandSafeCommand.ExecuteAsync(cache);
         Assert.False(cache.IsExpanded);
+    }
+
+    static async Task<MainViewModel> Many(int count)
+    {
+        var (vm, _) = await Ready();
+        var snapshot = FakeBackend.Snapshot();
+        vm.Session.SetSnapshot(snapshot with
+        {
+            Units =
+            [
+                .. snapshot.Units,
+                .. Enumerable.Range(1, count).Select(i => Dev("d" + i, "src-tauri (Cargo)", $@"C:\Kod\Proje{i}\src-tauri\target", 1_000_000L * i)),
+            ],
+        });
+        await vm.Overview.EstimateAsync();
+        await Settle();
+        return vm;
+    }
+
+    [AvaloniaFact]
+    public async Task Thousands_Of_Silent_Units_Stay_One_Line_And_Open_Twenty_At_A_Time()
+    {
+        var vm = await Many(2_000);
+        var overview = vm.Overview;
+
+        Assert.Equal(["group:DevArtifact", "task:temp", "chrome/cache"], overview.SafeItems.Select(r => r.Key));
+        Assert.False(overview.HasAllSafeToggle);
+        var group = overview.SafeItems[0];
+        Assert.Equal("Geliştirici derleme klasörleri · 2.001 proje", group.Name);
+        Assert.Empty(group.Units);
+
+        await overview.ExpandSafeCommand.ExecuteAsync(group);
+
+        Assert.Equal(SafeBreakdown.UnitPage, group.Units.Count);
+        Assert.Equal("Kod › node_modules", group.Units[0].Name);
+        Assert.Equal("Proje2000 › src-tauri · Cargo", group.Units[1].Name);
+        Assert.True(group.HasMoreUnits);
+        Assert.Equal("20 tane daha göster (1.981 kaldı)", group.MoreUnitsText);
+        overview.MoreUnitsCommand.Execute(group);
+        Assert.Equal(40, group.Units.Count);
+        Assert.True(group.Units.Zip(group.Units.Skip(1)).All(p => p.First.Unit.Bytes >= p.Second.Unit.Bytes));
+
+        await overview.ExpandSafeCommand.ExecuteAsync(group);
+        Assert.False(group.HasMoreUnits);
+        await overview.ExpandSafeCommand.ExecuteAsync(group);
+        Assert.Equal(40, group.Units.Count);
+    }
+
+    [AvaloniaFact]
+    public async Task Skipping_One_Unit_Keeps_The_Rest_Of_Its_Group_In_The_Clean()
+    {
+        var vm = await Many(3);
+        var overview = vm.Overview;
+        var backend = (FakeBackend)vm.Backend;
+        var group = overview.SafeItems.Single(r => r.IsGroup);
+        await overview.ExpandSafeCommand.ExecuteAsync(group);
+        var before = overview.SafeBytes;
+        var biggest = group.Units.Single(u => u.Key == "unit:u4");
+
+        overview.SkipUnitCommand.Execute(biggest);
+
+        Assert.True(biggest.IsSkipped);
+        Assert.Equal("Geri ekle", biggest.SkipText);
+        Assert.False(group.IsSkipped);
+        Assert.True(group.HasSkipNote);
+        Assert.Equal("1 proje bu temizlikte atlanır", group.SkippedText);
+        Assert.Equal(before - 3_000_000_000, overview.SafeBytes);
+        Assert.Equal(Format.Bytes(6_000_000), group.SizeText);
+
+        await overview.SafeCleanCommand.ExecuteAsync(null);
+        await Settle();
+
+        var deleted = backend.Requests.Where(r => r.Op == Ops.Delete).Select(r => r.UnitId).ToList();
+        Assert.Equal(["d1", "d2", "d3"], deleted.Order(StringComparer.Ordinal));
+        Assert.DoesNotContain("u4", deleted);
+    }
+
+    [AvaloniaFact]
+    public async Task Skipping_A_Group_Skips_Every_Unit_And_Can_Be_Undone()
+    {
+        var vm = await Many(3);
+        var overview = vm.Overview;
+        var group = overview.SafeItems.Single(r => r.IsGroup);
+        await overview.ExpandSafeCommand.ExecuteAsync(group);
+        overview.SkipUnitCommand.Execute(group.Units[0]);
+
+        overview.SkipSafeCommand.Execute(group);
+
+        Assert.True(group.IsSkipped);
+        Assert.All(group.Units, u => Assert.True(u.IsSkipped));
+        Assert.Equal(["unit:d1", "unit:d2", "unit:d3", "unit:u4"], vm.Session.SafeSkips.Order(StringComparer.Ordinal));
+        Assert.Equal("Bu temizlikte atlanır", group.SkippedText);
+
+        overview.SkipSafeCommand.Execute(group);
+
+        Assert.False(group.IsSkipped);
+        Assert.Empty(vm.Session.SafeSkips);
+        Assert.False(group.HasSkipNote);
     }
 }

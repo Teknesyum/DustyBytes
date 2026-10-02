@@ -77,7 +77,7 @@
                       <TextBlock Theme="{StaticResource Body}" Text="{Binding Name}" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Name}" VerticalAlignment="Center"/>
                     </DockPanel>
                     <TextBlock Theme="{StaticResource Hint}" Text="{Binding What}" TextWrapping="Wrap" IsVisible="{Binding HasWhat}"/>
-                    <TextBlock Theme="{StaticResource Label}" Text="{Binding SkippedText}" IsVisible="{Binding IsSkipped}"/>
+                    <TextBlock Theme="{StaticResource Label}" Text="{Binding SkippedText}" IsVisible="{Binding HasSkipNote}"/>
                     <WrapPanel ItemSpacing="{StaticResource Space2}" LineSpacing="{StaticResource Space1}">
                       <Button Classes="ghost" Content="{Binding ExpandText}" IsVisible="{Binding CanExpand}"
                               Command="{Binding $parent[v:OverviewView].((vm:OverviewViewModel)DataContext).ExpandSafeCommand}" CommandParameter="{Binding}"/>
@@ -108,6 +108,34 @@
                           </DataTemplate>
                         </ItemsControl.ItemTemplate>
                       </ItemsControl>
+                      <ItemsControl Name="SafeUnits" ItemsSource="{Binding Units}" IsVisible="{Binding HasUnits}">
+                        <ItemsControl.ItemsPanel>
+                          <ItemsPanelTemplate>
+                            <StackPanel Spacing="{StaticResource Space2}"/>
+                          </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                          <DataTemplate x:DataType="vm:SafeUnitRow">
+                            <DockPanel>
+                              <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="{StaticResource FieldGap}">
+                                <TextBlock Theme="{StaticResource MonoValue}" Classes="data" Text="{Binding SizeText}" VerticalAlignment="Center"/>
+                                <Button Classes="link" Content="Klasörde göster" IsVisible="{Binding CanReveal}" VerticalAlignment="Center"
+                                        ToolTip.Tip="Klasörü dosya gezgininde seçili gösterir; açmaz, silmez"
+                                        Command="{Binding $parent[v:OverviewView].((vm:OverviewViewModel)DataContext).RevealUnitCommand}" CommandParameter="{Binding}"/>
+                                <Button Classes="link" Content="{Binding SkipText}" ToolTip.Tip="{Binding SkipTip}" VerticalAlignment="Center"
+                                        Command="{Binding $parent[v:OverviewView].((vm:OverviewViewModel)DataContext).SkipUnitCommand}" CommandParameter="{Binding}"/>
+                              </StackPanel>
+                              <StackPanel VerticalAlignment="Center">
+                                <TextBlock Theme="{StaticResource Body}" Text="{Binding Name}" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Name}"/>
+                                <TextBlock Theme="{StaticResource Hint}" Text="{Binding Place}" TextTrimming="CharacterEllipsis"
+                                           ToolTip.Tip="{Binding Target}" Background="Transparent"/>
+                              </StackPanel>
+                            </DockPanel>
+                          </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                      </ItemsControl>
+                      <Button Classes="link" HorizontalAlignment="Left" Content="{Binding MoreUnitsText}" IsVisible="{Binding HasMoreUnits}"
+                              Command="{Binding $parent[v:OverviewView].((vm:OverviewViewModel)DataContext).MoreUnitsCommand}" CommandParameter="{Binding}"/>
                     </StackPanel>
                   </StackPanel>
                 </DataTemplate>

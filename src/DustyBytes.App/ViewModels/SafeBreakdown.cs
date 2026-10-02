@@ -9,21 +9,30 @@ public enum SafeItemKind
 {
     Rule,
     Task,
-    Unit,
+    Group,
 }
 
 public sealed record SafeFile(string Path, long Bytes, DateTime LastWriteUtc);
 
-public sealed record SafeItem(string Key, SafeItemKind Kind, string Name, string What, int? Count, long Bytes, IReadOnlyList<SafeFile> Files);
+public sealed record SafeItem(string Key, SafeItemKind Kind, string Name, string What, int? Count, long Bytes, IReadOnlyList<SafeFile> Files)
+{
+    public IReadOnlyList<SafeUnit> Units { get; init; } = [];
+    public string Noun { get; init; } = "";
+}
+
+public sealed record SafeUnit(string Key, string Name, string Place, string Target, long Bytes);
 
 public static class SafeBreakdown
 {
     public const int Shown = 4;
     public const int FileLimit = 10;
+    public const int UnitPage = 20;
 
     public static string TaskKey(string id) => "task:" + id;
 
     public static string UnitKey(string id) => "unit:" + id;
+
+    public static string GroupKey(UnitKind kind, string? label) => label is null ? $"group:{kind}" : $"group:{kind}:{label}";
 
     public static List<string> SafeKeys(IEnumerable<CleanRuleInfo> rules) =>
         [.. rules.SelectMany(r => r.Rule.Options.Where(o => CleanRuleRow.Safe(r, o)).Select(o => CleanOptionRow.KeyOf(r.Rule.Id, o.Id)))];
@@ -57,15 +66,81 @@ public static class SafeBreakdown
 
     public static List<SafeItem> Units(IEnumerable<Unit> units) =>
     [
-        .. units.Where(TourViewModel.Silent).Select(u => new SafeItem(
-            UnitKey(u.Id),
-            SafeItemKind.Unit,
-            $"{u.Name} ({KindText.Label(u)})",
-            UnitKindInfo.Explain(u.Kind).What,
-            null,
-            Math.Max(0, u.SizeBytes),
-            [.. u.Paths.Select(p => new SafeFile(p, u.Paths.Count == 1 ? Math.Max(0, u.SizeBytes) : -1, default))])),
+        .. units.Where(TourViewModel.Silent)
+            .GroupBy(u => (u.Kind, u.Label))
+            .Select(g =>
+            {
+                var members = g.OrderByDescending(u => u.SizeBytes).ThenBy(u => u.Name, StringComparer.CurrentCulture).Select(Member).ToList();
+                var (title, noun) = GroupTitle(g.Key.Kind, g.Key.Label);
+                return new SafeItem(
+                    GroupKey(g.Key.Kind, g.Key.Label),
+                    SafeItemKind.Group,
+                    $"{title} · {Format.Count(members.Count)} {noun}",
+                    UnitKindInfo.Explain(g.Key.Kind).What,
+                    null,
+                    members.Sum(m => m.Bytes),
+                    [])
+                {
+                    Units = members,
+                    Noun = noun,
+                };
+            }),
     ];
+
+    public static SafeUnit Member(Unit unit)
+    {
+        var target = unit.Paths.Count > 0 ? unit.Paths[0] : "";
+        var plain = Plain(unit.Name);
+        var owner = Owner(plain, target);
+        return new SafeUnit(UnitKey(unit.Id), owner is null ? plain : $"{owner} › {plain}", Shorten(target), target, Math.Max(0, unit.SizeBytes));
+    }
+
+    public static string Plain(string name)
+    {
+        var text = name.Trim();
+        if (!text.EndsWith(')'))
+            return text;
+        var open = text.LastIndexOf(" (", StringComparison.Ordinal);
+        if (open <= 0)
+            return text;
+        var inner = text[(open + 2)..^1].Trim();
+        return inner.Length == 0 || inner.Contains('(') ? text : $"{text[..open].TrimEnd()} · {inner}";
+    }
+
+    public static string Shorten(string path, int keep = 3)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+            return "";
+        var (root, parts) = Segments(path);
+        return parts.Length <= keep + 1 ? path : root + "…\\" + string.Join('\\', parts[^keep..]);
+    }
+
+    static (string Root, string[] Parts) Segments(string path)
+    {
+        var root = Path.GetPathRoot(path) ?? "";
+        return (root, path[root.Length..].Split(['\\', '/'], StringSplitOptions.RemoveEmptyEntries));
+    }
+
+    static string? Owner(string plain, string target)
+    {
+        if (string.IsNullOrWhiteSpace(target))
+            return null;
+        var head = plain.Split(" · ")[0];
+        var (_, parts) = Segments(target);
+        for (var i = parts.Length - 1; i > 0; i--)
+            if (string.Equals(parts[i], head, StringComparison.OrdinalIgnoreCase))
+                return parts[i - 1];
+        return null;
+    }
+
+    static (string Title, string Noun) GroupTitle(UnitKind kind, string? label) => kind switch
+    {
+        _ when label is not null => (label, "klasör"),
+        UnitKind.DevArtifact => ("Geliştirici derleme klasörleri", "proje"),
+        UnitKind.Cache => ("Uygulama önbellekleri", "klasör"),
+        UnitKind.BrowserCache => ("Tarayıcı önbellekleri", "klasör"),
+        _ => (KindText.Label(kind), "klasör"),
+    };
 
     public static List<SafeFile> FilesFor(CleanPreview preview, string key, int limit = FileLimit) =>
     [
@@ -81,7 +156,12 @@ public static class SafeBreakdown
         [.. items.Where(i => i.Bytes > 0 || i.Count > 0).OrderByDescending(i => i.Bytes).ThenBy(i => i.Name, StringComparer.CurrentCulture)];
 
     public static long Total(IEnumerable<SafeItem> items, IReadOnlySet<string> skipped) =>
-        items.Where(i => !skipped.Contains(i.Key)).Sum(i => Math.Max(0, i.Bytes));
+        items.Sum(i => Active(i, skipped));
+
+    public static long Active(SafeItem item, IReadOnlySet<string> skipped) =>
+        item.Kind == SafeItemKind.Group
+            ? item.Units.Where(u => !skipped.Contains(u.Key)).Sum(u => Math.Max(0, u.Bytes))
+            : skipped.Contains(item.Key) ? 0 : Math.Max(0, item.Bytes);
 
     public static (List<string> Options, List<string> Tasks) Scope(IEnumerable<string> options, IEnumerable<string> tasks, IReadOnlySet<string> skipped) =>
         ([.. options.Where(o => !skipped.Contains(o))], [.. tasks.Where(t => !skipped.Contains(TaskKey(t)))]);

@@ -436,7 +436,7 @@ public sealed partial class OverviewViewModel : ViewModelBase
 
     void Breakdown()
     {
-        _safeRows = [.. SafeBreakdown.Order(SafeItemsAll).Select(i => new SafeItemRow(i, Session.SafeSkips.Contains(i.Key)))];
+        _safeRows = [.. SafeBreakdown.Order(SafeItemsAll).Select(i => new SafeItemRow(i, Session.SafeSkips))];
         FillSafe();
     }
 
@@ -459,12 +459,38 @@ public sealed partial class OverviewViewModel : ViewModelBase
     {
         if (row is null)
             return;
-        row.IsSkipped = !row.IsSkipped;
-        if (row.IsSkipped)
-            Session.SafeSkips.Add(row.Key);
-        else
-            Session.SafeSkips.Remove(row.Key);
+        var skip = !row.IsSkipped;
+        IEnumerable<string> keys = row.IsGroup ? row.Item.Units.Select(u => u.Key) : [row.Key];
+        foreach (var key in keys)
+            if (skip)
+                Session.SafeSkips.Add(key);
+            else
+                Session.SafeSkips.Remove(key);
+        row.Sync(Session.SafeSkips);
         RaiseSafe();
+    }
+
+    [RelayCommand]
+    private void SkipUnit(SafeUnitRow? unit)
+    {
+        if (unit is null)
+            return;
+        if (!Session.SafeSkips.Remove(unit.Key))
+            Session.SafeSkips.Add(unit.Key);
+        unit.Group.Sync(Session.SafeSkips);
+        RaiseSafe();
+    }
+
+    [RelayCommand]
+    private void MoreUnits(SafeItemRow? row) => row?.ShowMoreUnits();
+
+    [RelayCommand]
+    private void RevealUnit(SafeUnitRow? unit)
+    {
+        if (unit is not { CanReveal: true })
+            return;
+        if (!Gezgin.Reveal(unit.Target))
+            _main.Fail("Klasör açılamadı: " + unit.Target);
     }
 
     [RelayCommand]
@@ -473,6 +499,8 @@ public sealed partial class OverviewViewModel : ViewModelBase
         if (row is null)
             return;
         row.IsExpanded = !row.IsExpanded;
+        if (row.IsExpanded && row.IsGroup && row.Units.Count == 0)
+            row.ShowMoreUnits();
         if (!row.IsExpanded || !row.NeedsFiles || row.IsLoading)
             return;
         row.IsLoading = true;

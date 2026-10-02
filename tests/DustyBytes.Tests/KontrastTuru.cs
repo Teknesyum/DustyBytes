@@ -98,6 +98,33 @@ static class KontrastTuru
         vm.Overview.SkipSafeCommand.Execute(atla);
         Bekle(vm.Overview.ExpandSafeCommand.ExecuteAsync(acik));
 
+        var ilkTarama = vm.Session.Snapshot!;
+        vm.Session.SetSnapshot(ilkTarama with
+        {
+            Units =
+            [
+                .. ilkTarama.Units,
+                .. Enumerable.Range(1, 30).Select(i => new Unit
+                {
+                    Id = "d" + i,
+                    Kind = UnitKind.DevArtifact,
+                    Name = "src-tauri (Cargo)",
+                    Paths = [$@"C:\Kod\Proje {i}\src-tauri\target"],
+                    SizeBytes = 100_000_000L * i,
+                    Removal = RemovalMethod.DirectDelete,
+                }),
+            ],
+        });
+        Bekle(vm.Overview.EstimateAsync());
+        var grup = vm.Overview.SafeItems.First(r => r.IsGroup);
+        Bekle(vm.Overview.ExpandSafeCommand.ExecuteAsync(grup));
+        vm.Overview.SkipUnitCommand.Execute(grup.Units[1]);
+        Otur();
+        yield return "Güvenli Döküm Grup";
+        vm.Overview.SkipUnitCommand.Execute(grup.Units[1]);
+        vm.Session.SetSnapshot(ilkTarama);
+        Bekle(vm.Overview.EstimateAsync());
+
         Bekle(vm.StartTourAsync(TourMode.Ask));
         Otur();
         yield return "Tur Kümesi";
