@@ -38,9 +38,9 @@ public sealed class WorkerServices
         {
             Ops.Ping => Task.FromResult(new WorkerResponse { Id = request.Id, Ok = true, Message = "pong", DryRun = DryRun.Enabled, Payload = Environment.ProcessId.ToString() }),
             Ops.Quarantine when IsDuplicate(request) => Task.Run(() => QuarantineDuplicates(request, progress, ct), ct),
-            Ops.Quarantine => Task.Run(() => PerPath(request, progress, ct, p => Quarantine.Quarantine(p, request.UnitId, request.IncludeUserData, request.SessionId)), ct),
+            Ops.Quarantine => Task.Run(() => PerPath(request, progress, ct, Scoped(request, OpMethod.Quarantine, p => Quarantine.Quarantine(p, request.UnitId, request.IncludeUserData, request.SessionId))), ct),
             Ops.Delete when QuarantineOnly(request) => Task.FromResult(new WorkerResponse { Id = request.Id, Ok = false, Message = IsDuplicate(request) ? "Kopyalar yalnız karantinaya alınır; kalıcı silinmez" : "Eski indirmeler yalnız karantinaya alınır; kalıcı silinmez" }),
-            Ops.Delete => Task.Run(() => PerPath(request, progress, ct, p => Delete.Delete(p, request.IncludeUserData, request.Target == TargetOnReboot)), ct),
+            Ops.Delete => Task.Run(() => PerPath(request, progress, ct, Scoped(request, OpMethod.Delete, p => Delete.Delete(p, request.IncludeUserData, request.Target == TargetOnReboot))), ct),
             Ops.Restore when IsSessionRestore(request) => Task.Run(() => RestoreSession(request, progress, ct), ct),
             Ops.Restore => Task.Run(() => PerId(request, progress, ct, Quarantine.Restore), ct),
             Ops.Purge => Task.Run(() => PurgeAsync(request, progress, ct), ct),
@@ -49,6 +49,11 @@ public sealed class WorkerServices
             Ops.Shutdown => Task.FromResult(new WorkerResponse { Id = request.Id, Ok = true, Message = "Worker kapanıyor" }),
             _ => throw new InvalidOperationException("Yerleşik olmayan işlem: " + request.Op),
         };
+
+    static Func<string, OpResult> Scoped(WorkerRequest request, string method, Func<string, OpResult> action) =>
+        request.Roots.Count == 0
+            ? action
+            : p => UnitScope.Refuse(p, request.Roots) is { } refusal ? OpResult.Denied(p, refusal, method) : action(p);
 
     public static bool QuarantineOnly(WorkerRequest request) =>
         request.UnitId?.StartsWith(nameof(Core.Model.UnitKind.OldDownload) + "-", StringComparison.Ordinal) == true || IsDuplicate(request);

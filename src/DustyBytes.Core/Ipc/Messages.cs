@@ -45,6 +45,7 @@ public sealed record WorkerRequest
     public string? Digest { get; init; }
     public string? SessionId { get; init; }
     public string? PreviewId { get; init; }
+    public List<string> Roots { get; init; } = [];
 }
 
 public sealed record ItemResult(string Path, bool Ok, string Message, long Bytes = 0);

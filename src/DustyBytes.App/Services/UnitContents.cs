@@ -11,7 +11,7 @@ public sealed record ContentsResult(IReadOnlyList<ContentFile> Files, long FileC
 
 public static class UnitContents
 {
-    public const int Take = 30;
+    public const int Take = 100_000;
     public const int MaxDepth = 24;
     public static readonly TimeSpan Budget = TimeSpan.FromSeconds(8);
 

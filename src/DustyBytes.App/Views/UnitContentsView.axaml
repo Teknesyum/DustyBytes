@@ -7,6 +7,24 @@
     <TextBlock Name="ContentsStatus" Theme="{StaticResource WarningBody}" Text="{Binding Status}" IsVisible="{Binding HasStatus}" TextWrapping="Wrap"/>
     <StackPanel Name="ContentsBody" Spacing="{StaticResource Space1}" IsVisible="{Binding IsExpanded}">
       <TextBlock Theme="{StaticResource Hint}" Text="{Binding Summary}" IsVisible="{Binding HasSummary}" TextWrapping="Wrap"/>
+      <TextBlock Name="ContentsNotice" Theme="{StaticResource Body}" Text="{Binding Notice}" IsVisible="{Binding HasNotice}" TextWrapping="Wrap"/>
+      <StackPanel Name="ContentsSelectionBar" Spacing="{StaticResource Space1}" IsVisible="{Binding ShowSelection}">
+        <Grid ColumnDefinitions="Auto,Auto,*" ColumnSpacing="{StaticResource Space2}">
+          <Button Name="ContentsSelectAll" Classes="ghost" Content="Tümünü seç" Command="{Binding SelectAllCommand}"
+                  ToolTip.Tip="{Binding SelectAllHint}" AutomationProperties.Name="Tümünü seç"/>
+          <Button Name="ContentsSelectNone" Grid.Column="1" Classes="ghost" Content="Hiçbirini" Command="{Binding SelectNoneCommand}"
+                  AutomationProperties.Name="Hiçbirini seçme"/>
+          <TextBlock Name="ContentsSelection" Grid.Column="2" Theme="{StaticResource Body}" Text="{Binding SelectionText}"
+                     VerticalAlignment="Center" TextWrapping="Wrap"/>
+        </Grid>
+        <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space2}" HorizontalAlignment="Right">
+          <Button Name="ContentsPurge" Classes.ghost="{Binding !IsPurgeArmed}" Classes.danger="{Binding IsPurgeArmed}"
+                  Content="{Binding PurgeText}" Command="{Binding PurgeSelectedCommand}"
+                  ToolTip.Tip="{Binding PurgeHint}" AutomationProperties.Name="Seçilenleri kalıcı sil"/>
+          <Button Name="ContentsQuarantine" Classes="ghost" Content="{Binding QuarantineText}" Command="{Binding QuarantineSelectedCommand}"
+                  ToolTip.Tip="{Binding QuarantineHint}" AutomationProperties.Name="Seçilenleri karantinaya al"/>
+        </StackPanel>
+      </StackPanel>
       <ItemsControl Name="ContentsRows" ItemsSource="{Binding Rows}" IsVisible="{Binding HasRows}" Grid.IsSharedSizeScope="True">
         <ItemsControl.ItemsPanel>
           <ItemsPanelTemplate>
@@ -17,24 +35,29 @@
           <DataTemplate x:DataType="vm:ContentRow">
             <Grid ColumnSpacing="{StaticResource Space3}">
               <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" SharedSizeGroup="contentCheck"/>
                 <ColumnDefinition Width="Auto" SharedSizeGroup="contentKind"/>
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="Auto" SharedSizeGroup="contentSize"/>
                 <ColumnDefinition Width="Auto" SharedSizeGroup="contentActions"/>
               </Grid.ColumnDefinitions>
-              <Panel VerticalAlignment="Center">
+              <CheckBox IsChecked="{Binding IsSelected}" IsVisible="{Binding CanSelect}" VerticalAlignment="Center"
+                        MinWidth="{StaticResource InputHeight}" MinHeight="{StaticResource InputHeight}"
+                        AutomationProperties.Name="{Binding Name}"/>
+              <Panel Grid.Column="1" VerticalAlignment="Center">
                 <Image Source="{Binding Thumb}" IsVisible="{Binding HasThumb}" Stretch="UniformToFill"
                        Width="{StaticResource IconSize4}" Height="{StaticResource IconSize4}"
                        AutomationProperties.Name="{Binding Name}"/>
                 <TextBlock Theme="{StaticResource Label}" Text="{Binding KindText}" IsVisible="{Binding NoThumb}" VerticalAlignment="Center"/>
               </Panel>
-              <StackPanel Grid.Column="1" VerticalAlignment="Center">
+              <StackPanel Grid.Column="2" VerticalAlignment="Center">
                 <TextBlock Theme="{StaticResource Body}" Text="{Binding Name}" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Path}"/>
                 <TextBlock Theme="{StaticResource Hint}" Text="{Binding DateText}"/>
+                <TextBlock Theme="{StaticResource WarningBody}" Text="{Binding Failure}" IsVisible="{Binding HasFailure}" TextWrapping="Wrap"/>
               </StackPanel>
-              <TextBlock Grid.Column="2" Theme="{StaticResource MonoValue}" Classes="data" Text="{Binding SizeText}"
+              <TextBlock Grid.Column="3" Theme="{StaticResource MonoValue}" Classes="data" Text="{Binding SizeText}"
                          HorizontalAlignment="Right" VerticalAlignment="Center"/>
-              <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="{StaticResource Space2}" HorizontalAlignment="Right" VerticalAlignment="Center">
+              <StackPanel Grid.Column="4" Orientation="Horizontal" Spacing="{StaticResource Space2}" HorizontalAlignment="Right" VerticalAlignment="Center">
                 <Button Classes="ghost" Content="{Binding OpenText}" IsVisible="{Binding CanOpen}" Command="{Binding OpenCommand}"
                         ToolTip.Tip="{Binding OpenHint}" AutomationProperties.Name="{Binding OpenText}"/>
                 <Button Classes="ghost" Content="Klasörde göster" Command="{Binding RevealCommand}"
@@ -44,6 +67,8 @@
           </DataTemplate>
         </ItemsControl.ItemTemplate>
       </ItemsControl>
+      <Button Name="ContentsMore" Classes="ghost" Content="{Binding MoreText}" IsVisible="{Binding HasMore}"
+              Command="{Binding ShowMoreCommand}" AutomationProperties.Name="Daha fazla göster"/>
     </StackPanel>
   </StackPanel>
 </UserControl>
