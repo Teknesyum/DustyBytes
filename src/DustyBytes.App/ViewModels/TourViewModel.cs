@@ -277,6 +277,7 @@ public sealed partial class TourViewModel : ViewModelBase
 
     void Next()
     {
+        Olcum.Decided("tour");
         _index++;
         Show();
     }

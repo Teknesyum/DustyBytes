@@ -200,9 +200,13 @@
         <StackPanel Spacing="{StaticResource RowGap}">
           <Grid ColumnDefinitions="*,Auto">
             <TextBlock Theme="{StaticResource H3}" Text="{Binding MonthText}" VerticalAlignment="Center"/>
-            <CheckBox Name="WeeklyCheckToggle" Grid.Column="1" IsChecked="{Binding WeeklyCheck}" ToolTip.Tip="{Binding WeeklyCheckTip}">
-              <TextBlock Theme="{StaticResource Body}" Text="Haftalık disk kontrolü"/>
-            </CheckBox>
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="{StaticResource Space3}" VerticalAlignment="Center">
+              <Button Name="OpenMeasureButton" Classes="link" Content="Ölçüm kaydını aç" Command="{Binding OpenMeasureCommand}"
+                      ToolTip.Tip="Yalnız bu bilgisayarda tutulur, ağa gitmez; dosya gezgininde gösterilir"/>
+              <CheckBox Name="WeeklyCheckToggle" IsChecked="{Binding WeeklyCheck}" ToolTip.Tip="{Binding WeeklyCheckTip}">
+                <TextBlock Theme="{StaticResource Body}" Text="Haftalık disk kontrolü"/>
+              </CheckBox>
+            </StackPanel>
           </Grid>
           <TextBlock Theme="{StaticResource Hint}" Text="{Binding LastCleanupText}" IsVisible="{Binding HasLastCleanup}" TextWrapping="Wrap"/>
           <ItemsControl Name="CompareBars" ItemsSource="{Binding Compare}" IsVisible="{Binding HasCompare}">

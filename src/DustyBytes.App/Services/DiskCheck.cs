@@ -22,9 +22,16 @@ public sealed record HeldSpace(long Bytes, int Count, int DaysLeft, bool SameDay
         other is not null && other.Bytes == Bytes && other.Count == Count && other.Ids.SequenceEqual(Ids, StringComparer.Ordinal);
 }
 
+public sealed record ToastAction(string Content, string Uri);
+
 public interface INotifier
 {
     bool Show(string title, string body, string launch);
+}
+
+public interface IActionNotifier : INotifier
+{
+    bool Show(string title, string body, string launch, IReadOnlyList<ToastAction> actions);
 }
 
 public static class DiskCheck
@@ -46,13 +53,29 @@ public static class DiskCheck
 
     public static string Message(IReadOnlyList<DriveSpace> low) => Title(low) + " · " + Body;
 
-    public static int Run(IEnumerable<DriveSpace> drives, INotifier notifier, Func<string, string?>? growth = null)
+    public static int Run(IEnumerable<DriveSpace> drives, INotifier notifier, Func<string, string?>? growth = null, NoticeState? notices = null, DateTimeOffset? now = null)
     {
         var low = Low(drives);
         if (low.Count == 0)
             return 0;
+        var at = now ?? DateTimeOffset.Now;
+        IReadOnlyList<ToastAction>? actions = null;
+        if (notices is not null)
+        {
+            var data = notices.Read();
+            if (!NoticePolicy.Allows(low, data, at))
+                return 0;
+            if (notifier is IActionNotifier)
+                actions = NoticePolicy.Actions(data, notices.IssueToken(at));
+        }
         var sentence = growth is null ? null : low.Select(d => growth(d.Root)).FirstOrDefault(s => s is { Length: > 0 });
-        return notifier.Show(Title(low), sentence is null ? Body : sentence + ". " + Body, LaunchArgs.OpenUri) ? 0 : 1;
+        var body = sentence is null ? Body : sentence + ". " + Body;
+        var shown = actions is not null && notifier is IActionNotifier rich
+            ? rich.Show(Title(low), body, LaunchArgs.OpenUri, actions)
+            : notifier.Show(Title(low), body, LaunchArgs.OpenUri);
+        if (shown)
+            notices?.MarkShown(at);
+        return shown ? 0 : 1;
     }
 
     public static string? RootOf(QuarantineEntry entry)

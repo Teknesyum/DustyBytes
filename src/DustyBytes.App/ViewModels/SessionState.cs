@@ -152,6 +152,7 @@ public sealed partial class SessionState(IAppBackend backend) : ObservableObject
             if (_removedDuringScan.Count > 0)
                 result = result with { Units = [.. result.Units.Where(u => !_removedDuringScan.Contains(u.Id))] };
             SetSnapshot(result);
+            Olcum.Mark(OlcumKind.ScanDone, result.Units.Count);
             FindDuplicates();
             var summary = $"{Format.Count(result.Units.Count)} birim, {Format.Bytes(result.Units.Sum(u => u.SizeBytes))} açılabilir";
             shell.Notify(refreshed ? "Değişiklikler işlendi: " + summary : "Tarama bitti: " + summary);
@@ -347,6 +348,7 @@ public sealed partial class SessionState(IAppBackend backend) : ObservableObject
 
     public void SetSnapshot(ScanSnapshot snapshot)
     {
+        Olcum.First(OlcumKind.FirstCard);
         Snapshot = snapshot;
         if (SelectedDrive is { } drive && (snapshot.Results.Count < 2 || snapshot.For(drive) is null))
             SelectedDrive = null;
@@ -398,5 +400,10 @@ public sealed partial class SessionState(IAppBackend backend) : ObservableObject
         }
     }
 
-    public void AddFreed(long bytes, string? root = null) => Ledger = backend.AddFreed(bytes, root);
+    public void AddFreed(long bytes, string? root = null)
+    {
+        if (bytes > 0)
+            Olcum.First(OlcumKind.FirstFreed, bytes);
+        Ledger = backend.AddFreed(bytes, root);
+    }
 }
