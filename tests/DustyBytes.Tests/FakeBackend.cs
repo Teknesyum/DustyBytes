@@ -310,6 +310,19 @@ public sealed class FakeBackend : IAppBackend
         return response;
     }
 
+    public const long CleanFreed = 100_000_000;
+    public const long DeleteFreed = 2_500_000_000;
+    public const long QuarantinePending = 7_000_000_000;
+
+    public static WorkerResponse Measured(WorkerRequest request) => new()
+    {
+        Id = request.Id,
+        Ok = true,
+        Items = [.. request.Paths.Select((p, i) => new ItemResult($"{p}|{request.UnitId}-{i}", true, "", 0))],
+        FreedBytes = request.Op == Ops.Delete ? DeleteFreed : request.Op is Ops.Clean or Ops.SystemClean ? CleanFreed : 0,
+        PendingBytes = request.Op == Ops.Quarantine ? QuarantinePending : 0,
+    };
+
     public LedgerData ReadLedger() => Ledger;
 
     public List<string?> FreedRoots { get; } = [];

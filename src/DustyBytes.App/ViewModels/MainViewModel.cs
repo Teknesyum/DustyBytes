@@ -64,9 +64,9 @@ public sealed partial class MainViewModel : ObservableObject
     public QuarantineViewModel Quarantine { get; }
     public TourViewModel Tour { get; }
 
-    public async Task StartTourAsync()
+    public async Task StartTourAsync(TourMode mode = TourMode.Full)
     {
-        if (!Session.HasSnapshot || Tour.IsActive)
+        if (!Session.HasSnapshot || Tour.IsActive || Session.Scan.IsRunning || Session.IsRestoring)
             return;
         if (IsBusy)
         {
@@ -74,7 +74,7 @@ public sealed partial class MainViewModel : ObservableObject
             return;
         }
         Navigation.Push(Tour);
-        await Tour.StartAsync();
+        await Tour.StartAsync(mode);
     }
     public UpdateViewModel Update { get; }
 

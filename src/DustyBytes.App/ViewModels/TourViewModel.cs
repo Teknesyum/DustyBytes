@@ -13,6 +13,13 @@ public enum TourStage
     Done,
 }
 
+public enum TourMode
+{
+    Full,
+    Safe,
+    Ask,
+}
+
 public sealed class TourSummary(string freedText, IReadOnlyList<string> lines, bool dryRun)
 {
     public string FreedText { get; } = freedText;
@@ -36,6 +43,7 @@ public sealed partial class TourViewModel : ViewModelBase
     int _purgedCount;
     int _kept;
     bool _dryRun;
+    TourMode _mode;
 
     public TourViewModel(MainViewModel main)
     {
@@ -84,8 +92,11 @@ public sealed partial class TourViewModel : ViewModelBase
     public bool IsPurgeArmed => Purge.IsArmed;
     public string PurgeText => IsPurgeArmed ? TwoStep.ArmedText : "Kalıcı sil";
     public string StepText => _items.Count == 0 ? "" : $"{Math.Min(_index + 1, _items.Count)} / {_items.Count}";
-    public long FreedBytes => _cleaned + _quarantined + _purged;
-    public string FreedText => $"{Format.Bytes(FreedBytes)} yer açıldı";
+    public long FreedBytes => _cleaned + _purged;
+    public long HeldBytes => _quarantined;
+    public string FreedText => HeldBytes > 0
+        ? $"Şimdi boşalan {Format.Bytes(FreedBytes)} · Karantinada {Format.Bytes(HeldBytes)}"
+        : $"Şimdi boşalan {Format.Bytes(FreedBytes)}";
     public bool HasQuarantined => _quarantinedCount > 0;
     public string UserDataText => $"Burada kendi dosyalarınız olabilir. Karantinaya alırsanız {AppSettings.QuarantineDays.Days} gün içinde geri alırsınız.";
 
@@ -102,12 +113,13 @@ public sealed partial class TourViewModel : ViewModelBase
 
     protected override void OnNavigatedFrom() => Purge.Reset();
 
-    public async Task StartAsync()
+    public async Task StartAsync(TourMode mode = TourMode.Full)
     {
         _main.Sessions.Begin("Tur", this);
         var units = _main.Session.Snapshot?.Units ?? [];
         var now = DateTimeOffset.Now;
-        _items = [.. Pick(units, now).Select(u => new UnitCard(u, now, () => { }))];
+        _mode = mode;
+        _items = mode == TourMode.Safe ? [] : [.. Pick(units, now).Select(u => new UnitCard(u, now, () => { }))];
         var direct = units.Where(Silent).Select(u => new UnitCard(u, now, () => { })).ToList();
         _index = 0;
         _cleaned = _quarantined = _purged = 0;
@@ -117,6 +129,12 @@ public sealed partial class TourViewModel : ViewModelBase
         Current = null;
         Page = null;
         Purge.Reset();
+        if (mode == TourMode.Ask)
+        {
+            Stage = TourStage.Asking;
+            Show();
+            return;
+        }
         Stage = TourStage.Cleaning;
         Raise();
 
@@ -156,7 +174,7 @@ public sealed partial class TourViewModel : ViewModelBase
             if (removed.Error is { } error)
                 _main.Fail("İşlem yapılamadı: " + error);
             _dryRun |= removed.DryRun;
-            _cleaned += removed.DryRun ? 0 : removed.Moved.Sum(u => u.SizeBytes);
+            _cleaned += removed.DryRun ? 0 : removed.Freed;
             foreach (var failure in removed.Failures.Take(MainViewModel.toastMax))
                 _main.Fail(failure);
         }
@@ -184,6 +202,7 @@ public sealed partial class TourViewModel : ViewModelBase
     {
         OnPropertyChanged(nameof(StepText));
         OnPropertyChanged(nameof(FreedBytes));
+        OnPropertyChanged(nameof(HeldBytes));
         OnPropertyChanged(nameof(FreedText));
         OnPropertyChanged(nameof(HasQuarantined));
         Commands();
@@ -236,7 +255,7 @@ public sealed partial class TourViewModel : ViewModelBase
         _dryRun |= outcome.DryRun;
         if (!outcome.DryRun && outcome.Moved.Count == 0)
             return;
-        var bytes = card.Unit.SizeBytes;
+        var bytes = outcome.DryRun ? card.Unit.SizeBytes : purge ? outcome.Freed : outcome.Pending;
         if (purge)
         {
             _purged += bytes;
@@ -272,15 +291,15 @@ public sealed partial class TourViewModel : ViewModelBase
         _kept += Math.Max(0, _items.Count - _index);
         _index = _items.Count;
         var lines = new List<string>();
-        if (_cleaned > 0 || lines.Count == 0 && _quarantinedCount + _purgedCount == 0)
+        if (_mode != TourMode.Ask && (_cleaned > 0 || _quarantinedCount + _purgedCount == 0))
             lines.Add($"Önbellek ve geçici dosyalar: {Format.Bytes(_cleaned)}");
         if (_quarantinedCount > 0)
-            lines.Add($"Karantinaya alınan: {_quarantinedCount} öğe, {Format.Bytes(_quarantined)}. {AppSettings.QuarantineDays.Days} gün içinde geri alabilirsiniz.");
+            lines.Add($"Karantinaya alınan: {_quarantinedCount} öğe, {Format.Bytes(_quarantined)}. Bu yer karantina boşalınca açılır; {AppSettings.QuarantineDays.Days} gün içinde geri alabilirsiniz.");
         if (_purgedCount > 0)
             lines.Add($"Kalıcı silinen: {_purgedCount} öğe, {Format.Bytes(_purged)}");
         if (_kept > 0)
             lines.Add($"Yerinde kalan: {_kept} öğe");
-        Summary = new TourSummary(FreedText, lines, _dryRun);
+        Summary = new TourSummary($"{Format.Bytes(FreedBytes)} boşaldı", lines, _dryRun);
         Current = null;
         Page = Summary;
         Stage = TourStage.Done;
