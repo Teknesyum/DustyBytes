@@ -505,22 +505,8 @@ public sealed partial class CleanupViewModel : ViewModelBase
     {
         var rules = await backend.CleanRulesAsync(ct);
         var tasks = await backend.SystemTasksAsync(ct);
-        return ([.. rules.SelectMany(r => r.Rule.Options.Where(o => CleanRuleRow.Safe(r, o)).Select(o => CleanOptionRow.KeyOf(r.Rule.Id, o.Id)))],
+        return (SafeBreakdown.SafeKeys(rules),
             [.. tasks.Where(SystemTaskRow.SilentSafe).Select(t => t.Id)]);
-    }
-
-    public static async Task<long> SafeBytesAsync(IAppBackend backend, CancellationToken ct)
-    {
-        var rules = await backend.CleanRulesAsync(ct);
-        var tasks = await backend.SystemTasksAsync(ct);
-        var selection = rules
-            .Select(r => new RuleSelection(r.Rule.Id, [.. r.Rule.Options.Where(o => CleanRuleRow.Safe(r, o)).Select(o => o.Id)]))
-            .Where(s => s.OptionIds.Count > 0)
-            .ToList();
-        IReadOnlyList<OptionPreview> previews = selection.Count == 0 ? [] : await backend.PreviewCleanAsync(selection, ct);
-        var chosen = selection.SelectMany(s => s.OptionIds.Select(o => CleanOptionRow.KeyOf(s.RuleId, o))).ToHashSet(StringComparer.Ordinal);
-        return previews.Where(p => chosen.Contains(CleanOptionRow.KeyOf(p.RuleId, p.OptionId))).Sum(p => Math.Max(0, p.Bytes))
-            + tasks.Where(SystemTaskRow.SilentSafe).Sum(t => Math.Max(0, t.Bytes));
     }
 
     public static string ChangedText(CleanPreview shown, CleanPreview fresh) =>

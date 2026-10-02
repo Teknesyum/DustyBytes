@@ -25,6 +25,8 @@ public sealed partial class SessionState(IAppBackend backend) : ObservableObject
 
     public ScanDraft? Draft { get; private set; }
 
+    public HashSet<string> SafeSkips { get; } = new(StringComparer.OrdinalIgnoreCase);
+
     void SetDraft(ScanDraft? draft)
     {
         Draft = draft is null || _removedDuringScan.Count == 0

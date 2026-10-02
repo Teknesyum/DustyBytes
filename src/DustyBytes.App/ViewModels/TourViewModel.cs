@@ -129,6 +129,7 @@ public sealed partial class TourViewModel : ViewModelBase
     int _quarantinedCount;
     int _purgedCount;
     int _kept;
+    int _skipped;
     bool _dryRun;
     bool _ranSafe;
     TourMode _mode;
@@ -253,7 +254,10 @@ public sealed partial class TourViewModel : ViewModelBase
         _plan = plan;
         _steps = mode is TourMode.Full or TourMode.Ask ? Build(Pick(units, now), now, OnClusterChanged) : [];
         _decided.Clear();
-        var direct = units.Where(Silent).Select(u => new UnitCard(u, now, () => { })).ToList();
+        var skips = _main.Session.SafeSkips.ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var silent = units.Where(Silent).ToList();
+        var direct = silent.Where(u => !skips.Contains(SafeBreakdown.UnitKey(u.Id))).Select(u => new UnitCard(u, now, () => { })).ToList();
+        _skipped = silent.Count - direct.Count;
         _index = 0;
         _cleaned = _quarantined = _purged = 0;
         _quarantinedCount = _purgedCount = _kept = 0;
@@ -277,7 +281,7 @@ public sealed partial class TourViewModel : ViewModelBase
         Raise();
 
         if (plan is null || plan.SafeBytes > 0)
-            await CleanSafeAsync(direct);
+            await CleanSafeAsync(direct, skips);
         if (plan is { Units.Count: > 0 })
         {
             var cards = plan.Units.Select(u => new UnitCard(u, now, () => { })).ToList();
@@ -287,7 +291,7 @@ public sealed partial class TourViewModel : ViewModelBase
         Show();
     }
 
-    async Task CleanSafeAsync(IReadOnlyList<UnitCard> direct)
+    async Task CleanSafeAsync(IReadOnlyList<UnitCard> direct, IReadOnlySet<string> skips)
     {
         _ranSafe = true;
         var outcome = new CleanOutcome();
@@ -296,7 +300,9 @@ public sealed partial class TourViewModel : ViewModelBase
             await Progress.RunAsync("Güvenli artıklar temizleniyor", async (p, ct) =>
             {
                 p.Report(new TaskStep("Önbellek ve geçici dosyalar bulunuyor", 5, null));
-                var (options, tasks) = await CleanupViewModel.SafeDefaultsAsync(_main.Backend, ct);
+                var (allOptions, allTasks) = await CleanupViewModel.SafeDefaultsAsync(_main.Backend, ct);
+                var (options, tasks) = SafeBreakdown.Scope(allOptions, allTasks, skips);
+                _skipped += allOptions.Count - options.Count + allTasks.Count - tasks.Count;
                 p.Report(new TaskStep("Önbellek ve geçici dosyalar siliniyor", 30, null));
                 await CleanupViewModel.SendAsync(_main.Backend, options, tasks, outcome, p, ct);
                 return true;
@@ -576,6 +582,8 @@ public sealed partial class TourViewModel : ViewModelBase
             lines.Add($"Önbellek ve geçici dosyalar: {Format.Bytes(_cleaned)}");
         if (_cleanLine is { } cleanLine)
             lines.Add(cleanLine);
+        if (_ranSafe && _skipped > 0)
+            lines.Add($"Atladığınız {Format.Count(_skipped)} kalem temizlenmedi");
         if (_quarantinedCount > 0)
             lines.Add($"Karantinaya alınan: {_quarantinedCount} öğe, {Format.Bytes(_quarantined)}. Bu yer karantina boşalınca açılır; {AppSettings.QuarantineDays.Days} gün içinde geri alabilirsiniz.");
         if (_purgedCount > 0)

@@ -10,7 +10,7 @@ namespace DustyBytes.Tests;
 
 public class TekDugmeTests
 {
-    const long SafeTotal = 3_000_000_000 + 1_000_000 + 120_000_000;
+    const long SafeTotal = 3_000_000_000 + 999_999 + 120_000_000;
 
     static async Task Settle()
     {

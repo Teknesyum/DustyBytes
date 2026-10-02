@@ -61,10 +61,11 @@ public sealed partial class OverviewViewModel : ViewModelBase
 {
     readonly MainViewModel _main;
     readonly DateTimeOffset _since = DateTimeOffset.Now;
-    long? _rulesBytes;
+    List<SafeItem>? _ruleItems;
     bool _rulesStale;
     int _estimateRun;
-    long _silentBytes;
+    List<SafeItem> _unitItems = [];
+    List<SafeItemRow> _safeRows = [];
     long _moreBytes;
     int _moreCount;
     object _purgeToken = new();
@@ -254,14 +255,26 @@ public sealed partial class OverviewViewModel : ViewModelBase
     public const string SafeEmptyText = "Güvenle silinecek bir şey kalmadı";
 
     public bool IsWaitingScan => IsScanning || Session.IsRestoring;
-    public bool IsSafeKnown => _rulesBytes is not null;
-    public long SafeBytes => _silentBytes + (_rulesBytes ?? 0);
+    public bool IsSafeKnown => _ruleItems is not null;
+    IEnumerable<SafeItem> SafeItemsAll => _ruleItems is null ? _unitItems : _unitItems.Concat(_ruleItems);
+    public long SafeBytes => SafeBreakdown.Total(SafeItemsAll, Session.SafeSkips);
     public bool ShowSafe => HasSnapshot || IsScanning;
     public bool ScanIsPrimary => !ShowSafe;
-    public bool IsSafeEmpty => HasSnapshot && !IsWaitingScan && IsSafeKnown && SafeBytes <= 0;
+    bool SafeSettled => HasSnapshot && !IsWaitingScan && IsSafeKnown;
+    public bool IsAllSkipped => SafeSettled && SafeBytes <= 0 && _safeRows.Count > 0 && _safeRows.All(r => r.IsSkipped);
+    public bool IsSafeEmpty => SafeSettled && SafeBytes <= 0 && !IsAllSkipped;
     public bool ShowSafeButton => ShowSafe && !IsSafeEmpty;
     public string SafeText => IsSafeKnown && !IsWaitingScan ? $"Güvenle silinebilir: {Format.Bytes(SafeBytes)} — Temizle" : "Güvenle temizle";
-    public string SafeReason => IsWaitingScan ? WaitText : !IsSafeKnown ? "Ölçülüyor" : "";
+    public string SafeReason => IsWaitingScan ? WaitText : !IsSafeKnown ? "Ölçülüyor" : IsAllSkipped ? "Bütün kalemleri atladınız; temizlik için birini geri ekleyin" : "";
+    public ObservableCollection<SafeItemRow> SafeItems { get; } = [];
+    public bool HasBreakdown => SafeSettled && _safeRows.Count > 0;
+    public bool HasAllSafeToggle => HasBreakdown && _safeRows.Count > SafeBreakdown.Shown;
+    public string AllSafeText => ShowAllSafe ? "Daha az göster" : $"Tümünü gör ({Format.Count(_safeRows.Count)} kalem)";
+    public string BreakdownHint => "En büyükten küçüğe. Atladığınız kalem bu temizlikte silinmez.";
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(AllSafeText))]
+    private bool _showAllSafe;
     public bool HasSafeReason => SafeReason.Length > 0;
     public string SafeTip => IsWaitingScan ? WaitText : "Önbellek, geçici dosyalar ve kendiliğinden yeniden oluşan dosyalar sorulmadan silinir; kişisel dosyalara dokunulmaz";
     public string MoreText => $"Daha fazla yer: {Format.Bytes(_moreBytes)}, {Format.Count(_moreCount)} karar →";
@@ -316,7 +329,7 @@ public sealed partial class OverviewViewModel : ViewModelBase
                     _ = EstimateAsync();
                 break;
             case nameof(SessionState.IsRestoring):
-                if (!IsWaitingScan && (_rulesStale || _rulesBytes is null))
+                if (!IsWaitingScan && (_rulesStale || _ruleItems is null))
                     _ = EstimateAsync();
                 break;
             case nameof(SessionState.SelectedDrive):
@@ -364,8 +377,12 @@ public sealed partial class OverviewViewModel : ViewModelBase
         OnPropertyChanged(nameof(SafeBytes));
         OnPropertyChanged(nameof(ShowSafe));
         OnPropertyChanged(nameof(ScanIsPrimary));
+        OnPropertyChanged(nameof(IsAllSkipped));
         OnPropertyChanged(nameof(IsSafeEmpty));
         OnPropertyChanged(nameof(ShowSafeButton));
+        OnPropertyChanged(nameof(HasBreakdown));
+        OnPropertyChanged(nameof(HasAllSafeToggle));
+        OnPropertyChanged(nameof(AllSafeText));
         OnPropertyChanged(nameof(SafeText));
         OnPropertyChanged(nameof(SafeReason));
         OnPropertyChanged(nameof(HasSafeReason));
@@ -383,10 +400,11 @@ public sealed partial class OverviewViewModel : ViewModelBase
     void Plan()
     {
         var units = Session.Snapshot?.Units ?? [];
-        _silentBytes = units.Where(TourViewModel.Silent).Sum(u => Math.Max(0, u.SizeBytes));
+        _unitItems = SafeBreakdown.Units(units);
         var picked = TourViewModel.Pick(units, DateTimeOffset.Now);
         _moreBytes = picked.Sum(u => Math.Max(0, u.SizeBytes));
         _moreCount = UnitClusters.Decisions(picked, DateTimeOffset.Now);
+        Breakdown();
         RaiseSafe();
     }
 
@@ -398,21 +416,88 @@ public sealed partial class OverviewViewModel : ViewModelBase
             return;
         }
         var run = ++_estimateRun;
-        long bytes;
+        List<SafeItem> items;
         try
         {
-            bytes = await CleanupViewModel.SafeBytesAsync(_main.Backend, CancellationToken.None);
+            items = await SafeBreakdown.LoadAsync(_main.Backend, CancellationToken.None);
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException or InvalidOperationException or OperationCanceledException or TimeoutException)
         {
-            bytes = 0;
+            items = [];
         }
         if (run != _estimateRun)
             return;
-        _rulesBytes = bytes;
+        _ruleItems = items;
         _rulesStale = false;
+        Breakdown();
         RaiseSafe();
         NoticeState.Current?.RecordEstimate(SafeBytes, Session.Snapshot?.Units.Sum(u => Math.Max(0, u.SizeBytes)) ?? 0);
+    }
+
+    void Breakdown()
+    {
+        _safeRows = [.. SafeBreakdown.Order(SafeItemsAll).Select(i => new SafeItemRow(i, Session.SafeSkips.Contains(i.Key)))];
+        FillSafe();
+    }
+
+    void FillSafe()
+    {
+        SafeItems.Clear();
+        foreach (var row in ShowAllSafe ? _safeRows : _safeRows.Take(SafeBreakdown.Shown))
+            SafeItems.Add(row);
+    }
+
+    [RelayCommand]
+    private void ToggleAllSafe()
+    {
+        ShowAllSafe = !ShowAllSafe;
+        FillSafe();
+    }
+
+    [RelayCommand]
+    private void SkipSafe(SafeItemRow? row)
+    {
+        if (row is null)
+            return;
+        row.IsSkipped = !row.IsSkipped;
+        if (row.IsSkipped)
+            Session.SafeSkips.Add(row.Key);
+        else
+            Session.SafeSkips.Remove(row.Key);
+        RaiseSafe();
+    }
+
+    [RelayCommand]
+    private async Task ExpandSafe(SafeItemRow? row)
+    {
+        if (row is null)
+            return;
+        row.IsExpanded = !row.IsExpanded;
+        if (!row.IsExpanded || !row.NeedsFiles || row.IsLoading)
+            return;
+        row.IsLoading = true;
+        try
+        {
+            var preview = await _main.Backend.PreviewCleanFilesAsync([row.Key], CancellationToken.None);
+            row.SetFiles(SafeBreakdown.FilesFor(preview, row.Key));
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException or InvalidOperationException or OperationCanceledException or TimeoutException or Worker.WorkerStartException)
+        {
+            row.SetFiles(null);
+        }
+        finally
+        {
+            row.IsLoading = false;
+        }
+    }
+
+    [RelayCommand]
+    private void RevealFile(SafeFileLine? line)
+    {
+        if (line is not { CanReveal: true })
+            return;
+        if (!Gezgin.Reveal(line.Target))
+            _main.Fail("Klasör açılamadı: " + line.Path);
     }
 
     [RelayCommand]
@@ -575,7 +660,7 @@ public sealed partial class OverviewViewModel : ViewModelBase
     {
         Counters();
         Raise();
-        if (_rulesStale || _rulesBytes is null)
+        if (_rulesStale || _ruleItems is null)
             _ = EstimateAsync();
         _ = Session.RefreshQuarantineAsync(_main);
     }

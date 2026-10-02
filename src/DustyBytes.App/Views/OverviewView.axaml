@@ -57,7 +57,65 @@
                   Content="{Binding SafeText}" Command="{Binding SafeCleanCommand}" IsVisible="{Binding ShowSafeButton}"
                   ToolTip.Tip="{Binding SafeTip}" ToolTip.ShowOnDisabled="True"/>
           <TextBlock Name="SafeEmptyText" Theme="{StaticResource Body}" Text="Güvenle silinecek bir şey kalmadı" IsVisible="{Binding IsSafeEmpty}"/>
-          <TextBlock Name="SafeReason" Theme="{StaticResource Hint}" Text="{Binding SafeReason}" IsVisible="{Binding HasSafeReason}"/>
+          <TextBlock Name="SafeReason" Theme="{StaticResource Hint}" Text="{Binding SafeReason}" IsVisible="{Binding HasSafeReason}" TextWrapping="Wrap"/>
+          <StackPanel Name="SafeBreakdown" Spacing="{StaticResource FieldGap}" IsVisible="{Binding HasBreakdown}">
+            <StackPanel Spacing="{StaticResource Space1}">
+              <TextBlock Theme="{StaticResource Label}" Text="İçinde ne var?"/>
+              <TextBlock Theme="{StaticResource Hint}" Text="{Binding BreakdownHint}" TextWrapping="Wrap"/>
+            </StackPanel>
+            <ItemsControl Name="SafeItems" ItemsSource="{Binding SafeItems}">
+              <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                  <StackPanel Spacing="{StaticResource RowGap}"/>
+                </ItemsPanelTemplate>
+              </ItemsControl.ItemsPanel>
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:SafeItemRow">
+                  <StackPanel Spacing="{StaticResource Space1}">
+                    <DockPanel>
+                      <TextBlock DockPanel.Dock="Right" Theme="{StaticResource MonoValue}" Classes="data" Text="{Binding SizeText}" VerticalAlignment="Center"/>
+                      <TextBlock Theme="{StaticResource Body}" Text="{Binding Name}" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Name}" VerticalAlignment="Center"/>
+                    </DockPanel>
+                    <TextBlock Theme="{StaticResource Hint}" Text="{Binding What}" TextWrapping="Wrap" IsVisible="{Binding HasWhat}"/>
+                    <TextBlock Theme="{StaticResource Label}" Text="{Binding SkippedText}" IsVisible="{Binding IsSkipped}"/>
+                    <WrapPanel ItemSpacing="{StaticResource Space2}" LineSpacing="{StaticResource Space1}">
+                      <Button Classes="ghost" Content="{Binding ExpandText}" IsVisible="{Binding CanExpand}"
+                              Command="{Binding $parent[v:OverviewView].((vm:OverviewViewModel)DataContext).ExpandSafeCommand}" CommandParameter="{Binding}"/>
+                      <Button Classes="ghost" Content="{Binding SkipText}" ToolTip.Tip="{Binding SkipTip}"
+                              Command="{Binding $parent[v:OverviewView].((vm:OverviewViewModel)DataContext).SkipSafeCommand}" CommandParameter="{Binding}"/>
+                    </WrapPanel>
+                    <StackPanel Spacing="{StaticResource FieldGap}" IsVisible="{Binding IsExpanded}">
+                      <TextBlock Theme="{StaticResource Hint}" Text="{Binding FilesNote}" IsVisible="{Binding HasFilesNote}" TextWrapping="Wrap"/>
+                      <ItemsControl ItemsSource="{Binding Files}" IsVisible="{Binding HasFiles}">
+                        <ItemsControl.ItemsPanel>
+                          <ItemsPanelTemplate>
+                            <StackPanel Spacing="{StaticResource Space1}"/>
+                          </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                          <DataTemplate x:DataType="vm:SafeFileLine">
+                            <DockPanel>
+                              <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="{StaticResource FieldGap}">
+                                <TextBlock Theme="{StaticResource Hint}" Text="{Binding When}" VerticalAlignment="Center"/>
+                                <TextBlock Theme="{StaticResource MonoValue}" Classes="data" Text="{Binding Size}" VerticalAlignment="Center"/>
+                                <Button Classes="link" Content="Klasörde göster" IsVisible="{Binding CanReveal}" VerticalAlignment="Center"
+                                        ToolTip.Tip="Dosyayı dosya gezgininde seçili gösterir; açmaz, silmez"
+                                        Command="{Binding $parent[v:OverviewView].((vm:OverviewViewModel)DataContext).RevealFileCommand}" CommandParameter="{Binding}"/>
+                              </StackPanel>
+                              <TextBlock Theme="{StaticResource Hint}" Text="{Binding Path}" TextTrimming="CharacterEllipsis"
+                                         ToolTip.Tip="{Binding Path}" Background="Transparent" VerticalAlignment="Center"/>
+                            </DockPanel>
+                          </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                      </ItemsControl>
+                    </StackPanel>
+                  </StackPanel>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <Button Name="AllSafeButton" Classes="link" HorizontalAlignment="Left" Content="{Binding AllSafeText}"
+                    Command="{Binding ToggleAllSafeCommand}" IsVisible="{Binding HasAllSafeToggle}"/>
+          </StackPanel>
           <Button Name="MoreSpaceButton" Classes="link" HorizontalAlignment="Left"
                   Content="{Binding MoreText}" Command="{Binding MoreSpaceCommand}" IsVisible="{Binding HasMore}"
                   ToolTip.Tip="{Binding MoreTip}" ToolTip.ShowOnDisabled="True"/>

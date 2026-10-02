@@ -89,6 +89,15 @@ static class KontrastTuru
         vm.Overview.Target.Disarm();
         vm.Overview.Target.GoalText = "";
 
+        var acik = vm.Overview.SafeItems.First(r => r.CanExpand);
+        var atla = vm.Overview.SafeItems.First(r => r != acik);
+        Bekle(vm.Overview.ExpandSafeCommand.ExecuteAsync(acik));
+        vm.Overview.SkipSafeCommand.Execute(atla);
+        Otur();
+        yield return "Güvenli Döküm";
+        vm.Overview.SkipSafeCommand.Execute(atla);
+        Bekle(vm.Overview.ExpandSafeCommand.ExecuteAsync(acik));
+
         Bekle(vm.StartTourAsync(TourMode.Ask));
         Otur();
         yield return "Tur Kümesi";
