@@ -1,0 +1,49 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:DustyBytes.App.ViewModels"
+             x:Class="DustyBytes.App.Views.UnitContentsView"
+             x:DataType="vm:UnitContentsViewModel">
+  <StackPanel Spacing="{StaticResource Space1}">
+    <TextBlock Name="ContentsStatus" Theme="{StaticResource WarningBody}" Text="{Binding Status}" IsVisible="{Binding HasStatus}" TextWrapping="Wrap"/>
+    <StackPanel Name="ContentsBody" Spacing="{StaticResource Space1}" IsVisible="{Binding IsExpanded}">
+      <TextBlock Theme="{StaticResource Hint}" Text="{Binding Summary}" IsVisible="{Binding HasSummary}" TextWrapping="Wrap"/>
+      <ItemsControl Name="ContentsRows" ItemsSource="{Binding Rows}" IsVisible="{Binding HasRows}" Grid.IsSharedSizeScope="True">
+        <ItemsControl.ItemsPanel>
+          <ItemsPanelTemplate>
+            <StackPanel Spacing="{StaticResource Space1}"/>
+          </ItemsPanelTemplate>
+        </ItemsControl.ItemsPanel>
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="vm:ContentRow">
+            <Grid ColumnSpacing="{StaticResource Space3}">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" SharedSizeGroup="contentKind"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto" SharedSizeGroup="contentSize"/>
+                <ColumnDefinition Width="Auto" SharedSizeGroup="contentActions"/>
+              </Grid.ColumnDefinitions>
+              <Panel VerticalAlignment="Center">
+                <Image Source="{Binding Thumb}" IsVisible="{Binding HasThumb}" Stretch="UniformToFill"
+                       Width="{StaticResource IconSize4}" Height="{StaticResource IconSize4}"
+                       AutomationProperties.Name="{Binding Name}"/>
+                <TextBlock Theme="{StaticResource Label}" Text="{Binding KindText}" IsVisible="{Binding NoThumb}" VerticalAlignment="Center"/>
+              </Panel>
+              <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                <TextBlock Theme="{StaticResource Body}" Text="{Binding Name}" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Path}"/>
+                <TextBlock Theme="{StaticResource Hint}" Text="{Binding DateText}"/>
+              </StackPanel>
+              <TextBlock Grid.Column="2" Theme="{StaticResource MonoValue}" Classes="data" Text="{Binding SizeText}"
+                         HorizontalAlignment="Right" VerticalAlignment="Center"/>
+              <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="{StaticResource Space2}" HorizontalAlignment="Right" VerticalAlignment="Center">
+                <Button Classes="ghost" Content="{Binding OpenText}" IsVisible="{Binding CanOpen}" Command="{Binding OpenCommand}"
+                        ToolTip.Tip="{Binding OpenHint}" AutomationProperties.Name="{Binding OpenText}"/>
+                <Button Classes="ghost" Content="Klasörde göster" Command="{Binding RevealCommand}"
+                        ToolTip.Tip="{Binding RevealHint}" AutomationProperties.Name="Klasörde göster"/>
+              </StackPanel>
+            </Grid>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </StackPanel>
+  </StackPanel>
+</UserControl>

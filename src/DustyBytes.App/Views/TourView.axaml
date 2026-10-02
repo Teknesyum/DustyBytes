@@ -85,16 +85,30 @@
                     </ItemsControl.ItemsPanel>
                     <ItemsControl.ItemTemplate>
                       <DataTemplate x:DataType="vm:ClusterItem">
-                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{StaticResource Space3}">
-                          <CheckBox IsChecked="{Binding IsIncluded}" AutomationProperties.Name="{Binding Name}">
-                            <StackPanel>
-                              <TextBlock Theme="{StaticResource Body}" Text="{Binding Name}" TextTrimming="CharacterEllipsis"/>
-                              <TextBlock Theme="{StaticResource Hint}" Text="{Binding UsageText}"/>
-                              <TextBlock Theme="{StaticResource WarningBody}" Text="{Binding UserDataHint}" IsVisible="{Binding HasUserData}"/>
+                        <StackPanel Spacing="{StaticResource Space1}">
+                          <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="{StaticResource Space3}">
+                            <CheckBox IsChecked="{Binding IsIncluded}" AutomationProperties.Name="{Binding Name}">
+                              <StackPanel>
+                                <TextBlock Theme="{StaticResource Body}" Text="{Binding Name}" TextTrimming="CharacterEllipsis"/>
+                                <TextBlock Theme="{StaticResource Hint}" Text="{Binding UsageText}"/>
+                                <TextBlock Theme="{StaticResource WarningBody}" Text="{Binding UserDataHint}" IsVisible="{Binding HasUserData}"/>
+                              </StackPanel>
+                            </CheckBox>
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="{StaticResource Space2}" VerticalAlignment="Center"
+                                        IsVisible="{Binding Card.HasContents}">
+                              <Button Classes="ghost" Content="Oynat" IsVisible="{Binding Card.CanPlay}"
+                                      Command="{Binding Card.Contents.PlayCommand}" ToolTip.Tip="{Binding Card.Contents.PlayHint}"
+                                      AutomationProperties.Name="Oynat"/>
+                              <Button Name="ClusterContentsToggle" Classes="link" Content="{Binding Card.Contents.ToggleText}"
+                                      Command="{Binding Card.Contents.ToggleCommand}" ToolTip.Tip="{Binding Card.Contents.ToggleHint}"
+                                      AutomationProperties.Name="İçindekiler"/>
                             </StackPanel>
-                          </CheckBox>
-                          <TextBlock Grid.Column="1" Theme="{StaticResource MonoValue}" Classes="data" Text="{Binding SizeText}" VerticalAlignment="Center"/>
-                        </Grid>
+                            <TextBlock Grid.Column="2" Theme="{StaticResource MonoValue}" Classes="data" Text="{Binding SizeText}" VerticalAlignment="Center"/>
+                          </Grid>
+                          <Panel IsVisible="{Binding Card.HasContents}">
+                            <v:UnitContentsView DataContext="{Binding Card.Contents}"/>
+                          </Panel>
+                        </StackPanel>
                       </DataTemplate>
                     </ItemsControl.ItemTemplate>
                   </ItemsControl>
@@ -117,6 +131,17 @@
                 <TextBlock Theme="{StaticResource Body}" Text="{Binding Effect}" TextWrapping="Wrap"/>
                 <TextBlock Theme="{StaticResource Hint}" Text="{Binding Reason}" IsVisible="{Binding HasReason}" TextWrapping="Wrap"/>
                 <TextBlock Theme="{StaticResource Hint}" FontFamily="{StaticResource FontMono}" Text="{Binding PathText}" TextTrimming="CharacterEllipsis"/>
+                <StackPanel Name="TourContents" Spacing="{StaticResource Space1}" IsVisible="{Binding HasContents}">
+                  <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space2}">
+                    <Button Name="TourContentsToggle" Classes="link" Content="{Binding Contents.ToggleText}"
+                            Command="{Binding Contents.ToggleCommand}" ToolTip.Tip="{Binding Contents.ToggleHint}"
+                            AutomationProperties.Name="İçindekiler"/>
+                    <Button Name="TourPlay" Classes="ghost" Content="Oynat" IsVisible="{Binding CanPlay}"
+                            Command="{Binding Contents.PlayCommand}" ToolTip.Tip="{Binding Contents.PlayHint}"
+                            AutomationProperties.Name="Oynat"/>
+                  </StackPanel>
+                  <v:UnitContentsView DataContext="{Binding Contents}"/>
+                </StackPanel>
                 <Border Name="UserDataWarning" Theme="{StaticResource WarningPanel}" IsVisible="{Binding HasUserData}">
                   <TextBlock Theme="{StaticResource WarningBody}" TextWrapping="Wrap"
                              Text="{Binding $parent[v:TourView].((vm:TourViewModel)DataContext).UserDataText}"/>
