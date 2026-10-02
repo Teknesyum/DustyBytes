@@ -214,6 +214,7 @@ public sealed partial class OffersViewModel : ViewModelBase
             new OfferFilter("Uygulama içeriği", UnitKind.AppContent),
             new OfferFilter("Geliştirici", UnitKind.DevArtifact),
             new OfferFilter("Önbellek", UnitKind.Cache, UnitKind.BrowserCache),
+            new OfferFilter("Klasör", UnitKind.Folder),
             new OfferFilter("İndirilenler", UnitKind.Installer, UnitKind.OldDownload),
             new OfferFilter("Bulut kopyası", UnitKind.CloudCopy),
             new OfferFilter("Kopyalar", UnitKind.Duplicate) { AllSizes = true },
@@ -361,6 +362,8 @@ public sealed partial class OffersViewModel : ViewModelBase
     public string DisabledTip => "Önce en az bir birim seçin";
 
     partial void OnSelectedFilterChanged(OfferFilter value) => Apply();
+
+    public void ShowFilter(string label) => SelectedFilter = Filters.FirstOrDefault(f => f.Label == label) ?? Filters[0];
 
     protected override void OnNavigatedTo()
     {
